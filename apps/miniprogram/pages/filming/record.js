@@ -9,8 +9,9 @@ Page({
       { key: 'distance_ok', label: '距离合适（不太近/不太远）', checked: false },
       { key: 'racket_visible', label: '球拍可见', checked: false },
       { key: 'portrait', label: '竖屏拍摄', checked: false },
-      { key: 'lighting_ok', label: '光线充足、无严重逆光', checked: false },
+      { key: 'lighting_ok', label: '光线充足、背景干净', checked: false },
     ],
+    checkedCount: 0,
     showCamera: false,
     videoPath: '',
     videoInfo: '',
@@ -31,12 +32,16 @@ Page({
       })
       .catch(() => {})
   },
-  toggleCheck(e) {
-    const key = e.currentTarget.dataset.key
-    const checklist = this.data.checklist.map((c) =>
-      c.key === key ? { ...c, checked: !c.checked } : c
-    )
-    this.setData({ checklist })
+  onChecklistChange(e) {
+    const selected = e.detail.value || []
+    const checklist = this.data.checklist.map((c) => ({
+      ...c,
+      checked: selected.indexOf(c.key) !== -1,
+    }))
+    this.setData({
+      checklist,
+      checkedCount: selected.length,
+    })
   },
   toggleCamera() {
     this.setData({ showCamera: !this.data.showCamera })
@@ -45,6 +50,10 @@ Page({
     return this.data.checklist.every((c) => c.checked)
   },
   chooseMedia() {
+    if (!this.allChecked()) {
+      wx.showToast({ title: '请先勾选全部清单', icon: 'none' })
+      return
+    }
     wx.chooseMedia({
       count: 1,
       mediaType: ['video'],
@@ -53,15 +62,27 @@ Page({
       camera: 'back',
       success: (res) => {
         const f = res.tempFiles[0]
+        const dur = Number(f.duration || 0)
+        const videoInfo = `约 ${dur.toFixed ? dur.toFixed(1) : dur}s · ${f.width || '?'}x${f.height || '?'}`
+        if (dur > 30) {
+          this.setData({
+            videoPath: f.tempFilePath,
+            videoInfo,
+            failChecks: [],
+            error: `视频约 ${dur.toFixed(1)} 秒，超过 30 秒上限，请换 5–15 秒短视频`,
+          })
+          wx.showToast({ title: '视频过长，请重选', icon: 'none' })
+          return
+        }
         this.setData({
           videoPath: f.tempFilePath,
-          videoInfo: `约 ${(f.duration || 0).toFixed ? f.duration.toFixed(1) : f.duration}s · ${f.width || '?'}x${f.height || '?'}`,
+          videoInfo,
           failChecks: [],
           error: '',
         })
       },
       fail: (err) => {
-        this.setData({ error: err.errMsg || '选择视频失败（开发者工具限制可换真机）' })
+        this.setData({ error: err.errMsg || '选择视频失败' })
       },
     })
   },

@@ -1,45 +1,39 @@
 <view class="container">
   <view class="banner-note">
-    全身/距离由剪影引导 + 自检清单确认（非姿态识别）。服务端真实校验：时长、分辨率、亮度、方向。
+    全身/距离靠剪影参考 + 本页清单确认（非姿态识别）。服务端会实检：时长、分辨率、亮度、朝向。
   </view>
 
   <view class="card silhouette-card">
-    <view class="card-title">剪影引导（示意）</view>
+    <view class="card-title">剪影框（示意）</view>
     <view class="silhouette">
       <view class="sil-head"></view>
       <view class="sil-body"></view>
       <view class="sil-legs"></view>
     </view>
-    <view class="muted">请站入剪影范围：全身入镜、距离约 3–5 米、竖屏、球拍可见。</view>
+    <view class="muted">请站在剪影范围内，全身入镜，距离约 3–5 米，竖屏，球拍可见。</view>
   </view>
 
   <view class="card">
     <view class="card-title">拍摄前清单（须全部勾选）</view>
-    <label class="check-row" wx:for="{{checklist}}" wx:key="key">
-      <checkbox
-        value="{{item.key}}"
-        checked="{{item.checked}}"
-        bindtap="toggleCheck"
-        data-key="{{item.key}}"
-      />
-      <text>{{item.label}}</text>
-    </label>
+    <checkbox-group bindchange="onChecklistChange">
+      <label class="check-row" wx:for="{{checklist}}" wx:key="key">
+        <checkbox value="{{item.key}}" checked="{{item.checked}}" />
+        <text>{{item.label}}</text>
+      </label>
+    </checkbox-group>
+    <view class="muted" style="margin-top:12rpx;">已勾 {{checkedCount}}/{{checklist.length}}</view>
   </view>
 
   <view class="card">
     <view class="card-title">选择或录制视频</view>
-    <view class="muted">推荐：wx.chooseMedia（开发者工具更稳）。真机也可用相机组件录制。</view>
+    <view class="muted">推荐用下方按钮选视频。相册视频请控制在 5–15 秒（最长 30 秒），竖屏。</view>
     <view class="btn-primary" style="margin-top:16rpx;" bindtap="chooseMedia">从相册/相机选择视频</view>
     <view class="btn-ghost" style="margin-top:16rpx;" bindtap="toggleCamera">{{showCamera ? '关闭相机预览' : '打开相机预览（真机）'}}</view>
   </view>
 
   <view class="card" wx:if="{{showCamera}}">
-    <camera
-      device-position="back"
-      flash="off"
-      style="width:100%;height:420rpx;"
-    ></camera>
-    <view class="muted" style="margin-top:12rpx;">开发者工具中 camera 可能不可用；请用「选择视频」。真机可结合系统录像后 chooseMedia。</view>
+    <camera device-position="back" flash="off" style="width:100%;height:420rpx;"></camera>
+    <view class="muted" style="margin-top:12rpx;">开发者工具里 camera 可能不好用，请用「选择视频」。</view>
   </view>
 
   <view class="card" wx:if="{{videoPath}}">
