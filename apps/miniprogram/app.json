@@ -7,6 +7,8 @@
     "pages/plan/test",
     "pages/records/index",
     "pages/filming/guide",
+    "pages/filming/record",
+    "pages/filming/result",
     "pages/tips/index",
     "pages/errors/index",
     "pages/recommend/index"

@@ -1,4 +1,4 @@
-# 羽毛球 AI 学习训练助手（Phase-2）
+# 羽毛球 AI 学习训练助手（Phase-2 / V1 拍摄预检）
 
 微信小程序 + FastAPI 内容/计划 MVP。  
 目标仓库：https://github.com/ice-kora/badminton-training.git
@@ -37,6 +37,19 @@ make test         # pytest 须全绿
 6. **分析诚实失败**：`POST /analysis/jobs` 返回 HTTP 501，body.code = `ANALYSIS_NOT_IMPLEMENTED`。
 7. **小程序**：微信开发者工具打开 `apps/miniprogram`，勾选「不校验合法域名」，首页可拉技能树与计划入口。
 
+
+## 体验步骤（拍摄预检 + 上传）
+
+1. `make install && make run` 启动 API（:8000）。
+2. 微信开发者工具打开 `apps/miniprogram`，不校验合法域名；`touristappid`。
+3. 技术库 → 选技能（如正手高远球）→ **查看拍摄引导** → **开始录制 / 选择视频**。
+4. 对照剪影勾选清单（全身/距离等为客户端门禁）→ `chooseMedia` 选视频（工具里比 camera 稳）。
+5. 上传：服务端预检时长/分辨率/亮度/方向；失败展示原因并提示重拍。
+6. 通过后返回 `video_id` + `analysis_job`（`not_implemented` / `ANALYSIS_NOT_IMPLEMENTED`），页面提示「分析能力尚未开放」——**无分数**。
+
+**真预检**：duration / resolution / brightness / orientation（OpenCV 探测）。  
+**占位**：full_body / distance → `deferred_to_pose` 或客户端清单确认（非姿态 AI）。
+
 ## API 一览
 
 | 方法 | 路径 | 说明 |
@@ -45,7 +58,11 @@ make test         # pytest 须全绿
 | POST | /auth/dev-login | 本地 JWT |
 | GET | /skills/tree | 技能树 |
 | GET | /skills/{id} | 技能详情 |
-| GET | /filming-guides/{skill_id} | 拍摄引导 |
+| GET | /filming-guides/{skill_id} | 拍摄引导（含预检策略） |
+| POST | /videos/precheck | 仅预检（multipart，需登录） |
+| POST | /videos/upload | 预检+入库+创建 analysis_job |
+| GET | /videos/{id} | 视频元数据 |
+| GET | /analysis/jobs/{id} | 任务状态（无分数） |
 | POST | /plans/level-test | 规则 7 日计划 |
 | GET | /plans/current | 当前计划 |
 | POST | /sessions/check-in | 打卡 |

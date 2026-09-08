@@ -25,6 +25,27 @@ def get_filming_guides(skill_id: int, db: Session = Depends(get_db)):
                 checklist = json.loads(g.checklist_json)
             except json.JSONDecodeError:
                 checklist = []
+        policy: dict = {}
+        if g.precheck_policy_json:
+            try:
+                policy = json.loads(g.precheck_policy_json)
+            except json.JSONDecodeError:
+                policy = {}
+        duration_range = policy.get(
+            "duration_range_sec",
+            [g.duration_min_sec or 5, g.duration_max_sec or 15],
+        )
+        required = policy.get(
+            "required_checks",
+            ["duration", "resolution", "brightness", "orientation"],
+        )
+        deferred = policy.get("deferred_checks", ["full_body", "distance"])
+        client_items = policy.get(
+            "client_checklist_items",
+            ["full_body", "distance_ok", "racket_visible"],
+        )
+        min_short = policy.get("min_short_side", g.min_short_side or 720)
+        min_bri = float(policy.get("min_brightness", g.min_brightness or 40))
         result.append(
             FilmingGuideOut(
                 id=g.id,
@@ -37,6 +58,12 @@ def get_filming_guides(skill_id: int, db: Session = Depends(get_db)):
                 racket_visible=bool(g.racket_visible),
                 lighting_notes=g.lighting_notes,
                 checklist=checklist,
+                duration_range_sec=list(duration_range),
+                min_resolution={"min_short_side": int(min_short)},
+                brightness_policy={"min_mean_luminance": min_bri},
+                required_checks=list(required),
+                deferred_checks=list(deferred),
+                client_checklist_items=list(client_items),
                 source=g.source,
                 verification_status=g.verification_status,
             )

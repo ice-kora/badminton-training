@@ -19,6 +19,7 @@ from app.routers import (
     recommendations,
     sessions,
     skills,
+    videos,
 )
 
 
@@ -30,6 +31,7 @@ async def lifespan(_app: FastAPI):
         # Also ensure absolute data dir next to package root
         api_root = Path(__file__).resolve().parent.parent
         (api_root / "data").mkdir(parents=True, exist_ok=True)
+        (api_root / "data" / "uploads").mkdir(parents=True, exist_ok=True)
     init_db()
     yield
 
@@ -38,7 +40,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
         title=settings.app_name,
-        version="0.2.0",
+        version="0.3.0",
         description=(
             "羽毛球 AI 学习训练助手 API（Phase-2）。"
             "姿态分析未实现，返回 ANALYSIS_NOT_IMPLEMENTED。"
@@ -61,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(content.router)
     app.include_router(recommendations.router)
     app.include_router(analysis.router)
+    app.include_router(videos.router)
     return app
 
 

@@ -3,8 +3,11 @@ __pycache__/
 .venv/
 venv/
 *.db
-services/api/data/
+services/api/data/*.db
+services/api/data/uploads/*
+!services/api/data/uploads/.gitkeep
 services/api/tests/_test.db
+services/api/tests/_test_uploads/
 .pytest_cache/
 .env
 .DS_Store

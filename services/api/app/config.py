@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7
     allow_dev_login: bool = True
+    upload_dir: str = str(_API_ROOT / "data" / "uploads")
 
 
 @lru_cache

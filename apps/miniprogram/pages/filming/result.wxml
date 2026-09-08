@@ -1,0 +1,13 @@
+<view class="container">
+  <view class="banner-note">分析能力尚未开放。已保存视频元数据与分析任务，不会返回动作评分。</view>
+  <view class="card">
+    <view class="card-title">上传成功</view>
+    <view>视频 ID：{{videoId}}</view>
+    <view>任务 ID：{{jobId}}</view>
+    <view class="tag warn" style="margin-top:12rpx;">{{jobStatus}}</view>
+    <view class="muted" style="margin-top:12rpx;">{{jobMessage}}</view>
+    <view class="muted" wx:if="{{errorCode}}">error_code: {{errorCode}}</view>
+  </view>
+  <view class="btn-primary" bindtap="backSkill">返回</view>
+  <view class="muted" wx:if="{{error}}">{{error}}</view>
+</view>

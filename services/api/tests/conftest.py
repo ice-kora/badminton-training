@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from pathlib import Path
 
 import pytest
@@ -14,12 +15,15 @@ if _TEST_DB.exists():
 os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DB}"
 os.environ["ALLOW_DEV_LOGIN"] = "true"
 os.environ["JWT_SECRET"] = "test-secret"
+_UPLOAD = Path(__file__).resolve().parent / "_test_uploads"
+_UPLOAD.mkdir(parents=True, exist_ok=True)
+os.environ["UPLOAD_DIR"] = str(_UPLOAD)
 
 from app.config import get_settings
 
 get_settings.cache_clear()
 
-from app.database import SessionLocal, init_db
+from app.database import init_db
 from app.main import create_app
 from app.seed import seed
 
@@ -28,6 +32,9 @@ from app.seed import seed
 def client():
     if _TEST_DB.exists():
         _TEST_DB.unlink()
+    if _UPLOAD.exists():
+        shutil.rmtree(_UPLOAD, ignore_errors=True)
+    _UPLOAD.mkdir(parents=True, exist_ok=True)
     get_settings.cache_clear()
     init_db()
     seed()
@@ -36,6 +43,8 @@ def client():
         yield c
     if _TEST_DB.exists():
         _TEST_DB.unlink()
+    if _UPLOAD.exists():
+        shutil.rmtree(_UPLOAD, ignore_errors=True)
 
 
 @pytest.fixture

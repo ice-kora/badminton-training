@@ -12,8 +12,9 @@ if str(_API_ROOT) not in sys.path:
 
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal, init_db
+from app.database import Base, SessionLocal, engine, init_db
 from app.models import (
+    AnalysisJob,
     BadmintonSkill,
     BenchmarkVersion,
     CommonError,
@@ -25,6 +26,7 @@ from app.models import (
     SkillContentBlock,
     SkillStage,
     TipArticle,
+    TrainingVideo,
 )
 
 DRAFT = "draft_unverified"
@@ -32,22 +34,16 @@ SRC = "editorial_draft"
 
 
 def _clear(db: Session) -> None:
-    """Idempotent re-seed: wipe content tables (keep users/plans if any)."""
-    for model in (
-        ProblemToDrill,
-        BenchmarkVersion,
-        MotionBenchmark,
-        FilmingGuide,
-        SkillContentBlock,
-        SkillStage,
-        CommonError,
-        Drill,
-        TipArticle,
-        BadmintonSkill,
-        SkillCategory,
-    ):
-        db.query(model).delete()
-    db.commit()
+    """Idempotent re-seed: refresh schema + wipe content (MVP local)."""
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+    db.close()
+    engine.dispose()
+    # Recreate tables so FilmingGuide precheck columns / new models exist
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
 
 
 def seed(db: Session | None = None) -> None:
@@ -57,7 +53,28 @@ def seed(db: Session | None = None) -> None:
         db = SessionLocal()
     assert db is not None
     try:
-        _clear(db)
+        if own:
+            _clear(db)
+            db = SessionLocal()
+        else:
+            # Test path: tables already created by init_db; just wipe content rows
+            for model in (
+                AnalysisJob,
+                TrainingVideo,
+                ProblemToDrill,
+                BenchmarkVersion,
+                MotionBenchmark,
+                FilmingGuide,
+                SkillContentBlock,
+                SkillStage,
+                CommonError,
+                Drill,
+                TipArticle,
+                BadmintonSkill,
+                SkillCategory,
+            ):
+                db.query(model).delete()
+            db.commit()
 
         # Categories
         cat_rear = SkillCategory(
@@ -171,23 +188,32 @@ def seed(db: Session | None = None) -> None:
                 )
             )
 
-        # Filming guides (UX guidelines OK)
+        # Filming guides (UX + V1 engineering precheck policy)
+        precheck_policy = {
+            "duration_range_sec": [5, 15],
+            "min_short_side": 720,
+            "orientation": "portrait",
+            "min_brightness": 40,
+            "required_checks": ["duration", "resolution", "brightness", "orientation"],
+            "client_checklist_items": ["full_body", "distance_ok", "racket_visible"],
+            "deferred_checks": ["full_body", "distance"],
+        }
         guides = [
             (clear,
              "场地侧后方约 45°（持拍手异侧略偏后）",
              "约 3–5 米，全身入镜",
              "手机高度约腰至胸",
-             ["全身入画", "球拍可见", "光线充足、背景简洁", "竖屏拍摄", "击球全程在画面中"]),
+             ["全身入画", "球拍可见", "光线充足、背景简洁", "竖屏拍摄", "击球全程在画面中", "时长约 5–15 秒"]),
             (smash,
              "侧后方约 30–45°，能看清引拍与下压",
              "约 3–5 米",
              "手机高度约腰部",
-             ["全身入画", "并步与击球可见", "球拍轨迹清晰", "避免逆光"]),
+             ["全身入画", "并步与击球可见", "球拍轨迹清晰", "避免逆光", "竖屏拍摄", "时长约 5–15 秒"]),
             (tumble,
              "网前侧面或略偏后侧",
              "约 2–3 米，聚焦网前区域",
              "手机高度约网高附近",
-             ["上半身与拍面清晰", "球过网过程可见", "尽量避免遮挡", "竖屏或横屏均可，保持稳定"]),
+             ["上半身与拍面清晰", "球过网过程可见", "尽量避免遮挡", "竖屏拍摄", "时长约 5–15 秒"]),
         ]
         for skill, angle, dist, height, checklist in guides:
             db.add(
@@ -201,6 +227,11 @@ def seed(db: Session | None = None) -> None:
                     racket_visible=1,
                     lighting_notes="避免逆光；室内尽量均匀照明。此为产品拍摄 UX 指引，非关节角标准。",
                     checklist_json=json.dumps(checklist, ensure_ascii=False),
+                    duration_min_sec=5,
+                    duration_max_sec=15,
+                    min_short_side=720,
+                    min_brightness=40,
+                    precheck_policy_json=json.dumps(precheck_policy, ensure_ascii=False),
                     source="product_ux_guideline",
                     verification_status=DRAFT,
                 )

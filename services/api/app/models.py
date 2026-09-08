@@ -191,6 +191,12 @@ class FilmingGuide(Base):
     racket_visible: Mapped[int] = mapped_column(Integer, default=1)
     lighting_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     checklist_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # V1 precheck policy (engineering checks — not pose standards)
+    duration_min_sec: Mapped[int] = mapped_column(Integer, default=5)
+    duration_max_sec: Mapped[int] = mapped_column(Integer, default=15)
+    min_short_side: Mapped[int] = mapped_column(Integer, default=720)
+    min_brightness: Mapped[int] = mapped_column(Integer, default=40)
+    precheck_policy_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     source: Mapped[str] = mapped_column(String(128), default="product_ux_guideline")
     verification_status: Mapped[str] = mapped_column(
         String(32), default="draft_unverified"
@@ -297,3 +303,49 @@ class TrainingSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     user: Mapped[User] = relationship(back_populates="sessions")
+
+
+class TrainingVideo(Base):
+    """Uploaded training clip metadata (local filesystem storage for MVP)."""
+
+    __tablename__ = "training_videos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    skill_id: Mapped[int] = mapped_column(ForeignKey("badminton_skills.id"), index=True)
+    storage_path: Mapped[str] = mapped_column(String(512))
+    filename: Mapped[str] = mapped_column(String(256))
+    duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    width: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    height: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    orientation: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    size_bytes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    precheck_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    analysis_jobs: Mapped[list["AnalysisJob"]] = relationship(back_populates="video")
+
+
+class AnalysisJob(Base):
+    """
+    Analysis job shell. V1 does NOT run pose; status stays not_implemented / pending.
+    Never store fake scores here.
+    """
+
+    __tablename__ = "analysis_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    video_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("training_videos.id"), nullable=True, index=True
+    )
+    skill_id: Mapped[int] = mapped_column(ForeignKey("badminton_skills.id"), index=True)
+    # pending|rejected_precheck|queued|not_implemented|failed
+    status: Mapped[str] = mapped_column(String(32), default="not_implemented")
+    error_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    video: Mapped[Optional[TrainingVideo]] = relationship(back_populates="analysis_jobs")

@@ -64,3 +64,15 @@ docker compose -f infra/docker-compose.yml up -d
 ## 数据库策略
 
 MVP 使用 SQLAlchemy `create_all` + `python -m app.seed`。未强制 Alembic；后续切 Postgres 生产库时再补迁移。
+
+## 拍摄预检 + 上传（V1）
+
+```bash
+# 登录拿 token
+TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/dev-login   -H 'Content-Type: application/json'   -d '{"openid":"dev","nickname":"测试"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+# 上传（需真实/测试 mp4）
+curl -X POST http://127.0.0.1:8000/videos/upload   -H "Authorization: Bearer $TOKEN"   -F skill_id=1   -F 'client_checklist_json={"full_body":true,"distance_ok":true,"racket_visible":true}'   -F file=@/path/to/clip.mp4
+```
+
+本地文件落在 `services/api/data/uploads/`（已 gitignore 内容）。

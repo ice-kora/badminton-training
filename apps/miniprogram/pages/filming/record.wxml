@@ -1,0 +1,61 @@
+<view class="container">
+  <view class="banner-note">
+    全身/距离由剪影引导 + 自检清单确认（非姿态识别）。服务端真实校验：时长、分辨率、亮度、方向。
+  </view>
+
+  <view class="card silhouette-card">
+    <view class="card-title">剪影引导（示意）</view>
+    <view class="silhouette">
+      <view class="sil-head"></view>
+      <view class="sil-body"></view>
+      <view class="sil-legs"></view>
+    </view>
+    <view class="muted">请站入剪影范围：全身入镜、距离约 3–5 米、竖屏、球拍可见。</view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">拍摄前清单（须全部勾选）</view>
+    <label class="check-row" wx:for="{{checklist}}" wx:key="key">
+      <checkbox
+        value="{{item.key}}"
+        checked="{{item.checked}}"
+        bindtap="toggleCheck"
+        data-key="{{item.key}}"
+      />
+      <text>{{item.label}}</text>
+    </label>
+  </view>
+
+  <view class="card">
+    <view class="card-title">选择或录制视频</view>
+    <view class="muted">推荐：wx.chooseMedia（开发者工具更稳）。真机也可用相机组件录制。</view>
+    <view class="btn-primary" style="margin-top:16rpx;" bindtap="chooseMedia">从相册/相机选择视频</view>
+    <view class="btn-ghost" style="margin-top:16rpx;" bindtap="toggleCamera">{{showCamera ? '关闭相机预览' : '打开相机预览（真机）'}}</view>
+  </view>
+
+  <view class="card" wx:if="{{showCamera}}">
+    <camera
+      device-position="back"
+      flash="off"
+      style="width:100%;height:420rpx;"
+    ></camera>
+    <view class="muted" style="margin-top:12rpx;">开发者工具中 camera 可能不可用；请用「选择视频」。真机可结合系统录像后 chooseMedia。</view>
+  </view>
+
+  <view class="card" wx:if="{{videoPath}}">
+    <view class="card-title">已选视频</view>
+    <video src="{{videoPath}}" controls style="width:100%;"></video>
+    <view class="muted">{{videoInfo}}</view>
+    <view class="btn-primary" style="margin-top:16rpx;" bindtap="doUpload" wx:if="{{!uploading}}">上传并预检</view>
+    <view class="muted" wx:else>上传中…</view>
+  </view>
+
+  <view class="card" wx:if="{{failChecks.length}}">
+    <view class="card-title" style="color:#b91c1c;">预检未通过 — 请重拍</view>
+    <view wx:for="{{failChecks}}" wx:key="id" class="fail-item">
+      · [{{item.id}}] {{item.message}}
+    </view>
+  </view>
+
+  <view class="muted" wx:if="{{error}}">{{error}}</view>
+</view>

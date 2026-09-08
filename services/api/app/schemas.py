@@ -85,6 +85,27 @@ class FilmingGuideOut(OrmModel, ProvenanceMixin):
     racket_visible: bool
     lighting_notes: Optional[str] = None
     checklist: list[str] = []
+    duration_range_sec: list[int] = Field(default_factory=lambda: [5, 15])
+    min_resolution: dict[str, int] = Field(
+        default_factory=lambda: {"min_short_side": 720}
+    )
+    brightness_policy: dict[str, float] = Field(
+        default_factory=lambda: {"min_mean_luminance": 40.0}
+    )
+    required_checks: list[str] = Field(
+        default_factory=lambda: [
+            "duration",
+            "resolution",
+            "brightness",
+            "orientation",
+        ]
+    )
+    deferred_checks: list[str] = Field(
+        default_factory=lambda: ["full_body", "distance"]
+    )
+    client_checklist_items: list[str] = Field(
+        default_factory=lambda: ["full_body", "distance_ok", "racket_visible"]
+    )
 
 
 # ---- Drills / errors / tips ----
@@ -188,3 +209,55 @@ class AnalysisNotImplemented(BaseModel):
         "分析流水线将在标准动作库经专家标注后接入，禁止返回模拟分数。"
     )
     skill_id: Optional[int] = None
+
+
+# ---- Video precheck / upload ----
+class PrecheckCheckOut(BaseModel):
+    id: str
+    status: str  # pass|fail|skipped|deferred_to_pose|client_checklist_only
+    message: str
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class PrecheckReportOut(BaseModel):
+    passed: bool
+    checks: list[PrecheckCheckOut]
+    probe: Optional[dict[str, Any]] = None
+    policy: Optional[dict[str, Any]] = None
+
+
+class TrainingVideoOut(OrmModel):
+    id: int
+    user_id: int
+    skill_id: int
+    filename: str
+    duration_ms: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    orientation: Optional[str] = None
+    size_bytes: Optional[int] = None
+    precheck: Optional[dict[str, Any]] = None
+    created_at: datetime
+
+
+class AnalysisJobOut(OrmModel):
+    id: int
+    video_id: Optional[int] = None
+    skill_id: int
+    status: str
+    error_code: Optional[str] = None
+    message: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    # Explicit: no scores field — analysis not implemented
+
+
+class VideoUploadOut(BaseModel):
+    video: TrainingVideoOut
+    analysis_job: AnalysisJobOut
+    precheck: PrecheckReportOut
+    notice: str = (
+        "分析能力尚未开放（ANALYSIS_NOT_IMPLEMENTED）。"
+        "已保存视频与任务元数据，不会返回动作评分。"
+    )
+

@@ -1,17 +1,19 @@
 <view class="container">
-  <view class="banner-note">拍摄引导为产品 UX 指引，不是关节角度数值标准。姿态分析尚未上线。</view>
+  <view class="banner-note">拍摄引导为产品 UX 指引，不是关节角度数值标准。姿态分析尚未上线；上传仅做质量预检。</view>
   <block wx:for="{{guides}}" wx:key="id">
     <view class="card">
       <view class="card-title">机位</view>
       <view>{{item.camera_angle}}</view>
-      <view class="section-title">距离 / 高度</view>
+      <view class="section-title">距离 / 高度 / 方向</view>
       <view>{{item.distance_hint}}</view>
-      <view class="muted">{{item.height_hint}} · {{item.orientation}}</view>
-      <view class="section-title">检查清单</view>
+      <view class="muted">{{item.height_hint}} · {{item.orientation}} · 时长 {{item.duration_range_sec[0]}}–{{item.duration_range_sec[1]}} 秒</view>
+      <view class="muted">短边分辨率 ≥ {{item.min_resolution.min_short_side}} · 平均亮度 ≥ {{item.brightness_policy.min_mean_luminance}}</view>
+      <view class="section-title">检查清单（客户端确认）</view>
       <view wx:for="{{item.checklist}}" wx:for-item="c" wx:key="*this">· {{c}}</view>
       <view class="muted" style="margin-top:12rpx;">{{item.lighting_notes}}</view>
       <view class="tag warn" style="margin-top:8rpx;">{{item.verification_status}}</view>
     </view>
   </block>
+  <view class="btn-primary" wx:if="{{skillId}}" bindtap="startRecord">开始录制 / 选择视频</view>
   <view class="muted" wx:if="{{error}}">{{error}}</view>
 </view>
