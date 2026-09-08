@@ -1,0 +1,30 @@
+<view class="container">
+  <view class="card">
+    <view class="card-title">{{nickname || '球员'}}</view>
+    <view class="muted">本地开发登录账号</view>
+  </view>
+
+  <view class="section-title">入口</view>
+  <view class="card row" bindtap="goRecommend">
+    <text>现在练什么</text>
+    <text class="muted">规则推荐</text>
+  </view>
+  <view class="card row" bindtap="goTips">
+    <text>训练贴士</text>
+    <text class="muted">></text>
+  </view>
+  <view class="card row" bindtap="goErrors">
+    <text>常见错误</text>
+    <text class="muted">></text>
+  </view>
+
+  <view class="section-title">打卡记录</view>
+  <view class="card" wx:for="{{sessions}}" wx:key="id">
+    <view class="row">
+      <text>{{item.session_date}}</text>
+      <text class="tag" wx:if="{{item.rating}}">自评 {{item.rating}}</text>
+    </view>
+    <view class="muted">{{item.notes || '已完成训练打卡'}}</view>
+  </view>
+  <view class="muted" wx:if="{{!sessions.length}}">暂无打卡，去「训练」页完成一日计划吧。</view>
+</view>

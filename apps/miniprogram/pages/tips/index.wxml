@@ -1,0 +1,11 @@
+<view class="container">
+  <view class="card" wx:for="{{tips}}" wx:key="id">
+    <view class="card-title">{{item.title}}</view>
+    <view class="muted">{{item.summary}}</view>
+    <view style="margin-top:12rpx;">{{item.body}}</view>
+    <view style="margin-top:8rpx;">
+      <text class="tag warn">{{item.verification_status}}</text>
+      <text class="tag">{{item.tags}}</text>
+    </view>
+  </view>
+</view>

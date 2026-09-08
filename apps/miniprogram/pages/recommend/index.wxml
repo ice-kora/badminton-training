@@ -1,0 +1,11 @@
+<view class="container">
+  <view class="banner-note">{{rec.disclaimer || '基于计划与打卡的规则推荐，不是姿态/AI 动作评分。'}}</view>
+  <view class="card" wx:if="{{rec}}">
+    <view class="card-title">{{rec.title}}</view>
+    <view>{{rec.reason}}</view>
+    <view class="muted" style="margin-top:12rpx;">方法：{{rec.method}}</view>
+    <view class="muted" wx:if="{{rec.focus_today}}">焦点：{{rec.focus_today}}</view>
+  </view>
+  <view class="btn-primary" bindtap="refresh">刷新推荐</view>
+  <view class="btn-ghost" style="margin-top:16rpx;" bindtap="goPlan">查看训练计划</view>
+</view>

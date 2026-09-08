@@ -1,0 +1,15 @@
+<view class="container">
+  <view class="banner-note">内容状态多为「未验证草稿」，请结合教练指导使用。</view>
+  <block wx:for="{{categories}}" wx:key="id">
+    <view class="section-title">{{item.name}}</view>
+    <view class="card" wx:for="{{item.skills}}" wx:for-item="skill" wx:key="id" bindtap="goDetail" data-id="{{skill.id}}">
+      <view class="row">
+        <view class="card-title" style="margin:0;">{{skill.name}}</view>
+        <text class="tag">{{skill.difficulty}}</text>
+      </view>
+      <view class="muted">{{skill.summary}}</view>
+      <view class="tag warn" style="margin-top:8rpx;">{{skill.verification_status}}</view>
+    </view>
+  </block>
+  <view class="muted" wx:if="{{error}}">{{error}}</view>
+</view>

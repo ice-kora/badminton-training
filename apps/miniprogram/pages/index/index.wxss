@@ -1,0 +1,4 @@
+.hero-actions { display: flex; gap: 16rpx; margin-top: 24rpx; }
+.hero-actions .btn-primary, .hero-actions .btn-ghost { flex: 1; }
+.grid { display: flex; flex-wrap: wrap; gap: 16rpx; margin-bottom: 12rpx; }
+.grid-item { width: calc(50% - 8rpx); box-sizing: border-box; text-align: center; font-weight: 500; margin-bottom: 0; }

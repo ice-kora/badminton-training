@@ -1,0 +1,299 @@
+"""SQLAlchemy models for badminton coach MVP."""
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Optional
+
+from sqlalchemy import (
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.database import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    openid: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    nickname: Mapped[str] = mapped_column(String(64), default="球员")
+    level: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)  # beginner/intermediate/advanced
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    plans: Mapped[list[TrainingPlan]] = relationship(back_populates="user")
+    sessions: Mapped[list[TrainingSession]] = relationship(back_populates="user")
+
+
+class SkillCategory(Base):
+    __tablename__ = "skill_categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str] = mapped_column(String(64))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    skills: Mapped[list[BadmintonSkill]] = relationship(back_populates="category")
+
+
+class BadmintonSkill(Base):
+    __tablename__ = "badminton_skills"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("skill_categories.id"))
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    name: Mapped[str] = mapped_column(String(64))
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    difficulty: Mapped[str] = mapped_column(String(32), default="beginner")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    source: Mapped[str] = mapped_column(String(128), default="editorial_draft")
+    verification_status: Mapped[str] = mapped_column(
+        String(32), default="draft_unverified"
+    )  # draft_unverified|expert_pending|verified
+
+    category: Mapped[SkillCategory] = relationship(back_populates="skills")
+    stages: Mapped[list[SkillStage]] = relationship(
+        back_populates="skill", order_by="SkillStage.sort_order"
+    )
+    content_blocks: Mapped[list[SkillContentBlock]] = relationship(
+        back_populates="skill", order_by="SkillContentBlock.sort_order"
+    )
+    common_errors: Mapped[list[CommonError]] = relationship(back_populates="skill")
+    drills: Mapped[list[Drill]] = relationship(back_populates="skill")
+    filming_guides: Mapped[list[FilmingGuide]] = relationship(back_populates="skill")
+    motion_benchmarks: Mapped[list[MotionBenchmark]] = relationship(
+        back_populates="skill"
+    )
+
+
+class SkillStage(Base):
+    __tablename__ = "skill_stages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    skill_id: Mapped[int] = mapped_column(ForeignKey("badminton_skills.id"))
+    name: Mapped[str] = mapped_column(String(64))
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    source: Mapped[str] = mapped_column(String(128), default="editorial_draft")
+    verification_status: Mapped[str] = mapped_column(
+        String(32), default="draft_unverified"
+    )
+
+    skill: Mapped[BadmintonSkill] = relationship(back_populates="stages")
+
+
+class SkillContentBlock(Base):
+    __tablename__ = "skill_content_blocks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    skill_id: Mapped[int] = mapped_column(ForeignKey("badminton_skills.id"))
+    block_type: Mapped[str] = mapped_column(String(32))  # overview|key_points|cues|notes
+    title: Mapped[str] = mapped_column(String(128))
+    body: Mapped[str] = mapped_column(Text)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    source: Mapped[str] = mapped_column(String(128), default="editorial_draft")
+    verification_status: Mapped[str] = mapped_column(
+        String(32), default="draft_unverified"
+    )
+
+    skill: Mapped[BadmintonSkill] = relationship(back_populates="content_blocks")
+
+
+class CommonError(Base):
+    __tablename__ = "common_errors"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    skill_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("badminton_skills.id"), nullable=True
+    )
+    title: Mapped[str] = mapped_column(String(128))
+    description: Mapped[str] = mapped_column(Text)
+    how_to_fix: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source: Mapped[str] = mapped_column(String(128), default="editorial_draft")
+    verification_status: Mapped[str] = mapped_column(
+        String(32), default="draft_unverified"
+    )
+
+    skill: Mapped[Optional[BadmintonSkill]] = relationship(back_populates="common_errors")
+    problem_links: Mapped[list[ProblemToDrill]] = relationship(back_populates="error")
+
+
+class TipArticle(Base):
+    __tablename__ = "tip_articles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(128))
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    body: Mapped[str] = mapped_column(Text)
+    tags: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    source: Mapped[str] = mapped_column(String(128), default="editorial_draft")
+    verification_status: Mapped[str] = mapped_column(
+        String(32), default="draft_unverified"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class Drill(Base):
+    __tablename__ = "drills"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    skill_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("badminton_skills.id"), nullable=True
+    )
+    name: Mapped[str] = mapped_column(String(128))
+    goal: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    steps: Mapped[str] = mapped_column(Text)
+    duration_minutes: Mapped[int] = mapped_column(Integer, default=10)
+    intensity: Mapped[str] = mapped_column(String(32), default="medium")
+    source: Mapped[str] = mapped_column(String(128), default="editorial_draft")
+    verification_status: Mapped[str] = mapped_column(
+        String(32), default="draft_unverified"
+    )
+
+    skill: Mapped[Optional[BadmintonSkill]] = relationship(back_populates="drills")
+    problem_links: Mapped[list[ProblemToDrill]] = relationship(back_populates="drill")
+
+
+class ProblemToDrill(Base):
+    """Maps a common error (problem) to a corrective drill."""
+
+    __tablename__ = "problem_to_drill"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    error_id: Mapped[int] = mapped_column(ForeignKey("common_errors.id"))
+    drill_id: Mapped[int] = mapped_column(ForeignKey("drills.id"))
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    error: Mapped[CommonError] = relationship(back_populates="problem_links")
+    drill: Mapped[Drill] = relationship(back_populates="problem_links")
+
+
+class FilmingGuide(Base):
+    """Product UX filming guidelines — NOT numerical joint-angle standards."""
+
+    __tablename__ = "filming_guides"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    skill_id: Mapped[int] = mapped_column(ForeignKey("badminton_skills.id"))
+    camera_angle: Mapped[str] = mapped_column(String(128))
+    distance_hint: Mapped[str] = mapped_column(String(128))
+    height_hint: Mapped[str] = mapped_column(String(128))
+    orientation: Mapped[str] = mapped_column(String(32), default="portrait")
+    full_body_required: Mapped[int] = mapped_column(Integer, default=1)
+    racket_visible: Mapped[int] = mapped_column(Integer, default=1)
+    lighting_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    checklist_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source: Mapped[str] = mapped_column(String(128), default="product_ux_guideline")
+    verification_status: Mapped[str] = mapped_column(
+        String(32), default="draft_unverified"
+    )
+
+    skill: Mapped[BadmintonSkill] = relationship(back_populates="filming_guides")
+
+
+class MotionBenchmark(Base):
+    """
+    Motion benchmark shell. Metric tables intentionally empty/null —
+    expert annotation required. Do NOT invent joint-angle standards.
+    """
+
+    __tablename__ = "motion_benchmarks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    skill_id: Mapped[int] = mapped_column(ForeignKey("badminton_skills.id"))
+    name: Mapped[str] = mapped_column(String(128))
+    handedness: Mapped[str] = mapped_column(String(16), default="right")
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Intentionally null until expert annotation
+    metric_table_json: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # NULL = expert annotation required
+    source: Mapped[str] = mapped_column(String(128), default="placeholder_shell")
+    verification_status: Mapped[str] = mapped_column(
+        String(32), default="draft_unverified"
+    )
+
+    skill: Mapped[BadmintonSkill] = relationship(back_populates="motion_benchmarks")
+    versions: Mapped[list[BenchmarkVersion]] = relationship(back_populates="benchmark")
+
+
+class BenchmarkVersion(Base):
+    __tablename__ = "benchmark_versions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    benchmark_id: Mapped[int] = mapped_column(ForeignKey("motion_benchmarks.id"))
+    version_label: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(32), default="draft")
+    # Metric payload left null — expert annotation required
+    metrics_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    change_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    benchmark: Mapped[MotionBenchmark] = relationship(back_populates="versions")
+
+
+class TrainingPlan(Base):
+    __tablename__ = "training_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    title: Mapped[str] = mapped_column(String(128))
+    level: Mapped[str] = mapped_column(String(32))
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    rationale: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    user: Mapped[User] = relationship(back_populates="plans")
+    days: Mapped[list[TrainingPlanDay]] = relationship(
+        back_populates="plan", order_by="TrainingPlanDay.day_index"
+    )
+
+
+class TrainingPlanDay(Base):
+    __tablename__ = "training_plan_days"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("training_plans.id"))
+    day_index: Mapped[int] = mapped_column(Integer)
+    focus: Mapped[str] = mapped_column(String(128))
+    drill_ids_csv: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    skill_ids_csv: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    duration_minutes: Mapped[int] = mapped_column(Integer, default=30)
+
+    plan: Mapped[TrainingPlan] = relationship(back_populates="days")
+
+
+class TrainingSession(Base):
+    """Check-in / training log entry."""
+
+    __tablename__ = "training_sessions"
+    __table_args__ = (
+        UniqueConstraint("user_id", "session_date", "plan_day_id", name="uq_session_day"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    plan_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("training_plans.id"), nullable=True
+    )
+    plan_day_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("training_plan_days.id"), nullable=True
+    )
+    session_date: Mapped[date] = mapped_column(Date)
+    completed: Mapped[int] = mapped_column(Integer, default=1)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    rating: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # 1-5 self rating
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    user: Mapped[User] = relationship(back_populates="sessions")

@@ -1,0 +1,17 @@
+<view class="container">
+  <view class="banner-note">拍摄引导为产品 UX 指引，不是关节角度数值标准。姿态分析尚未上线。</view>
+  <block wx:for="{{guides}}" wx:key="id">
+    <view class="card">
+      <view class="card-title">机位</view>
+      <view>{{item.camera_angle}}</view>
+      <view class="section-title">距离 / 高度</view>
+      <view>{{item.distance_hint}}</view>
+      <view class="muted">{{item.height_hint}} · {{item.orientation}}</view>
+      <view class="section-title">检查清单</view>
+      <view wx:for="{{item.checklist}}" wx:for-item="c" wx:key="*this">· {{c}}</view>
+      <view class="muted" style="margin-top:12rpx;">{{item.lighting_notes}}</view>
+      <view class="tag warn" style="margin-top:8rpx;">{{item.verification_status}}</view>
+    </view>
+  </block>
+  <view class="muted" wx:if="{{error}}">{{error}}</view>
+</view>

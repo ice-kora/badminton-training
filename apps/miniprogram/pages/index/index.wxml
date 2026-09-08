@@ -1,0 +1,26 @@
+<view class="container">
+  <view class="banner-note">本阶段不含姿态评分与实时纠错。分析能力未上线，推荐来自规则计划。</view>
+
+  <view class="hero card">
+    <view class="card-title">羽毛球训练助手</view>
+    <view class="muted">学技术 · 跟计划 · 打卡进步</view>
+    <view class="hero-actions">
+      <view class="btn-primary" bindtap="goPlan">开始训练</view>
+      <view class="btn-ghost" bindtap="goRecommend">现在练什么</view>
+    </view>
+  </view>
+
+  <view class="section-title">快捷入口</view>
+  <view class="grid">
+    <view class="grid-item card" bindtap="goSkills">技术库</view>
+    <view class="grid-item card" bindtap="goTest">水平测试</view>
+    <view class="grid-item card" bindtap="goTips">训练贴士</view>
+    <view class="grid-item card" bindtap="goErrors">常见错误</view>
+  </view>
+
+  <view class="card" wx:if="{{rec}}">
+    <view class="card-title">今日建议</view>
+    <view>{{rec.title}}</view>
+    <view class="muted" style="margin-top:8rpx;">{{rec.reason}}</view>
+  </view>
+</view>

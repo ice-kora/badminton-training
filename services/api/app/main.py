@@ -1,0 +1,67 @@
+"""FastAPI application entrypoint."""
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.config import get_settings
+from app.database import init_db
+from app.routers import (
+    analysis,
+    auth,
+    content,
+    filming,
+    health,
+    plans,
+    recommendations,
+    sessions,
+    skills,
+)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    settings = get_settings()
+    if settings.database_url.startswith("sqlite"):
+        Path("data").mkdir(parents=True, exist_ok=True)
+        # Also ensure absolute data dir next to package root
+        api_root = Path(__file__).resolve().parent.parent
+        (api_root / "data").mkdir(parents=True, exist_ok=True)
+    init_db()
+    yield
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(
+        title=settings.app_name,
+        version="0.2.0",
+        description=(
+            "羽毛球 AI 学习训练助手 API（Phase-2）。"
+            "姿态分析未实现，返回 ANALYSIS_NOT_IMPLEMENTED。"
+        ),
+        lifespan=lifespan,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.include_router(health.router)
+    app.include_router(auth.router)
+    app.include_router(skills.router)
+    app.include_router(filming.router)
+    app.include_router(plans.router)
+    app.include_router(sessions.router)
+    app.include_router(content.router)
+    app.include_router(recommendations.router)
+    app.include_router(analysis.router)
+    return app
+
+
+app = create_app()

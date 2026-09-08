@@ -1,0 +1,27 @@
+<view class="container" wx:if="{{skill}}">
+  <view class="card">
+    <view class="card-title">{{skill.name}}</view>
+    <view class="muted">{{skill.summary}}</view>
+    <view style="margin-top:12rpx;">
+      <text class="tag warn">{{skill.verification_status}}</text>
+      <text class="tag">{{skill.source}}</text>
+    </view>
+  </view>
+
+  <view class="section-title">动作阶段</view>
+  <view class="card" wx:for="{{skill.stages}}" wx:key="id">
+    <view class="card-title">{{index + 1}}. {{item.name}}</view>
+    <view class="muted">{{item.description}}</view>
+  </view>
+
+  <view class="section-title">教学内容</view>
+  <view class="card" wx:for="{{skill.content_blocks}}" wx:key="id">
+    <view class="card-title">{{item.title}}</view>
+    <view>{{item.body}}</view>
+    <view class="tag warn" style="margin-top:8rpx;">{{item.verification_status}}</view>
+  </view>
+
+  <view class="btn-primary" bindtap="goFilming">查看拍摄引导</view>
+  <view class="btn-ghost" style="margin-top:16rpx;" bindtap="tryAnalyze">尝试提交分析（未实现）</view>
+  <view class="muted" wx:if="{{analyzeMsg}}" style="margin-top:12rpx;">{{analyzeMsg}}</view>
+</view>

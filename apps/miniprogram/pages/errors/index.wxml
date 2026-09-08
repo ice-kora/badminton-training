@@ -1,0 +1,9 @@
+<view class="container">
+  <view class="banner-note">错误与纠正说明为编辑草稿，未经专家核验。</view>
+  <view class="card" wx:for="{{errors}}" wx:key="id">
+    <view class="card-title">{{item.title}}</view>
+    <view>{{item.description}}</view>
+    <view class="muted" style="margin-top:8rpx;">纠正：{{item.how_to_fix}}</view>
+    <view class="tag warn" style="margin-top:8rpx;">{{item.verification_status}}</view>
+  </view>
+</view>

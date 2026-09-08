@@ -1,0 +1,8 @@
+<view class="container">
+  <view class="banner-note">根据自评档位生成规则计划，非 AI 测评分数。</view>
+  <view class="card" wx:for="{{levels}}" wx:key="value" bindtap="select" data-level="{{item.value}}">
+    <view class="card-title">{{item.label}}</view>
+    <view class="muted">{{item.desc}}</view>
+  </view>
+  <view class="btn-primary" bindtap="submit" wx:if="{{level}}">生成 7 日计划（{{levelLabel}}）</view>
+</view>

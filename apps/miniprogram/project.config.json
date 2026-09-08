@@ -1,0 +1,16 @@
+{
+  "description": "羽毛球 AI 学习训练助手",
+  "packOptions": { "ignore": [], "include": [] },
+  "setting": {
+    "bundle": false,
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "urlCheck": false
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.5.5",
+  "appid": "touristappid",
+  "projectname": "badminton-ai-coach",
+  "condition": {}
+}
