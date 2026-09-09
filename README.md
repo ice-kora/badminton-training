@@ -1,4 +1,4 @@
-# 羽毛球 AI 学习训练助手（Phase-2 / V2 阶段时间轴 + 骨架叠加）
+# 羽毛球 AI 学习训练助手（Phase-2 / V3 3D 标准动作演示壳）
 
 微信小程序 + FastAPI 内容/计划 MVP。  
 目标仓库：https://github.com/ice-kora/badminton-training.git
@@ -53,6 +53,7 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 7. 「我的」详情分别显示「关键点已提取/未提取」与「评分未开放」；已提取时可滑帧「骨架预览」（仅关键点可视化，非评分）。
 8. **复测对比（仅骨架）**：详情点「针对此视频复测」→ 拍摄页带 `baseline_video_id` 上传 → 复测详情在双方均 `pose_extracted` 后显示左右并排骨架滑帧（`GET /videos/{id}/retest-compare`）；**无分数、无正确性判断**。
 9. **V2**：`pose_extracted`/`scored` 后详情展示阶段时间轴与「标准 vs 用户」叠加（绿/蓝，标 **非评分叠加**）；`GET /videos/{id}/stage-timeline`、`GET /videos/{id}/pose/overlay`。
+10. **V3**：技术库 → 技能详情 → **3D 标准动作（演示）**；旋转/缩放/倍速/阶段跳转/HUD 占位；横幅 synthetic_demo；**禁止实时**。
 
 **真预检**：duration / resolution / brightness / orientation（OpenCV 探测）。  
 **占位**：full_body / distance → `deferred_to_pose` 或客户端清单确认（非姿态 AI）。
@@ -88,6 +89,8 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 | GET | /benchmarks | Motion Benchmark 列表（只读） |
 | GET | /benchmarks/{skill_code} | 某技能标准库摘要 |
 | GET | /benchmarks/{skill_code}/versions | 版本历史 |
+| GET | /benchmarks/{skill_code}/viewer3d | V3 3D 标准动作 manifest（阶段/关键点/HUD，synthetic_demo） |
+| GET | /static/viewer3d/* | V3 静态 GLB + Three.js 冒烟页（Option B） |
 
 ## Motion Benchmark + V1 评分 + V2 可视化
 
@@ -101,6 +104,7 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 - 无 published：保持 `ANALYSIS_NOT_IMPLEMENTED` + `awaiting_published_benchmark`
 - **V2 阶段时间轴**：用 demo `stages` / `keyframes` 相对时序启发式切分用户关键点序列，边界写入 `pose_analyses.stage_timeline_json`；有模板时序则返回 `delta_ms`
 - **V2 骨架叠加**：绿=标准（包内 `synthetic_keypoint_template`，否则生成 `synthetic_demo` 序列），蓝=用户；接口与详情页均标 **非评分叠加** / synthetic_demo 横幅；**禁止实时**
+- **V3 3D 标准动作（演示）**：技能详情入口；小程序 canvas 程序化骨架（Option A）；`GET /benchmarks/{code}/viewer3d`；静态 GLB + `/static/viewer3d/index.html`（Option B 冒烟）。详见 [docs/viewer3d/README.md](docs/viewer3d/README.md)
 
 ## License
 

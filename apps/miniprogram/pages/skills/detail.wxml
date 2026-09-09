@@ -21,7 +21,8 @@
     <view class="tag warn" style="margin-top:8rpx;">{{item.verification_status}}</view>
   </view>
 
-  <view class="btn-primary" bindtap="goFilming">拍摄指导</view>
+  <view class="btn-primary" bindtap="goViewer3d">3D 标准动作（演示）</view>
+  <view class="btn-ghost" style="margin-top:16rpx;" bindtap="goFilming">拍摄指导</view>
   <view class="btn-ghost" style="margin-top:16rpx;" bindtap="tryAnalyze">尝试提交分析（未实现）</view>
   <view class="muted" wx:if="{{analyzeMsg}}" style="margin-top:12rpx;">{{analyzeMsg}}</view>
 </view>

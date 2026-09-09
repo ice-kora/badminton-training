@@ -11,6 +11,12 @@ Page({
       })
       .catch((e) => wx.showToast({ title: e.message || '加载失败', icon: 'none' }))
   },
+  goViewer3d() {
+    const s = this.data.skill
+    wx.navigateTo({
+      url: `/pages/viewer3d/index?skill_code=${s.code}&skill_id=${s.id}`,
+    })
+  },
   goFilming() {
     wx.navigateTo({ url: `/pages/filming/guide?skill_id=${this.data.skill.id}` })
   },

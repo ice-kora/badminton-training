@@ -1,0 +1,51 @@
+<view class="page">
+  <view class="banner">{{banner || '非专家验证，仅供流水线演示'}} · synthetic_demo · 非实时</view>
+
+  <view class="canvas-wrap">
+    <canvas
+      type="2d"
+      id="viewer3d"
+      class="canvas"
+      bindtouchstart="onTouchStart"
+      bindtouchmove="onTouchMove"
+      bindtouchend="onTouchEnd"
+    ></canvas>
+    <view class="hud">
+      <view class="hud-title">角度 HUD</view>
+      <view wx:for="{{hudAngles}}" wx:key="name" class="hud-row">
+        <text class="hud-name">{{item.name}}</text>
+        <text class="hud-val">{{item.display}}</text>
+      </view>
+      <view class="hud-note">占位 · 勿当作专家标准</view>
+    </view>
+  </view>
+
+  <view class="meta muted">{{skillName}} · {{metaLine}}</view>
+
+  <view class="controls">
+    <view class="btn {{playing ? 'ghost' : 'primary'}}" bindtap="togglePlay">{{playing ? '暂停' : '播放'}}</view>
+    <view
+      wx:for="{{speeds}}"
+      wx:key="*this"
+      class="chip {{speed === item ? 'on' : ''}}"
+      data-speed="{{item}}"
+      bindtap="setSpeed"
+    >{{item}}x</view>
+  </view>
+
+  <view class="section-title">阶段跳转</view>
+  <scroll-view scroll-x class="stages">
+    <view
+      wx:for="{{stages}}"
+      wx:key="code"
+      class="stage-chip {{currentStage === item.code ? 'on' : ''}}"
+      data-code="{{item.code}}"
+      data-t="{{item.t_ms}}"
+      bindtap="jumpStage"
+    >{{item.name}}</view>
+  </scroll-view>
+
+  <view class="card muted tip">
+    渲染：微信 canvas 程序化骨架（Option A 可交付路径）。可选浏览器/web-view：API /static/viewer3d/index.html（Option B 冒烟）。无 mocap · 无实时摄像头。
+  </view>
+</view>

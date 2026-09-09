@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/skills/tree",
     "pages/skills/detail",
+    "pages/viewer3d/index",
     "pages/plan/index",
     "pages/plan/test",
     "pages/records/index",

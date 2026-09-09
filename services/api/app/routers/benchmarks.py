@@ -1,4 +1,4 @@
-"""Read-only Motion Benchmark endpoints."""
+"""Read-only Motion Benchmark endpoints + V3 3D viewer manifest."""
 from __future__ import annotations
 
 import json
@@ -15,7 +15,9 @@ from app.schemas import (
     BenchmarkStageOut,
     BenchmarkVersionOut,
     BenchmarkDetailOut,
+    Viewer3DManifestOut,
 )
+from app.services.viewer3d.manifest import build_viewer3d_manifest
 
 router = APIRouter(prefix="/benchmarks", tags=["benchmarks"])
 
@@ -61,6 +63,26 @@ def _version_out(ver: BenchmarkVersion) -> BenchmarkVersionOut:
     )
 
 
+def _load_bm(db: Session, skill_code: str) -> tuple[BadmintonSkill, MotionBenchmark]:
+    skill = (
+        db.query(BadmintonSkill).filter(BadmintonSkill.code == skill_code).one_or_none()
+    )
+    if not skill:
+        raise HTTPException(status_code=404, detail="技能不存在")
+    bm = (
+        db.query(MotionBenchmark)
+        .options(
+            joinedload(MotionBenchmark.versions).joinedload(BenchmarkVersion.stages),
+            joinedload(MotionBenchmark.versions).joinedload(BenchmarkVersion.metrics),
+        )
+        .filter(MotionBenchmark.skill_id == skill.id)
+        .one_or_none()
+    )
+    if not bm:
+        raise HTTPException(status_code=404, detail="尚无 motion_benchmark")
+    return skill, bm
+
+
 @router.get("", response_model=list[BenchmarkListItemOut])
 def list_benchmarks(db: Session = Depends(get_db)):
     rows = (
@@ -93,24 +115,30 @@ def list_benchmarks(db: Session = Depends(get_db)):
     return out
 
 
+@router.get("/{skill_code}/viewer3d", response_model=Viewer3DManifestOut)
+def get_viewer3d_manifest(skill_code: str, db: Session = Depends(get_db)):
+    """V3 offline 3D standard-action viewer manifest (stages + demo keypoints + HUD)."""
+    skill, bm = _load_bm(db, skill_code)
+    published = next((v for v in bm.versions if v.status == "published"), None)
+    focus = published or (max(bm.versions, key=lambda v: v.id) if bm.versions else None)
+    package = _parse_json(focus.package_json) if focus else None
+    # Prefer package from published; if draft has no template, still allow generated demo
+    payload = build_viewer3d_manifest(
+        skill_id=skill.id,
+        skill_code=skill.code,
+        skill_name=skill.name,
+        package=package if isinstance(package, dict) else {},
+        version_label=focus.version_label if focus else None,
+        version_status=focus.status if focus else None,
+        glb_url="/static/viewer3d/stick_figure.synthetic_demo.glb",
+        web_viewer_url=f"/static/viewer3d/index.html?skill_code={skill.code}",
+    )
+    return Viewer3DManifestOut.model_validate(payload)
+
+
 @router.get("/{skill_code}", response_model=BenchmarkDetailOut)
 def get_benchmark(skill_code: str, db: Session = Depends(get_db)):
-    skill = (
-        db.query(BadmintonSkill).filter(BadmintonSkill.code == skill_code).one_or_none()
-    )
-    if not skill:
-        raise HTTPException(status_code=404, detail="技能不存在")
-    bm = (
-        db.query(MotionBenchmark)
-        .options(
-            joinedload(MotionBenchmark.versions).joinedload(BenchmarkVersion.stages),
-            joinedload(MotionBenchmark.versions).joinedload(BenchmarkVersion.metrics),
-        )
-        .filter(MotionBenchmark.skill_id == skill.id)
-        .one_or_none()
-    )
-    if not bm:
-        raise HTTPException(status_code=404, detail="尚无 motion_benchmark")
+    skill, bm = _load_bm(db, skill_code)
 
     published = next((v for v in bm.versions if v.status == "published"), None)
     # Prefer showing published package; else latest draft (honest about status)
@@ -138,21 +166,6 @@ def get_benchmark(skill_code: str, db: Session = Depends(get_db)):
 
 @router.get("/{skill_code}/versions", response_model=list[BenchmarkVersionOut])
 def list_versions(skill_code: str, db: Session = Depends(get_db)):
-    skill = (
-        db.query(BadmintonSkill).filter(BadmintonSkill.code == skill_code).one_or_none()
-    )
-    if not skill:
-        raise HTTPException(status_code=404, detail="技能不存在")
-    bm = (
-        db.query(MotionBenchmark)
-        .options(
-            joinedload(MotionBenchmark.versions).joinedload(BenchmarkVersion.stages),
-            joinedload(MotionBenchmark.versions).joinedload(BenchmarkVersion.metrics),
-        )
-        .filter(MotionBenchmark.skill_id == skill.id)
-        .one_or_none()
-    )
-    if not bm:
-        raise HTTPException(status_code=404, detail="尚无 motion_benchmark")
+    skill, bm = _load_bm(db, skill_code)
     versions = sorted(bm.versions, key=lambda v: v.id, reverse=True)
     return [_version_out(v) for v in versions]

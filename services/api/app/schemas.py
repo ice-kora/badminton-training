@@ -554,3 +554,80 @@ class BenchmarkDetailOut(BaseModel):
     has_published_version: bool = False
     current: Optional[BenchmarkVersionOut] = None
     notice: str = "姿态分析尚未开放，不返回分数"
+
+
+# ---- V3 3D standard-action viewer ----
+class Viewer3DJointOut(BaseModel):
+    index: int
+    name: str
+    x: float
+    y: float
+    z: float
+    visibility: float = 1.0
+
+
+class Viewer3DFrameOut(BaseModel):
+    timestamp_ms: int
+    joints: list[Viewer3DJointOut] = Field(default_factory=list)
+
+
+class Viewer3DStageMarkerOut(BaseModel):
+    code: str
+    name: str
+    sort_order: int = 0
+    t_ms: int = 0
+    label: Optional[str] = None
+
+
+class Viewer3DHudAngleOut(BaseModel):
+    id: Optional[str] = None
+    name: Optional[str] = None
+    unit: Optional[str] = None
+    stage_code: Optional[str] = None
+    value: Any = "N/A"
+    display: str = "N/A"
+    range_min: Optional[float] = None
+    range_max: Optional[float] = None
+    range_kind: Optional[str] = None
+    active: bool = True
+    synthetic_demo: bool = False
+    note: Optional[str] = None
+
+
+class Viewer3DAssetsOut(BaseModel):
+    glb_url: Optional[str] = None
+    glb_note: Optional[str] = None
+    web_viewer_url: Optional[str] = None
+    renderer: str = "procedural_canvas_primary"
+    choice: Optional[str] = None
+
+
+class Viewer3DManifestOut(BaseModel):
+    skill_id: int
+    skill_code: str
+    skill_name: str
+    title: str = "3D 标准动作（演示）"
+    version_label: Optional[str] = None
+    version_status: Optional[str] = None
+    verification_status: str = "synthetic_demo"
+    benchmark_kind: str = "synthetic_demo"
+    source: Optional[str] = None
+    banner: str
+    notice: str
+    synthetic_demo: bool = True
+    realtime: bool = False
+    playback_speeds: list[float] = Field(default_factory=lambda: [0.25, 0.5, 1.0])
+    default_speed: float = 1.0
+    duration_ms: int = 0
+    frame_count: int = 0
+    topology: str = "mediapipe_pose_33"
+    landmark_names: list[str] = Field(default_factory=list)
+    bones: list[dict[str, Any]] = Field(default_factory=list)
+    bone_index_pairs: list[list[int]] = Field(default_factory=list)
+    stages: list[Viewer3DStageMarkerOut] = Field(default_factory=list)
+    keyframes: list[dict[str, Any]] = Field(default_factory=list)
+    frames: list[Viewer3DFrameOut] = Field(default_factory=list)
+    hud_angles: list[Viewer3DHudAngleOut] = Field(default_factory=list)
+    sequence_source: str = "generated_synthetic_demo"
+    assets: Viewer3DAssetsOut = Field(default_factory=Viewer3DAssetsOut)
+    controls: dict[str, Any] = Field(default_factory=dict)

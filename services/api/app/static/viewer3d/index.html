@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>3D 标准动作（演示）</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif; }
+    #banner { background: #92400e; color: #fffbeb; padding: 8px 12px; font-size: 13px; text-align: center; }
+    #wrap { display: flex; flex-direction: column; height: calc(100% - 36px); }
+    #c { flex: 1; width: 100%; display: block; touch-action: none; }
+    #hud { position: absolute; left: 8px; top: 48px; background: rgba(15,23,42,.75); padding: 8px 10px; border-radius: 8px; font-size: 12px; line-height: 1.5; max-width: 46%; }
+    #bar { padding: 10px 12px 14px; background: #111827; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+    button.active { background: #0ea5e9; border-color: #0ea5e9; color: #0f172a; font-weight: 600; }
+    .muted { color: #94a3b8; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="banner">非专家验证，仅供流水线演示 · synthetic_demo · 非实时</div>
+  <div id="wrap" style="position:relative">
+    <canvas id="c"></canvas>
+    <div id="hud">角度 HUD<br/><span class="muted">加载中…</span></div>
+    <div id="bar">
+      <button id="play">播放/暂停</button>
+      <button data-speed="0.25">0.25x</button>
+      <button data-speed="0.5">0.5x</button>
+      <button data-speed="1" class="active">1x</button>
+      <span id="stages"></span>
+      <span class="muted" id="meta"></span>
+    </div>
+  </div>
+  <script type="importmap">
+  { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+  </script>
+  <script type="module">
+  import * as THREE from 'three';
+
+  const params = new URLSearchParams(location.search);
+  const skill = params.get('skill_code') || 'forehand_clear';
+  const apiBase = params.get('api') || '';
+
+  const canvas = document.getElementById('c');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0f172a);
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+  camera.position.set(0.8, 0.4, 2.2);
+  const root = new THREE.Group();
+  scene.add(root);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+  const grid = new THREE.GridHelper(3, 12, 0x334155, 0x1e293b);
+  grid.position.y = -1;
+  scene.add(grid);
+
+  let manifest = null;
+  let frameIdx = 0;
+  let playing = true;
+  let speed = 1;
+  let lastTs = performance.now();
+  let accum = 0;
+  let yaw = 0.35, pitch = 0.15, dist = 2.4;
+  let drag = null;
+
+  const jointsGroup = new THREE.Group();
+  const bonesGroup = new THREE.Group();
+  root.add(jointsGroup);
+  root.add(bonesGroup);
+  const jointGeo = new THREE.SphereGeometry(0.025, 10, 10);
+  const jointMat = new THREE.MeshBasicMaterial({ color: 0x50c878 });
+  const boneMat = new THREE.LineBasicMaterial({ color: 0x50c878 });
+
+  function resize() {
+    const w = canvas.clientWidth || window.innerWidth;
+    const h = canvas.clientHeight || (window.innerHeight - 120);
+    renderer.setSize(w, h, false);
+    camera.aspect = w / Math.max(1, h);
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function setCamera() {
+    const cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const cy = Math.cos(yaw), sy = Math.sin(yaw);
+    camera.position.set(dist * cp * sy, dist * sp + 0.2, dist * cp * cy);
+    camera.lookAt(0, 0.1, 0);
+  }
+
+  function drawFrame(fi) {
+    if (!manifest || !manifest.frames.length) return;
+    const fr = manifest.frames[fi];
+    while (jointsGroup.children.length) jointsGroup.remove(jointsGroup.children[0]);
+    while (bonesGroup.children.length) bonesGroup.remove(bonesGroup.children[0]);
+    const pts = fr.joints.map(j => new THREE.Vector3(j.x, j.y, j.z));
+    pts.forEach(p => {
+      const m = new THREE.Mesh(jointGeo, jointMat);
+      m.position.copy(p);
+      jointsGroup.add(m);
+    });
+    const pairs = manifest.bone_index_pairs || [];
+    pairs.forEach(([a, b]) => {
+      if (!pts[a] || !pts[b]) return;
+      const geo = new THREE.BufferGeometry().setFromPoints([pts[a], pts[b]]);
+      bonesGroup.add(new THREE.Line(geo, boneMat));
+    });
+    // HUD: pick angles (all listed; mark synthetic)
+    const hud = document.getElementById('hud');
+    const lines = (manifest.hud_angles || []).slice(0, 4).map(h =>
+      `${h.name || h.id}: <b>${h.display}</b>`
+    );
+    hud.innerHTML = `角度 HUD<br/>${lines.join('<br/>')}<br/><span class="muted">${manifest.banner}</span>`;
+    document.getElementById('meta').textContent =
+      `${skill} · t=${fr.timestamp_ms}ms · f=${fi + 1}/${manifest.frame_count}`;
+  }
+
+  async function load() {
+    const url = `${apiBase}/benchmarks/${encodeURIComponent(skill)}/viewer3d`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('manifest ' + res.status);
+    manifest = await res.json();
+    document.getElementById('banner').textContent =
+      (manifest.banner || 'synthetic_demo') + ' · 非实时 · Option B Three.js smoke';
+    const stageBox = document.getElementById('stages');
+    stageBox.innerHTML = '';
+    (manifest.stages || []).forEach(st => {
+      const b = document.createElement('button');
+      b.textContent = st.name;
+      b.onclick = () => {
+        const t = st.t_ms || 0;
+        let best = 0, bestD = 1e18;
+        manifest.frames.forEach((f, i) => {
+          const d = Math.abs(f.timestamp_ms - t);
+          if (d < bestD) { bestD = d; best = i; }
+        });
+        frameIdx = best;
+        drawFrame(frameIdx);
+      };
+      stageBox.appendChild(b);
+    });
+    drawFrame(0);
+  }
+
+  document.getElementById('play').onclick = () => { playing = !playing; };
+  document.querySelectorAll('[data-speed]').forEach(btn => {
+    btn.onclick = () => {
+      speed = parseFloat(btn.dataset.speed);
+      document.querySelectorAll('[data-speed]').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+    };
+  });
+
+  canvas.addEventListener('pointerdown', e => {
+    drag = { x: e.clientX, y: e.clientY, yaw, pitch };
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!drag) return;
+    yaw = drag.yaw + (e.clientX - drag.x) * 0.01;
+    pitch = Math.max(-1.2, Math.min(1.2, drag.pitch + (e.clientY - drag.y) * 0.01));
+  });
+  canvas.addEventListener('pointerup', () => { drag = null; });
+  canvas.addEventListener('wheel', e => {
+    dist = Math.max(0.8, Math.min(6, dist + e.deltaY * 0.002));
+    e.preventDefault();
+  }, { passive: false });
+
+  function tick(now) {
+    const dt = (now - lastTs) / 1000;
+    lastTs = now;
+    if (playing && manifest && manifest.frames.length > 1) {
+      const step = Math.max(16, (manifest.duration_ms || 600) / Math.max(1, manifest.frame_count - 1));
+      accum += dt * 1000 * speed;
+      while (accum >= step) {
+        accum -= step;
+        frameIdx = (frameIdx + 1) % manifest.frames.length;
+        drawFrame(frameIdx);
+      }
+    }
+    setCamera();
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+
+  load().catch(err => {
+    document.getElementById('hud').textContent = '加载失败: ' + err.message;
+  });
+  requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
