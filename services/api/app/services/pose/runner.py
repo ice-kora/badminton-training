@@ -99,7 +99,8 @@ def apply_pose_queued(job: AnalysisJob, reason: str = "") -> None:
 
 
 def apply_pose_failed(job: AnalysisJob, err: str) -> None:
-    job.status = "pose_failed"
+    """Mark job failed (keypoints only; scoring stays blocked)."""
+    job.status = "failed"
     job.scoring_status = "blocked"
     job.error_code = SCORING_CODE
     job.message = f"关键点提取失败: {err}。评分仍未开放。"
@@ -151,9 +152,8 @@ def try_inline_extract(
 ) -> Optional[PoseAnalysis]:
     """Best-effort extract after upload; leave queued on unavailability."""
     settings = get_settings()
-    if not settings.pose_inline_extract:
-        apply_pose_queued(job, reason="inline extract disabled")
-        db.commit()
+    if not settings.pose_extract_inline:
+        # Queue mode: upload already left status=queued for the worker.
         return None
     try:
         return extract_for_video(db, video, job)

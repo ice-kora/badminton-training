@@ -253,7 +253,8 @@ async def upload_video(
 ):
     """
     Precheck → store file + training_video + analysis_job(status=queued).
-    Best-effort inline pose extraction; scoring always blocked.
+    Default: leave queued for background worker (POSE_EXTRACT_INLINE=false).
+    Scoring always blocked (ANALYSIS_NOT_IMPLEMENTED).
     """
     skill = db.get(BadmintonSkill, skill_id)
     if not skill:
@@ -329,7 +330,7 @@ async def upload_video(
         db.refresh(job)
         tmp = None
 
-        # Best-effort inline extract (fake/mediapipe); leave queued if unavailable
+        # Optional sync extract (POSE_EXTRACT_INLINE=true). Default queue mode leaves queued.
         try_inline_extract(db, video, job)
         db.refresh(job)
 

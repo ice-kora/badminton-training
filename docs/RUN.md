@@ -86,24 +86,36 @@ curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/analysis/jobs
 curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1
 ```
 
-上传成功后 `analysis_job.status=queued`（若本机可提取则变为 `pose_extracted`），`scoring_status=blocked`，`error_code=ANALYSIS_NOT_IMPLEMENTED`（评分侧）。关键点 JSON：`data/uploads/pose/{video_id}.json`。
+上传成功后 `analysis_job.status=queued`（默认**不**在上传请求内提取），`scoring_status=blocked`，`error_code=ANALYSIS_NOT_IMPLEMENTED`（评分侧）。关键点 JSON：`data/uploads/pose/{video_id}.json`。
+
+### 关键点队列 worker（SQLite，无需 Redis）
 
 ```bash
-# 手动 / 补跑关键点提取
 cd services/api && source .venv/bin/activate
-python -m app.worker extract --limit 10
+# 推荐：另开终端跑 worker
+python -m app.worker extract --once --limit 5   # 处理一批
+python -m app.worker extract --loop             # 轮询，间隔 POSE_EXTRACT_POLL_INTERVAL（默认 2s）
 # 或
-python ../../scripts/run_pose_extract.py
+python ../../scripts/run_pose_extract.py --loop
 
+# 可选：API 进程内守护线程（测试请保持 false）
+# POSE_EXTRACT_BACKGROUND=true uvicorn ...
+# 调试同步：POSE_EXTRACT_INLINE=true 时上传内联提取
+# 手动/同步触发仍可用：
+curl -X POST -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/extract-pose
+```
+
+状态：`queued` → `extracting` → `pose_extracted` | `failed`。
+
+```bash
 curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/pose
 # 骨架预览（JSON，小程序 canvas；仅可视化非评分）
 curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8000/videos/1/pose/preview?frame=0"
 # 调试 PNG
 curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8000/videos/1/pose/preview?format=png&frame=0" -o /tmp/pose_preview.png
-curl -X POST -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/extract-pose
 ```
 
-测试默认 `POSE_EXTRACTOR=fake`。真实 MediaPipe 需安装 `mediapipe` 并下载 lite `.task` 模型（首次提取自动下载）。
+测试默认 `POSE_EXTRACTOR=fake`、`POSE_EXTRACT_INLINE=false`。真实 MediaPipe 需安装 `mediapipe` 并下载 lite `.task` 模型（首次提取自动下载）。
 
 ## Motion Benchmark 包
 

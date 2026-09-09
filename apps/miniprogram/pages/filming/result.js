@@ -23,11 +23,16 @@ Page({
       .then(() => request({ url: `/analysis/jobs/${q.job_id}`, auth: true }))
       .then((job) => {
         const poseOk = job.status === 'pose_extracted'
+        let poseLabel = '关键点未提取'
+        if (poseOk) poseLabel = '关键点已提取'
+        else if (job.status === 'queued') poseLabel = '关键点排队中'
+        else if (job.status === 'extracting') poseLabel = '关键点提取中'
+        else if (job.status === 'failed' || job.status === 'pose_failed') poseLabel = '关键点提取失败'
         this.setData({
           jobStatus: job.status,
           jobMessage: job.message || '评分未开放',
           errorCode: job.error_code || '',
-          poseLabel: poseOk ? '关键点已提取' : (job.status === 'queued' ? '关键点排队中' : '关键点未提取'),
+          poseLabel,
           scoringLabel: '评分未开放',
         })
       })

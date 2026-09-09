@@ -61,9 +61,10 @@ def test_fake_extractor_writes_deterministic_keypoints(media_dir):
     assert result.frames[0]["landmarks"][0]["name"] == "NOSE"
 
 
-def test_upload_inline_fake_sets_pose_extracted(
+def test_upload_queued_then_manual_extract_pose(
     client, auth_headers, skill_id, media_dir
 ):
+    """Default queue mode: upload leaves queued; POST extract-pose runs Fake sync."""
     path = write_solid_video(
         media_dir / "ok_pose.mp4",
         width=720,
@@ -75,12 +76,21 @@ def test_upload_inline_fake_sets_pose_extracted(
     assert r.status_code == 200, r.text
     body = r.json()
     job = body["analysis_job"]
-    assert job["status"] == "pose_extracted"
+    assert job["status"] == "queued"
     assert job["scoring_status"] == "blocked"
     assert job["error_code"] == "ANALYSIS_NOT_IMPLEMENTED"
     assert "score" not in job
 
     video_id = body["video"]["id"]
+    pose0 = client.get(f"/videos/{video_id}/pose", headers=auth_headers)
+    assert pose0.status_code == 200
+    assert pose0.json()["extracted"] is False
+
+    ex = client.post(f"/videos/{video_id}/extract-pose", headers=auth_headers)
+    assert ex.status_code == 200, ex.text
+    assert ex.json()["analysis_job"]["status"] == "pose_extracted"
+    assert ex.json()["analysis_job"]["scoring_status"] == "blocked"
+
     pose = client.get(f"/videos/{video_id}/pose", headers=auth_headers)
     assert pose.status_code == 200
     meta = pose.json()

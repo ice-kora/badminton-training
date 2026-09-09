@@ -26,7 +26,13 @@ class Settings(BaseSettings):
     pose_extractor: str = "auto"  # auto|mediapipe|fake|null
     pose_max_seconds: int = 60
     pose_frame_stride: int = 2
-    pose_inline_extract: bool = True
+    # Queue mode default: upload leaves status=queued; run worker separately.
+    # POSE_EXTRACT_INLINE=true restores sync extract inside upload (tests/debug).
+    pose_extract_inline: bool = False
+    # Optional in-API daemon thread (POSE_EXTRACT_BACKGROUND=true). Keep false in tests.
+    pose_extract_background: bool = False
+    # Worker poll interval seconds (POSE_EXTRACT_POLL_INTERVAL, default 2)
+    pose_extract_poll_interval: float = 2.0
     pose_model_path: str = str(_API_ROOT / "data" / "models" / "pose_landmarker_lite.task")
 
 

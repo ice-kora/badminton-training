@@ -4,10 +4,11 @@ const STATUS_LABEL = {
   pending: '等待中',
   rejected_precheck: '预检未通过',
   queued: '关键点排队中',
+  extracting: '关键点提取中',
   pose_extracted: '关键点已提取',
   pose_failed: '关键点提取失败',
+  failed: '关键点提取失败',
   not_implemented: '分析未开放',
-  failed: '失败',
 }
 
 function formatTime(iso) {

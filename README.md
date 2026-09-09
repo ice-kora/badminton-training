@@ -15,6 +15,7 @@ services/ai-worker/   状态约定 stub（打分仍禁用）
 infra/docker-compose.yml   可选 postgres/redis/minio
 docs/                 设计、RUN、内容政策、benchmark 模板
 scripts/              seed / pose extract / benchmark_validate|import|publish / dev.sh
+                       DB 队列：python -m app.worker extract --once|--loop（无需 Redis）
 ```
 
 ## 快速开始
@@ -45,7 +46,7 @@ make test         # pytest 须全绿
 3. 技术库 → 选技能（如正手高远球）→ **查看拍摄引导** → **开始录制 / 选择视频**。
 4. 对照剪影勾选清单（全身/距离等为客户端门禁）→ `chooseMedia` 选视频（工具里比 camera 稳）。
 5. 上传：服务端预检时长/分辨率/亮度/方向；失败展示原因并提示重拍。
-6. 通过后返回 `video_id` + `analysis_job`（`queued`→`pose_extracted`；`scoring_status=blocked` / `ANALYSIS_NOT_IMPLEMENTED`）。
+6. 通过后返回 `video_id` + `analysis_job`（默认 `queued`；另跑 `python -m app.worker extract --loop` → `extracting`→`pose_extracted`；`scoring_status=blocked` / `ANALYSIS_NOT_IMPLEMENTED`）。
 7. 「我的」详情分别显示「关键点已提取/未提取」与「评分未开放」；已提取时可滑帧「骨架预览」（仅关键点可视化，非评分）。
 
 **真预检**：duration / resolution / brightness / orientation（OpenCV 探测）。  
@@ -61,7 +62,7 @@ make test         # pytest 须全绿
 | GET | /skills/{id} | 技能详情 |
 | GET | /filming-guides/{skill_id} | 拍摄引导（含预检策略） |
 | POST | /videos/precheck | 仅预检（multipart，需登录） |
-| POST | /videos/upload | 预检+入库+创建 analysis_job |
+| POST | /videos/upload | 预检+入库+创建 analysis_job（默认 queued，后台 worker 提取） |
 | GET | /videos | 当前用户视频列表（含最新任务摘要） |
 | GET | /videos/{id} | 视频详情 + 预检 + 关联任务 |
 | GET | /videos/{id}/pose | 关键点元数据（无分数） |

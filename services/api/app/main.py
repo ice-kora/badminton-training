@@ -9,6 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import init_db
+from app.worker.pose_queue import (
+    start_background_worker,
+    stop_background_worker,
+)
 from app.routers import (
     analysis,
     auth,
@@ -34,17 +38,22 @@ async def lifespan(_app: FastAPI):
         (api_root / "data").mkdir(parents=True, exist_ok=True)
         (api_root / "data" / "uploads").mkdir(parents=True, exist_ok=True)
     init_db()
-    yield
+    # Optional lightweight in-API poller (POSE_EXTRACT_BACKGROUND=true)
+    start_background_worker()
+    try:
+        yield
+    finally:
+        stop_background_worker()
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
         title=settings.app_name,
-        version="0.6.0",
+        version="0.7.0",
         description=(
             "羽毛球 AI 学习训练助手 API（Phase-2）。"
-            "离线关键点提取已接入；评分仍返回 ANALYSIS_NOT_IMPLEMENTED。"
+            "关键点提取支持 DB 队列后台 worker；评分仍返回 ANALYSIS_NOT_IMPLEMENTED。"
         ),
         lifespan=lifespan,
     )

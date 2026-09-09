@@ -401,7 +401,7 @@ class AnalysisJob(Base):
     benchmark_version_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("benchmark_versions.id"), nullable=True, index=True
     )
-    # pending|rejected_precheck|queued|pose_extracted|pose_failed|not_implemented|failed
+    # pending|rejected_precheck|queued|extracting|pose_extracted|failed|not_implemented
     status: Mapped[str] = mapped_column(String(32), default="queued")
     # Scoring side: blocked | awaiting_published_benchmark (never scored in V1)
     scoring_status: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)

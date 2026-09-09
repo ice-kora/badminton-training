@@ -4,8 +4,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.database import SessionLocal
-from app.models import PoseAnalysis
 from app.services.pose.landmarks import POSE_CONNECTIONS, POSE_LANDMARK_NAMES, bone_edges
 from tests.video_fixtures import write_solid_video
 
@@ -56,7 +54,10 @@ def test_pose_preview_json_when_extracted(client, auth_headers, tmp_path):
     up = _upload(client, auth_headers, skill_id, path)
     assert up.status_code == 200, up.text
     video_id = up.json()["video"]["id"]
-    assert up.json()["analysis_job"]["status"] == "pose_extracted"
+    assert up.json()["analysis_job"]["status"] == "queued"
+    ex = client.post(f"/videos/{video_id}/extract-pose", headers=auth_headers)
+    assert ex.status_code == 200, ex.text
+    assert ex.json()["analysis_job"]["status"] == "pose_extracted"
 
     r = client.get(
         f"/videos/{video_id}/pose/preview",
@@ -119,19 +120,7 @@ def test_pose_preview_404_when_not_extracted(client, auth_headers, tmp_path):
     up = _upload(client, auth_headers, skill_id, path)
     assert up.status_code == 200, up.text
     video_id = up.json()["video"]["id"]
-
-    db = SessionLocal()
-    try:
-        row = (
-            db.query(PoseAnalysis)
-            .filter(PoseAnalysis.video_id == video_id)
-            .one_or_none()
-        )
-        assert row is not None
-        db.delete(row)
-        db.commit()
-    finally:
-        db.close()
+    assert up.json()["analysis_job"]["status"] == "queued"
 
     r = client.get(f"/videos/{video_id}/pose/preview", headers=auth_headers)
     assert r.status_code == 404
