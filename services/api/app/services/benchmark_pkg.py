@@ -161,6 +161,32 @@ def publish_allowed(
     return False, f"publish blocked: unknown status {verification_status!r}"
 
 
+def assert_refs_exist_in_db(db, data: dict[str, Any]) -> None:
+    """Ensure common_error_refs / linked_drill_codes match seeded codes (no invented refs)."""
+    from app.models import CommonError, Drill
+
+    err_codes = {
+        c for (c,) in db.query(CommonError.code).filter(CommonError.code.isnot(None)).all()
+    }
+    drill_codes = {
+        c for (c,) in db.query(Drill.code).filter(Drill.code.isnot(None)).all()
+    }
+    missing_err = []
+    for i, ref in enumerate(data.get("common_error_refs") or []):
+        rid = ref.get("id") if isinstance(ref, dict) else None
+        if not rid or rid not in err_codes:
+            missing_err.append(f"common_error_refs[{i}].id={rid!r}")
+    missing_drill = []
+    for i, code in enumerate(data.get("linked_drill_codes") or []):
+        if not isinstance(code, str) or code not in drill_codes:
+            missing_drill.append(f"linked_drill_codes[{i}]={code!r}")
+    problems = missing_err + missing_drill
+    if problems:
+        raise BenchmarkValidationError(
+            "package refs must use existing seed codes: " + "; ".join(problems)
+        )
+
+
 def import_package_to_db(db, data: dict[str, Any], *, change_log: Optional[str] = None):
     """Insert/update MotionBenchmark + draft BenchmarkVersion + stage/metric rows."""
     from app.models import (
@@ -180,6 +206,7 @@ def import_package_to_db(db, data: dict[str, Any], *, change_log: Optional[str] 
         raise BenchmarkValidationError(
             f"skill_code {data['skill_code']!r} not found in badminton_skills"
         )
+    assert_refs_exist_in_db(db, data)
 
     bm = (
         db.query(MotionBenchmark)

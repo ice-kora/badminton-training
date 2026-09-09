@@ -44,8 +44,8 @@
     }
   ],
   "common_error_refs": [
-    { "id": "err_arm_only_power", "title": null },
-    { "id": "err_contact_too_late", "title": null }
+    { "id": "smash_arm_only_power", "title": "杀球发力只用手臂" },
+    { "id": "smash_contact_too_late", "title": "击球点太后" }
   ],
   "linked_drill_codes": [
     "smash_power_chain",

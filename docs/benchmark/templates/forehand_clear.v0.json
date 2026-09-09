@@ -44,8 +44,8 @@
     }
   ],
   "common_error_refs": [
-    { "id": "err_contact_too_low", "title": null },
-    { "id": "err_no_side_stance", "title": null }
+    { "id": "clear_contact_too_low", "title": "击球点过低" },
+    { "id": "clear_no_side_stance", "title": "正面硬挥无侧身" }
   ],
   "linked_drill_codes": [
     "clear_stance_hold",

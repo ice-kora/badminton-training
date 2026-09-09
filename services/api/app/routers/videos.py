@@ -95,6 +95,7 @@ def _job_summary(row: AnalysisJob) -> AnalysisJobSummaryOut:
         status=row.status,
         error_code=row.error_code,
         message=row.message,
+        benchmark_version_id=row.benchmark_version_id,
         created_at=row.created_at,
         updated_at=row.updated_at,
     )
@@ -116,6 +117,7 @@ def _job_out(row: AnalysisJob) -> AnalysisJobOut:
         id=row.id,
         video_id=row.video_id,
         skill_id=row.skill_id,
+        benchmark_version_id=row.benchmark_version_id,
         status=row.status,
         error_code=row.error_code,
         message=row.message,
@@ -234,15 +236,24 @@ async def upload_video(
         db.flush()
 
         published = find_published_version(db, skill_id)
+        # Scoring remains unimplemented even when a published benchmark exists.
         msg = ANALYSIS_MSG
+        bv_id = None
         if published is None:
             msg = (
                 ANALYSIS_MSG
                 + " awaiting_published_benchmark: 该技能尚无已发布的 Motion Benchmark 版本。"
             )
+        else:
+            bv_id = published.id
+            msg = (
+                ANALYSIS_MSG
+                + f" benchmark_version_id={bv_id} 已记录；打分流水线仍未实现，不返回分数。"
+            )
         job = AnalysisJob(
             video_id=video.id,
             skill_id=skill_id,
+            benchmark_version_id=bv_id,
             status="not_implemented",
             error_code="ANALYSIS_NOT_IMPLEMENTED",
             message=msg,

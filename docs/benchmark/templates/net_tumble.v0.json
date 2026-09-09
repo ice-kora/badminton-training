@@ -44,8 +44,8 @@
     }
   ],
   "common_error_refs": [
-    { "id": "err_tumble_becomes_push", "title": null },
-    { "id": "err_unstable_face", "title": null }
+    { "id": "tumble_becomes_push", "title": "搓球变推球" },
+    { "id": "tumble_unstable_face", "title": "拍面角度不稳" }
   ],
   "linked_drill_codes": [
     "tumble_touch",

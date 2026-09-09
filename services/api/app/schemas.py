@@ -122,6 +122,7 @@ class DrillOut(OrmModel, ProvenanceMixin):
 class CommonErrorOut(OrmModel, ProvenanceMixin):
     id: int
     skill_id: Optional[int] = None
+    code: Optional[str] = None
     title: str
     description: str
     how_to_fix: Optional[str] = None
@@ -244,6 +245,7 @@ class AnalysisJobOut(OrmModel):
     id: int
     video_id: Optional[int] = None
     skill_id: int
+    benchmark_version_id: Optional[int] = None
     status: str
     error_code: Optional[str] = None
     message: Optional[str] = None
@@ -270,6 +272,7 @@ class AnalysisJobSummaryOut(BaseModel):
     status: str
     error_code: Optional[str] = None
     message: Optional[str] = None
+    benchmark_version_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

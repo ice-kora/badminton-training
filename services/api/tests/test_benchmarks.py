@@ -11,8 +11,10 @@ import pytest
 
 from app.database import SessionLocal
 from app.models import BenchmarkVersion, MotionBenchmark
+from app.models import CommonError, Drill
 from app.services.benchmark_pkg import (
     BenchmarkValidationError,
+    assert_refs_exist_in_db,
     import_package_to_db,
     load_package,
     publish_allowed,
@@ -23,6 +25,11 @@ REPO = Path(__file__).resolve().parents[3]
 TEMPLATES = REPO / "docs" / "benchmark" / "templates"
 SCRIPTS = REPO / "scripts"
 CLEAR_PKG = TEMPLATES / "forehand_clear.v0.json"
+ALL_TEMPLATES = [
+    TEMPLATES / "forehand_clear.v0.json",
+    TEMPLATES / "forehand_smash.v0.json",
+    TEMPLATES / "net_tumble.v0.json",
+]
 
 
 def test_good_template_passes_validation():
@@ -31,6 +38,28 @@ def test_good_template_passes_validation():
     assert data["verification_status"] == "draft_unverified"
     assert all(m.get("range_min") is None and m.get("range_max") is None for m in data["metrics"])
     assert warnings == []
+
+
+def test_all_templates_validate_and_match_seed_codes(client):
+    """Templates must validate and only reference real CommonError/Drill codes from seed."""
+    db = SessionLocal()
+    try:
+        err_codes = {c for (c,) in db.query(CommonError.code).filter(CommonError.code.isnot(None))}
+        drill_codes = {c for (c,) in db.query(Drill.code).filter(Drill.code.isnot(None))}
+        assert err_codes, "seed must provide common error codes"
+        assert drill_codes, "seed must provide drill codes"
+        for path in ALL_TEMPLATES:
+            data = load_package(path)
+            warnings = validate_package(data)
+            assert warnings == []
+            assert all(m.get("range_min") is None and m.get("range_max") is None for m in data["metrics"])
+            assert_refs_exist_in_db(db, data)
+            for ref in data["common_error_refs"]:
+                assert ref["id"] in err_codes
+            for code in data["linked_drill_codes"]:
+                assert code in drill_codes
+    finally:
+        db.close()
 
 
 def test_numeric_ranges_with_draft_unverified_fail():
@@ -66,6 +95,20 @@ def test_import_creates_db_rows(client):
         assert len(ver.stages) == 4
         assert len(ver.metrics) >= 3
         assert all(m.range_min is None and m.range_max is None for m in ver.metrics)
+    finally:
+        db.close()
+
+
+def test_import_all_templates(client):
+    db = SessionLocal()
+    try:
+        for path in ALL_TEMPLATES:
+            data = load_package(path)
+            bm, ver = import_package_to_db(db, data, change_log=f"pytest {path.name}")
+            assert ver.status == "draft"
+            assert ver.verification_status == "draft_unverified"
+            assert all(m.range_min is None and m.range_max is None for m in ver.metrics)
+        db.commit()
     finally:
         db.close()
 
@@ -147,6 +190,8 @@ def test_analysis_mentions_awaiting_when_no_published(client):
     body = r.json()
     assert body["code"] == "ANALYSIS_NOT_IMPLEMENTED"
     assert "awaiting_published_benchmark" in body["message"]
+    assert "score" not in body
+    assert "scores" not in body
 
 
 def test_validate_script_cli_good_template():

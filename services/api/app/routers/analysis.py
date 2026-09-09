@@ -18,6 +18,7 @@ def _job_out(job: AnalysisJob) -> AnalysisJobOut:
         id=job.id,
         video_id=job.video_id,
         skill_id=job.skill_id,
+        benchmark_version_id=job.benchmark_version_id,
         status=job.status,
         error_code=job.error_code,
         message=job.message,

@@ -115,6 +115,7 @@ class CommonError(Base):
     skill_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("badminton_skills.id"), nullable=True
     )
+    code: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)
     title: Mapped[str] = mapped_column(String(128))
     description: Mapped[str] = mapped_column(Text)
     how_to_fix: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -394,6 +395,9 @@ class AnalysisJob(Base):
         ForeignKey("training_videos.id"), nullable=True, index=True
     )
     skill_id: Mapped[int] = mapped_column(ForeignKey("badminton_skills.id"), index=True)
+    benchmark_version_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("benchmark_versions.id"), nullable=True, index=True
+    )
     # pending|rejected_precheck|queued|not_implemented|failed
     status: Mapped[str] = mapped_column(String(32), default="not_implemented")
     error_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)

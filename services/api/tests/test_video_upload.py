@@ -79,6 +79,8 @@ def test_upload_success_creates_video_and_job(
     job = body["analysis_job"]
     assert job["status"] == "not_implemented"
     assert job["error_code"] == "ANALYSIS_NOT_IMPLEMENTED"
+    assert job.get("benchmark_version_id") is None
+    assert "awaiting_published_benchmark" in (job.get("message") or "")
     assert "score" not in job
     assert "scores" not in body
     assert "分析" in body["notice"] or "尚未" in body["notice"]

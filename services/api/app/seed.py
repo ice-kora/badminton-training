@@ -308,25 +308,32 @@ def seed(db: Session | None = None) -> None:
             drill_objs.append(d)
         db.flush()
 
-        # Common errors
+        # Common errors (stable codes referenced by benchmark templates)
         errors_data = [
-            (clear, "击球点过低", "击球时拍头偏低，球容易下网或不够远。",
+            (clear, "clear_contact_too_low", "击球点过低",
+             "击球时拍头偏低，球容易下网或不够远。",
              "强调高点击球；可对镜慢动作检查，不以伪角度数值为准。"),
-            (clear, "正面硬挥无侧身", "未侧身导致发力不足、落点偏前。",
+            (clear, "clear_no_side_stance", "正面硬挥无侧身",
+             "未侧身导致发力不足、落点偏前。",
              "先练侧身架拍定型 Drill。"),
-            (smash, "杀球发力只用手臂", "缺少转体与下肢，杀球无力且易伤肩。",
+            (smash, "smash_arm_only_power", "杀球发力只用手臂",
+             "缺少转体与下肢，杀球无力且易伤肩。",
              "练轻杀发力顺序，强调转体。"),
-            (smash, "击球点太后", "球到身后才打，无法下压。",
+            (smash, "smash_contact_too_late", "击球点太后",
+             "球到身后才打，无法下压。",
              "提前判断，并步更积极。"),
-            (tumble, "搓球变推球", "发力过大把球推高，给对方进攻机会。",
+            (tumble, "tumble_becomes_push", "搓球变推球",
+             "发力过大把球推高，给对方进攻机会。",
              "减小发力，练习轻切手感。"),
-            (tumble, "拍面角度不稳", "球不过网或出界。",
+            (tumble, "tumble_unstable_face", "拍面角度不稳",
+             "球不过网或出界。",
              "固定网前举拍高度，慢速重复。"),
         ]
         error_objs: list[CommonError] = []
-        for skill, title, desc, fix in errors_data:
+        for skill, code, title, desc, fix in errors_data:
             e = CommonError(
                 skill_id=skill.id,
+                code=code,
                 title=title,
                 description=desc,
                 how_to_fix=fix,
