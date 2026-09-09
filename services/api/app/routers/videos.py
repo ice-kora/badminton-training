@@ -14,6 +14,7 @@ from app.auth import get_current_user
 from app.config import get_settings
 from app.database import get_db
 from app.models import AnalysisJob, BadmintonSkill, FilmingGuide, TrainingVideo, User
+from app.services.benchmark_pkg import find_published_version
 from app.schemas import (
     AnalysisJobOut,
     AnalysisJobSummaryOut,
@@ -232,12 +233,19 @@ async def upload_video(
         db.add(video)
         db.flush()
 
+        published = find_published_version(db, skill_id)
+        msg = ANALYSIS_MSG
+        if published is None:
+            msg = (
+                ANALYSIS_MSG
+                + " awaiting_published_benchmark: 该技能尚无已发布的 Motion Benchmark 版本。"
+            )
         job = AnalysisJob(
             video_id=video.id,
             skill_id=skill_id,
             status="not_implemented",
             error_code="ANALYSIS_NOT_IMPLEMENTED",
-            message=ANALYSIS_MSG,
+            message=msg,
         )
         db.add(job)
         db.commit()

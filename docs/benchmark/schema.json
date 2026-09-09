@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://badminton-ai-coach.local/schemas/benchmark-package.json",
+  "title": "MotionBenchmarkPackage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "skill_code",
+    "version",
+    "handedness",
+    "camera_view",
+    "stages",
+    "keyframes",
+    "metrics",
+    "common_error_refs",
+    "linked_drill_codes",
+    "verification_status",
+    "source"
+  ],
+  "properties": {
+    "skill_code": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Must match badminton_skills.code"
+    },
+    "skill_name": { "type": "string" },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Semver-like label, e.g. 0.1.0"
+    },
+    "handedness": {
+      "type": ["string", "null"],
+      "enum": ["left", "right", "either", null]
+    },
+    "camera_view": {
+      "type": ["string", "null"],
+      "description": "Placeholder until capture protocol locked"
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "name"],
+        "properties": {
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "sort_order": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "keyframes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "name"],
+        "properties": {
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "stage_code": { "type": ["string", "null"] },
+          "t_ms": {
+            "type": ["number", "null"],
+            "description": "Optional timestamp placeholder; null until annotated"
+          },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "unit": { "type": ["string", "null"] },
+          "stage_code": { "type": ["string", "null"] },
+          "range_min": {
+            "type": ["number", "null"],
+            "description": "MUST stay null until expert verification"
+          },
+          "range_max": {
+            "type": ["number", "null"],
+            "description": "MUST stay null until expert verification"
+          },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "common_error_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "linked_drill_codes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": ["draft_unverified", "expert_pending", "verified"]
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": { "type": ["string", "null"] }
+  }
+}

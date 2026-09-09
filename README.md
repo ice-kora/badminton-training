@@ -13,8 +13,8 @@ apps/miniprogram/     原生微信小程序（中文 UI）
 services/api/         FastAPI + SQLAlchemy 2 + SQLite
 services/ai-worker/   分析占位 stub
 infra/docker-compose.yml   可选 postgres/redis/minio
-docs/                 设计、RUN、内容政策
-scripts/              seed / dev.sh
+docs/                 设计、RUN、内容政策、benchmark 模板
+scripts/              seed / benchmark_validate|import|publish / dev.sh
 ```
 
 ## 快速开始
@@ -73,6 +73,16 @@ make test         # pytest 须全绿
 | GET | /drills /errors /tips | 内容列表 |
 | GET | /recommendations/what-to-practice-now | 规则推荐 |
 | POST | /analysis/jobs | 未实现（501） |
+| GET | /benchmarks | Motion Benchmark 列表（只读） |
+| GET | /benchmarks/{skill_code} | 某技能标准库摘要 |
+| GET | /benchmarks/{skill_code}/versions | 版本历史 |
+
+## Motion Benchmark（数据资产壳）
+
+- 文档：`docs/BENCHMARK_ANNOTATION.md`，schema：`docs/benchmark/schema.json`
+- 空模板（数值全 null）：`docs/benchmark/templates/*.v0.json`
+- 校验 / 导入 draft / 发布：`scripts/benchmark_*.py`（`draft_unverified` 默认不可发布）
+- 分析仍为 `ANALYSIS_NOT_IMPLEMENTED`，无分数；无 published 版本时 message 含 `awaiting_published_benchmark`
 
 ## License
 

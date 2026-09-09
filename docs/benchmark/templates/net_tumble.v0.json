@@ -1,0 +1,57 @@
+{
+  "skill_code": "net_tumble",
+  "skill_name": "网前搓球",
+  "version": "0.1.0",
+  "handedness": null,
+  "camera_view": null,
+  "stages": [
+    { "code": "approach", "name": "上网步伐", "sort_order": 1 },
+    { "code": "set_up", "name": "引拍与接触点", "sort_order": 2 },
+    { "code": "tumble", "name": "搓切动作", "sort_order": 3 },
+    { "code": "recover", "name": "还原", "sort_order": 4 }
+  ],
+  "keyframes": [
+    { "code": "kf_reach", "name": "上网到位", "stage_code": "approach", "t_ms": null, "notes": null },
+    { "code": "kf_contact", "name": "搓切接触", "stage_code": "tumble", "t_ms": null, "notes": null }
+  ],
+  "metrics": [
+    {
+      "id": "racket_face_vs_net",
+      "name": "拍面相对球网（占位）",
+      "unit": "qualitative",
+      "stage_code": "set_up",
+      "range_min": null,
+      "range_max": null,
+      "notes": "专家标注前保持 null"
+    },
+    {
+      "id": "contact_softness",
+      "name": "接触力度启发式（占位）",
+      "unit": "qualitative",
+      "stage_code": "tumble",
+      "range_min": null,
+      "range_max": null,
+      "notes": null
+    },
+    {
+      "id": "wrist_action_extent",
+      "name": "腕部动作幅度（占位）",
+      "unit": "deg",
+      "stage_code": "tumble",
+      "range_min": null,
+      "range_max": null,
+      "notes": null
+    }
+  ],
+  "common_error_refs": [
+    { "id": "err_tumble_becomes_push", "title": null },
+    { "id": "err_unstable_face", "title": null }
+  ],
+  "linked_drill_codes": [
+    "tumble_touch",
+    "tumble_approach"
+  ],
+  "verification_status": "draft_unverified",
+  "source": "placeholder_shell",
+  "notes": "空壳模板：仅阶段名与指标 id；数值区间全部为 null。"
+}

@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models import AnalysisJob, TrainingVideo, User
+from app.models import AnalysisJob, BadmintonSkill, TrainingVideo, User
+from app.services.benchmark_pkg import find_published_version
 from app.schemas import AnalysisJobOut, AnalysisJobRequest, AnalysisNotImplemented
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -34,18 +35,27 @@ def _user_owns_job(db: Session, job: AnalysisJob, user: User) -> bool:
 
 
 @router.post("/jobs", response_model=AnalysisNotImplemented)
-def create_analysis_job(body: AnalysisJobRequest, response: Response):
+def create_analysis_job(
+    body: AnalysisJobRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     """
     Direct analysis without upload is not supported in V1.
     Prefer POST /videos/upload (precheck → store → analysis_job not_implemented).
     """
     response.status_code = 501
+    extra = ""
+    skill = db.get(BadmintonSkill, body.skill_id)
+    if skill and find_published_version(db, skill.id) is None:
+        extra = " awaiting_published_benchmark。"
     return AnalysisNotImplemented(
         code="ANALYSIS_NOT_IMPLEMENTED",
         message=(
             "视频姿态分析尚未实现。请先走拍摄引导 → 录制/上传（POST /videos/upload）；"
             "上传成功后会创建 analysis_job，状态为 not_implemented / ANALYSIS_NOT_IMPLEMENTED，"
             "不会返回动作评分。禁止模拟分数或伪 AI 结果。"
+            + extra
         ),
         skill_id=body.skill_id,
     )

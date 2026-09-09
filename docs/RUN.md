@@ -86,4 +86,13 @@ curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/analysis/jobs
 curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1
 ```
 
-上传成功后 `analysis_job.status=not_implemented`，`error_code=ANALYSIS_NOT_IMPLEMENTED`（保持一致性，不用 awaiting_benchmark）。
+上传成功后 `analysis_job.status=not_implemented`，`error_code=ANALYSIS_NOT_IMPLEMENTED`（保持一致性）。若该技能尚无 published benchmark，`message` 可附带 `awaiting_published_benchmark` 说明（仍无分数）。
+
+## Motion Benchmark 包
+
+```bash
+python scripts/benchmark_validate.py docs/benchmark/templates/forehand_clear.v0.json
+python scripts/benchmark_import.py docs/benchmark/templates/forehand_clear.v0.json
+python scripts/benchmark_publish.py forehand_clear --version 0.1.0   # draft 默认失败
+curl http://127.0.0.1:8000/benchmarks
+```

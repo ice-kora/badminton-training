@@ -299,3 +299,66 @@ class VideoDetailOut(BaseModel):
     created_at: datetime
     jobs: list[AnalysisJobOut] = Field(default_factory=list)
     notice: str = "姿态分析尚未开放，不返回分数"
+
+
+# ---- Motion Benchmark (read-only) ----
+class BenchmarkStageOut(BaseModel):
+    code: str
+    name: str
+    sort_order: int = 0
+
+
+class BenchmarkMetricOut(BaseModel):
+    id: str
+    name: str
+    unit: Optional[str] = None
+    stage_code: Optional[str] = None
+    range_min: Optional[float] = None
+    range_max: Optional[float] = None
+    notes: Optional[str] = None
+
+
+class BenchmarkVersionOut(BaseModel):
+    id: int
+    version_label: str
+    status: str
+    verification_status: str
+    source: str
+    change_log: Optional[str] = None
+    published_at: Optional[datetime] = None
+    created_at: datetime
+    stages: list[BenchmarkStageOut] = Field(default_factory=list)
+    metrics: list[BenchmarkMetricOut] = Field(default_factory=list)
+    package: Optional[dict[str, Any]] = None
+
+
+class BenchmarkListItemOut(BaseModel):
+    skill_id: int
+    skill_code: str
+    skill_name: str
+    benchmark_id: int
+    name: str
+    handedness: Optional[str] = None
+    camera_view: Optional[str] = None
+    verification_status: str
+    source: str
+    has_published_version: bool = False
+    published_version_label: Optional[str] = None
+    latest_version_label: Optional[str] = None
+    latest_version_status: Optional[str] = None
+
+
+class BenchmarkDetailOut(BaseModel):
+    skill_id: int
+    skill_code: str
+    skill_name: str
+    benchmark_id: int
+    name: str
+    handedness: Optional[str] = None
+    camera_view: Optional[str] = None
+    notes: Optional[str] = None
+    verification_status: str
+    source: str
+    has_published_version: bool = False
+    current: Optional[BenchmarkVersionOut] = None
+    notice: str = "姿态分析尚未开放，不返回分数"

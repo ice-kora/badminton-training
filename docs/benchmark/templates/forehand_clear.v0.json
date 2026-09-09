@@ -1,0 +1,58 @@
+{
+  "skill_code": "forehand_clear",
+  "skill_name": "正手高远球",
+  "version": "0.1.0",
+  "handedness": null,
+  "camera_view": null,
+  "stages": [
+    { "code": "ready", "name": "准备架拍", "sort_order": 1 },
+    { "code": "backswing", "name": "引拍", "sort_order": 2 },
+    { "code": "contact", "name": "击球", "sort_order": 3 },
+    { "code": "follow_through", "name": "随挥回收", "sort_order": 4 }
+  ],
+  "keyframes": [
+    { "code": "kf_ready", "name": "架拍定型", "stage_code": "ready", "t_ms": null, "notes": null },
+    { "code": "kf_contact", "name": "击球瞬间", "stage_code": "contact", "t_ms": null, "notes": "专家标注后再填时间戳" }
+  ],
+  "metrics": [
+    {
+      "id": "elbow_flexion_at_contact",
+      "name": "击球时肘屈曲（占位）",
+      "unit": "deg",
+      "stage_code": "contact",
+      "range_min": null,
+      "range_max": null,
+      "notes": "须专家核验；禁止填入未验证数值"
+    },
+    {
+      "id": "contact_height_rel_shoulder",
+      "name": "击球高度相对肩（占位）",
+      "unit": "ratio",
+      "stage_code": "contact",
+      "range_min": null,
+      "range_max": null,
+      "notes": null
+    },
+    {
+      "id": "trunk_rotation_backswing",
+      "name": "引拍躯干旋转（占位）",
+      "unit": "deg",
+      "stage_code": "backswing",
+      "range_min": null,
+      "range_max": null,
+      "notes": null
+    }
+  ],
+  "common_error_refs": [
+    { "id": "err_contact_too_low", "title": null },
+    { "id": "err_no_side_stance", "title": null }
+  ],
+  "linked_drill_codes": [
+    "clear_stance_hold",
+    "clear_rhythm_breakdown",
+    "clear_placement"
+  ],
+  "verification_status": "draft_unverified",
+  "source": "placeholder_shell",
+  "notes": "空壳模板：仅阶段名与指标 id；数值区间全部为 null。"
+}

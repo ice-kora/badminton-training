@@ -7,6 +7,7 @@ from typing import Optional
 from sqlalchemy import (
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -148,6 +149,7 @@ class Drill(Base):
     skill_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("badminton_skills.id"), nullable=True
     )
+    code: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)
     name: Mapped[str] = mapped_column(String(128))
     goal: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     steps: Mapped[str] = mapped_column(Text)
@@ -207,8 +209,8 @@ class FilmingGuide(Base):
 
 class MotionBenchmark(Base):
     """
-    Motion benchmark shell. Metric tables intentionally empty/null —
-    expert annotation required. Do NOT invent joint-angle standards.
+    Motion benchmark shell per skill. Packages live in BenchmarkVersion rows.
+    Do NOT invent joint-angle standards; metric ranges stay null until verified.
     """
 
     __tablename__ = "motion_benchmarks"
@@ -216,9 +218,10 @@ class MotionBenchmark(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     skill_id: Mapped[int] = mapped_column(ForeignKey("badminton_skills.id"))
     name: Mapped[str] = mapped_column(String(128))
-    handedness: Mapped[str] = mapped_column(String(16), default="right")
+    handedness: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    camera_view: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    # Intentionally null until expert annotation
+    # Legacy shell field — prefer version.package_json / metrics rows
     metric_table_json: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True
     )  # NULL = expert annotation required
@@ -228,22 +231,74 @@ class MotionBenchmark(Base):
     )
 
     skill: Mapped[BadmintonSkill] = relationship(back_populates="motion_benchmarks")
-    versions: Mapped[list[BenchmarkVersion]] = relationship(back_populates="benchmark")
+    versions: Mapped[list[BenchmarkVersion]] = relationship(
+        back_populates="benchmark", order_by="BenchmarkVersion.id"
+    )
 
 
 class BenchmarkVersion(Base):
+    """Imported / published package version. status: draft|published|archived."""
+
     __tablename__ = "benchmark_versions"
+    __table_args__ = (
+        UniqueConstraint("benchmark_id", "version_label", name="uq_bm_version_label"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     benchmark_id: Mapped[int] = mapped_column(ForeignKey("motion_benchmarks.id"))
     version_label: Mapped[str] = mapped_column(String(32))
-    status: Mapped[str] = mapped_column(String(32), default="draft")
-    # Metric payload left null — expert annotation required
+    status: Mapped[str] = mapped_column(String(32), default="draft")  # draft|published|archived
+    verification_status: Mapped[str] = mapped_column(
+        String(32), default="draft_unverified"
+    )
+    source: Mapped[str] = mapped_column(String(128), default="placeholder_shell")
+    # Full package JSON as imported (authoritative asset snapshot)
+    package_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Denormalized metrics array (may mirror package); null ranges OK
     metrics_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     change_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     benchmark: Mapped[MotionBenchmark] = relationship(back_populates="versions")
+    stages: Mapped[list[BenchmarkStage]] = relationship(
+        back_populates="version", order_by="BenchmarkStage.sort_order"
+    )
+    metrics: Mapped[list[BenchmarkMetric]] = relationship(back_populates="version")
+
+
+class BenchmarkStage(Base):
+    """Stage names from a benchmark package (no numerical standards)."""
+
+    __tablename__ = "benchmark_stages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    version_id: Mapped[int] = mapped_column(ForeignKey("benchmark_versions.id"))
+    code: Mapped[str] = mapped_column(String(64))
+    name: Mapped[str] = mapped_column(String(128))
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    version: Mapped[BenchmarkVersion] = relationship(back_populates="stages")
+
+
+class BenchmarkMetric(Base):
+    """
+    Metric shell rows. range_min / range_max MUST be null until expert verification.
+    """
+
+    __tablename__ = "benchmark_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    version_id: Mapped[int] = mapped_column(ForeignKey("benchmark_versions.id"))
+    metric_id: Mapped[str] = mapped_column(String(128))
+    name: Mapped[str] = mapped_column(String(128))
+    unit: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    stage_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    range_min: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    range_max: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    version: Mapped[BenchmarkVersion] = relationship(back_populates="metrics")
 
 
 class TrainingPlan(Base):

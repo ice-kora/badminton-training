@@ -16,6 +16,8 @@ from app.database import Base, SessionLocal, engine, init_db
 from app.models import (
     AnalysisJob,
     BadmintonSkill,
+    BenchmarkMetric,
+    BenchmarkStage,
     BenchmarkVersion,
     CommonError,
     Drill,
@@ -62,6 +64,8 @@ def seed(db: Session | None = None) -> None:
                 AnalysisJob,
                 TrainingVideo,
                 ProblemToDrill,
+                BenchmarkMetric,
+                BenchmarkStage,
                 BenchmarkVersion,
                 MotionBenchmark,
                 FilmingGuide,
@@ -262,6 +266,9 @@ def seed(db: Session | None = None) -> None:
                     benchmark_id=bm.id,
                     version_label="v0-shell",
                     status="draft",
+                    verification_status=DRAFT,
+                    source="placeholder_shell",
+                    package_json=None,
                     metrics_json=None,
                     change_log="初始空壳版本，等待专家标注。",
                 )
@@ -269,25 +276,26 @@ def seed(db: Session | None = None) -> None:
 
         # Drills
         drills_data = [
-            (clear, "高远球架拍定型", "建立稳定准备姿势",
+            (clear, "clear_stance_hold", "高远球架拍定型", "建立稳定准备姿势",
              "1. 侧身架拍静止 3 秒\n2. 慢速挥拍 10 次\n3. 完整挥拍 15 次", 10, "low"),
-            (clear, "高远球节奏分解", "改善引拍-击球节奏",
+            (clear, "clear_rhythm_breakdown", "高远球节奏分解", "改善引拍-击球节奏",
              "1. 口令：引—打—收\n2. 每组 12 拍，共 3 组", 12, "medium"),
-            (clear, "高远球落点练习", "控制落点靠近底线",
+            (clear, "clear_placement", "高远球落点练习", "控制落点靠近底线",
              "1. 对墙或陪练打高远\n2. 目标区域贴地标\n3. 记录落点分布（主观）", 15, "medium"),
-            (smash, "轻杀发力顺序", "先掌握发力链再加重杀",
+            (smash, "smash_power_chain", "轻杀发力顺序", "先掌握发力链再加重杀",
              "1. 无球转体引拍\n2. 轻杀 20 拍\n3. 注意落地缓冲", 12, "medium"),
-            (smash, "杀球并步到位", "提高后场移动到位率",
+            (smash, "smash_footwork", "杀球并步到位", "提高后场移动到位率",
              "1. 中心→后场并步\n2. 空挥杀球\n3. 回中，重复 10 次", 10, "high"),
-            (tumble, "网前搓球手感", "培养轻切手感",
+            (tumble, "tumble_touch", "网前搓球手感", "培养轻切手感",
              "1. 近网抛球自搓 20 次\n2. 强调球翻滚\n3. 记录贴网次数（主观）", 10, "low"),
-            (tumble, "搓球上网步伐", "步伐与手法衔接",
+            (tumble, "tumble_approach", "搓球上网步伐", "步伐与手法衔接",
              "1. 中心启动上网\n2. 搓球\n3. 回中，左右交替各 8 次", 12, "medium"),
         ]
         drill_objs: list[Drill] = []
-        for skill, name, goal, steps, mins, intensity in drills_data:
+        for skill, code, name, goal, steps, mins, intensity in drills_data:
             d = Drill(
                 skill_id=skill.id,
+                code=code,
                 name=name,
                 goal=goal,
                 steps=steps,

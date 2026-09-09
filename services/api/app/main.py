@@ -12,6 +12,7 @@ from app.database import init_db
 from app.routers import (
     analysis,
     auth,
+    benchmarks,
     content,
     filming,
     health,
@@ -40,7 +41,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
         title=settings.app_name,
-        version="0.4.0",
+        version="0.5.0",
         description=(
             "羽毛球 AI 学习训练助手 API（Phase-2）。"
             "姿态分析未实现，返回 ANALYSIS_NOT_IMPLEMENTED。"
@@ -58,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(skills.router)
     app.include_router(filming.router)
+    app.include_router(benchmarks.router)
     app.include_router(plans.router)
     app.include_router(sessions.router)
     app.include_router(content.router)

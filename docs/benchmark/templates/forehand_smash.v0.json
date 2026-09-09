@@ -1,0 +1,57 @@
+{
+  "skill_code": "forehand_smash",
+  "skill_name": "正手杀球",
+  "version": "0.1.0",
+  "handedness": null,
+  "camera_view": null,
+  "stages": [
+    { "code": "approach", "name": "准备与并步", "sort_order": 1 },
+    { "code": "backswing", "name": "引拍蓄力", "sort_order": 2 },
+    { "code": "contact", "name": "击球下压", "sort_order": 3 },
+    { "code": "landing", "name": "落地缓冲与回动", "sort_order": 4 }
+  ],
+  "keyframes": [
+    { "code": "kf_plant", "name": "并步到位", "stage_code": "approach", "t_ms": null, "notes": null },
+    { "code": "kf_contact", "name": "下压击球瞬间", "stage_code": "contact", "t_ms": null, "notes": null }
+  ],
+  "metrics": [
+    {
+      "id": "contact_forward_of_body",
+      "name": "击球点相对躯干前后（占位）",
+      "unit": "qualitative",
+      "stage_code": "contact",
+      "range_min": null,
+      "range_max": null,
+      "notes": "数值标准待专家；此处不填伪区间"
+    },
+    {
+      "id": "racket_face_depression",
+      "name": "拍面下压程度（占位）",
+      "unit": "deg",
+      "stage_code": "contact",
+      "range_min": null,
+      "range_max": null,
+      "notes": null
+    },
+    {
+      "id": "trunk_coil_backswing",
+      "name": "引拍转体幅度（占位）",
+      "unit": "deg",
+      "stage_code": "backswing",
+      "range_min": null,
+      "range_max": null,
+      "notes": null
+    }
+  ],
+  "common_error_refs": [
+    { "id": "err_arm_only_power", "title": null },
+    { "id": "err_contact_too_late", "title": null }
+  ],
+  "linked_drill_codes": [
+    "smash_power_chain",
+    "smash_footwork"
+  ],
+  "verification_status": "draft_unverified",
+  "source": "placeholder_shell",
+  "notes": "空壳模板：仅阶段名与指标 id；数值区间全部为 null。"
+}
