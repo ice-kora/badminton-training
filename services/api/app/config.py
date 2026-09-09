@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     pose_extract_background: bool = False
     # Worker poll interval seconds (POSE_EXTRACT_POLL_INTERVAL, default 2)
     pose_extract_poll_interval: float = 2.0
+    # Reclaim extracting jobs stuck longer than this (POSE_EXTRACT_STALE_SECONDS, default 600)
+    pose_extract_stale_seconds: int = 600
     pose_model_path: str = str(_API_ROOT / "data" / "models" / "pose_landmarker_lite.task")
 
 

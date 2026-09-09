@@ -2,6 +2,7 @@
 
 Claim path: status queued → extracting via optimistic UPDATE ... WHERE status='queued'.
 Process path: extracting → pose_extracted | failed (scoring always blocked).
+Stale reclaim: extracting older than POSE_EXTRACT_STALE_SECONDS → queued again.
 """
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import update
@@ -24,12 +26,68 @@ from app.services.pose.runner import SCORING_CODE, extract_for_video
 logger = logging.getLogger(__name__)
 
 
+def _utcnow_naive() -> datetime:
+    """Naive UTC for DateTime columns (SQLite / server_default=func.now())."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 @dataclass
 class ProcessStats:
     claimed: int = 0
     processed: int = 0
     failed: int = 0
     requeued: int = 0
+    reclaimed: int = 0
+
+
+def reclaim_stale_extracting_jobs(
+    db: Session,
+    *,
+    stale_seconds: Optional[int] = None,
+) -> int:
+    """
+    Requeue jobs stuck in `extracting` longer than stale_seconds.
+    Simple policy: extracting → queued (log only; no failed escalation).
+    Returns number of rows reclaimed.
+    """
+    settings = get_settings()
+    seconds = (
+        int(stale_seconds)
+        if stale_seconds is not None
+        else int(settings.pose_extract_stale_seconds)
+    )
+    if seconds <= 0:
+        return 0
+
+    cutoff = _utcnow_naive() - timedelta(seconds=seconds)
+    now = _utcnow_naive()
+    result = db.execute(
+        update(AnalysisJob)
+        .where(
+            AnalysisJob.status == "extracting",
+            AnalysisJob.updated_at < cutoff,
+        )
+        .values(
+            status="queued",
+            scoring_status="blocked",
+            error_code=SCORING_CODE,
+            message=(
+                f"卡死 extracting 已超过 {seconds}s，已回收为 queued；"
+                "评分未开放（ANALYSIS_NOT_IMPLEMENTED）。"
+            ),
+            updated_at=now,
+        )
+    )
+    db.commit()
+    n = int(result.rowcount or 0)
+    if n:
+        logger.warning(
+            "reclaimed %s stale extracting job(s) older than %ss (cutoff=%s)",
+            n,
+            seconds,
+            cutoff.isoformat(sep=" ", timespec="seconds"),
+        )
+    return n
 
 
 def claim_next_job(db: Session) -> Optional[AnalysisJob]:
@@ -48,6 +106,7 @@ def claim_next_job(db: Session) -> Optional[AnalysisJob]:
     if candidate_id is None:
         return None
 
+    now = _utcnow_naive()
     result = db.execute(
         update(AnalysisJob)
         .where(
@@ -59,6 +118,7 @@ def claim_next_job(db: Session) -> Optional[AnalysisJob]:
             scoring_status="blocked",
             error_code=SCORING_CODE,
             message="关键点提取中；评分未开放（ANALYSIS_NOT_IMPLEMENTED）。",
+            updated_at=now,
         )
     )
     db.commit()
@@ -67,9 +127,9 @@ def claim_next_job(db: Session) -> Optional[AnalysisJob]:
     return db.get(AnalysisJob, candidate_id)
 
 
-
 def claim_job(db: Session, job_id: int) -> Optional[AnalysisJob]:
     """Optimistic claim of a specific job id (for tests / targeted drain)."""
+    now = _utcnow_naive()
     result = db.execute(
         update(AnalysisJob)
         .where(
@@ -81,6 +141,7 @@ def claim_job(db: Session, job_id: int) -> Optional[AnalysisJob]:
             scoring_status="blocked",
             error_code=SCORING_CODE,
             message="关键点提取中；评分未开放（ANALYSIS_NOT_IMPLEMENTED）。",
+            updated_at=now,
         )
     )
     db.commit()
@@ -143,12 +204,16 @@ def process_batch(
     limit: int = 1,
     extractor: Optional[PoseExtractor] = None,
     db: Optional[Session] = None,
+    stale_seconds: Optional[int] = None,
 ) -> ProcessStats:
-    """Claim and process up to `limit` jobs. Opens its own session if db is None."""
+    """Reclaim stale extracting, then claim and process up to `limit` jobs."""
     own = db is None
     session = db if db is not None else SessionLocal()
     stats = ProcessStats()
     try:
+        stats.reclaimed = reclaim_stale_extracting_jobs(
+            session, stale_seconds=stale_seconds
+        )
         jobs = claim_jobs(session, limit=limit)
         stats.claimed = len(jobs)
         for job in jobs:
@@ -170,7 +235,7 @@ def run_once(
     limit: int = 1,
     extractor: Optional[PoseExtractor] = None,
 ) -> ProcessStats:
-    """One-shot: claim + process a batch."""
+    """One-shot: reclaim stale + claim + process a batch."""
     return process_batch(limit=limit, extractor=extractor)
 
 
@@ -189,9 +254,10 @@ def run_loop(
         else float(settings.pose_extract_poll_interval)
     )
     logger.info(
-        "pose queue loop started poll=%.2fs limit=%s",
+        "pose queue loop started poll=%.2fs limit=%s stale=%ss",
         interval,
         limit,
+        settings.pose_extract_stale_seconds,
     )
     while True:
         if stop_event is not None and stop_event.is_set():
@@ -199,13 +265,14 @@ def run_loop(
             break
         try:
             stats = process_batch(limit=limit, extractor=extractor)
-            if stats.claimed:
+            if stats.claimed or stats.reclaimed:
                 logger.info(
-                    "pose queue tick claimed=%s ok=%s failed=%s requeued=%s",
+                    "pose queue tick claimed=%s ok=%s failed=%s requeued=%s reclaimed=%s",
                     stats.claimed,
                     stats.processed,
                     stats.failed,
                     stats.requeued,
+                    stats.reclaimed,
                 )
         except Exception:
             logger.exception("pose queue tick error")

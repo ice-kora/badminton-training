@@ -90,6 +90,16 @@ curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1
 
 ### 关键点队列 worker（SQLite，无需 Redis）
 
+本地 demo 两终端：
+
+```bash
+make run      # 终端 1：API :8000
+make worker   # 终端 2：DB 队列提取（无需 Redis）
+```
+
+Windows：可用 Git Bash / WSL 跑 `make`；或在 `services/api` 激活 `.venv` 后执行  
+`python -m app.worker extract --loop`（cmd / PowerShell 均可）。
+
 ```bash
 cd services/api && source .venv/bin/activate
 # 推荐：另开终端跑 worker
@@ -98,6 +108,7 @@ python -m app.worker extract --loop             # 轮询，间隔 POSE_EXTRACT_P
 # 或
 python ../../scripts/run_pose_extract.py --loop
 
+# 卡死 reclaim：extracting 超过 POSE_EXTRACT_STALE_SECONDS（默认 600）→ 回收为 queued
 # 可选：API 进程内守护线程（测试请保持 false）
 # POSE_EXTRACT_BACKGROUND=true uvicorn ...
 # 调试同步：POSE_EXTRACT_INLINE=true 时上传内联提取
@@ -105,7 +116,7 @@ python ../../scripts/run_pose_extract.py --loop
 curl -X POST -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/extract-pose
 ```
 
-状态：`queued` → `extracting` → `pose_extracted` | `failed`。
+状态：`queued` → `extracting` → `pose_extracted` | `failed`（stale `extracting` → `queued`）。
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/pose

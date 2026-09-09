@@ -22,9 +22,12 @@ scripts/              seed / pose extract / benchmark_validate|import|publish / 
 
 ```bash
 make install
-make run          # http://127.0.0.1:8000
+make run          # 终端 1：API http://127.0.0.1:8000
+make worker       # 终端 2：pose 提取队列（DB，无需 Redis）
 make test         # pytest 须全绿
 ```
+
+Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后跑 `python -m app.worker extract --loop`。
 
 详见 [docs/RUN.md](docs/RUN.md)、[docs/CONTENT_POLICY.md](docs/CONTENT_POLICY.md)。
 
@@ -46,7 +49,7 @@ make test         # pytest 须全绿
 3. 技术库 → 选技能（如正手高远球）→ **查看拍摄引导** → **开始录制 / 选择视频**。
 4. 对照剪影勾选清单（全身/距离等为客户端门禁）→ `chooseMedia` 选视频（工具里比 camera 稳）。
 5. 上传：服务端预检时长/分辨率/亮度/方向；失败展示原因并提示重拍。
-6. 通过后返回 `video_id` + `analysis_job`（默认 `queued`；另跑 `python -m app.worker extract --loop` → `extracting`→`pose_extracted`；`scoring_status=blocked` / `ANALYSIS_NOT_IMPLEMENTED`）。
+6. 通过后返回 `video_id` + `analysis_job`（默认 `queued`；另开终端 `make worker` 或 `python -m app.worker extract --loop` → `extracting`→`pose_extracted`；卡死 extracting 超 `POSE_EXTRACT_STALE_SECONDS` 会回收为 queued；`scoring_status=blocked` / `ANALYSIS_NOT_IMPLEMENTED`）。
 7. 「我的」详情分别显示「关键点已提取/未提取」与「评分未开放」；已提取时可滑帧「骨架预览」（仅关键点可视化，非评分）。
 
 **真预检**：duration / resolution / brightness / orientation（OpenCV 探测）。  

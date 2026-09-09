@@ -13,6 +13,7 @@ Environment:
   POSE_MAX_SECONDS=60
   POSE_FRAME_STRIDE=2
   POSE_EXTRACT_POLL_INTERVAL=2
+  POSE_EXTRACT_STALE_SECONDS=600
 """
 from __future__ import annotations
 

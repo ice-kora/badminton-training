@@ -17,4 +17,6 @@ export ALLOW_DEV_LOGIN=true
 
 python -m app.seed
 echo "Starting uvicorn on http://127.0.0.1:8000 ..."
+echo "In another terminal run: make worker   # or: python -m app.worker extract --loop"
+echo "Windows: use Git Bash/WSL for make, or activate .venv and run the python -m line."
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

@@ -85,7 +85,8 @@ def _run_extract(
     stats = process_batch(limit=limit)
     print(
         f"claimed={stats.claimed} processed={stats.processed} "
-        f"failed={stats.failed} requeued={stats.requeued}"
+        f"failed={stats.failed} requeued={stats.requeued} "
+        f"reclaimed={stats.reclaimed}"
     )
     return 0 if stats.failed == 0 else 1
 

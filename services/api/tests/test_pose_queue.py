@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,7 @@ from app.worker.pose_queue import (
     claim_next_job,
     process_batch,
     process_claimed_job,
+    reclaim_stale_extracting_jobs,
 )
 from tests.video_fixtures import write_solid_video
 
@@ -185,3 +187,89 @@ def test_process_batch_api_stable():
     stats = process_batch(limit=1, extractor=FakePoseExtractor())
     assert stats.claimed >= 0
     assert stats.processed + stats.failed + stats.requeued == stats.claimed
+
+
+def test_stale_extracting_reclaimed_to_queued(
+    client, auth_headers, skill_id, media_dir
+):
+    path = write_solid_video(
+        media_dir / "stale.mp4",
+        width=720,
+        height=1280,
+        duration_sec=6,
+        color_bgr=(200, 200, 200),
+    )
+    up = _upload(client, auth_headers, skill_id, path)
+    assert up.status_code == 200, up.text
+    job_id = up.json()["analysis_job"]["id"]
+
+    db = SessionLocal()
+    try:
+        claimed = claim_job(db, job_id)
+        assert claimed is not None
+        assert claimed.status == "extracting"
+
+        # Simulate worker crash: backdate updated_at
+        stale_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+            seconds=900
+        )
+        claimed.updated_at = stale_at
+        db.commit()
+
+        n = reclaim_stale_extracting_jobs(db, stale_seconds=600)
+        assert n == 1
+
+        row = db.get(AnalysisJob, job_id)
+        db.refresh(row)
+        assert row.status == "queued"
+        assert row.scoring_status == "blocked"
+        assert row.error_code == "ANALYSIS_NOT_IMPLEMENTED"
+        assert "回收" in (row.message or "")
+
+        # Fresh extracting must NOT be reclaimed
+        claimed2 = claim_job(db, job_id)
+        assert claimed2 is not None
+        assert claimed2.status == "extracting"
+        n2 = reclaim_stale_extracting_jobs(db, stale_seconds=600)
+        assert n2 == 0
+        db.refresh(claimed2)
+        assert claimed2.status == "extracting"
+    finally:
+        db.close()
+
+
+def test_process_batch_reclaims_then_processes(
+    client, auth_headers, skill_id, media_dir
+):
+    path = write_solid_video(
+        media_dir / "stale_batch.mp4",
+        width=720,
+        height=1280,
+        duration_sec=6,
+        color_bgr=(180, 180, 180),
+    )
+    up = _upload(client, auth_headers, skill_id, path)
+    job_id = up.json()["analysis_job"]["id"]
+
+    db = SessionLocal()
+    try:
+        claimed = claim_job(db, job_id)
+        assert claimed is not None
+        claimed.updated_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+            seconds=1200
+        )
+        db.commit()
+
+        stats = process_batch(
+            limit=1, extractor=FakePoseExtractor(), db=db, stale_seconds=600
+        )
+        assert stats.reclaimed == 1
+        assert stats.claimed == 1
+        assert stats.processed == 1
+
+        row = db.get(AnalysisJob, job_id)
+        db.refresh(row)
+        assert row.status == "pose_extracted"
+        assert row.scoring_status == "blocked"
+    finally:
+        db.close()
