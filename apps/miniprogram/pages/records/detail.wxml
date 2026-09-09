@@ -59,6 +59,51 @@
       <view class="muted" wx:if="{{!problems.length}}">未检出显著问题</view>
     </block>
 
+
+    <block wx:if="{{stageSegments.length}}">
+      <view class="section-title">阶段时间轴</view>
+      <view class="card">
+        <view class="banner-note">{{stageNotice || '相对时序启发式切分，非专家标注'}}</view>
+        <view class="stage-row" wx:for="{{stageSegments}}" wx:key="code">
+          <view class="row">
+            <text class="stage-name">{{item.name}}</text>
+            <text class="muted">{{item.t0_ms}}–{{item.t1_ms}} ms</text>
+          </view>
+          <view class="muted" wx:if="{{item.delta_ms != null}}">相对模板 Δt {{item.deltaText}}</view>
+        </view>
+      </view>
+    </block>
+
+    <block wx:if="{{overlayAvailable}}">
+      <view class="section-title">标准 vs 用户骨架叠加</view>
+      <view class="card">
+        <view class="banner-synthetic" wx:if="{{isSyntheticDemo || overlaySynthetic}}">⚠️ {{scoringBanner}}</view>
+        <view class="banner-note preview-disclaimer">非评分叠加 · 绿=标准 · 蓝=用户</view>
+        <canvas
+          type="2d"
+          id="overlayCanvas"
+          class="skeleton-canvas"
+          style="width: {{overlayCssW}}px; height: {{overlayCssH}}px;"
+        ></canvas>
+        <view class="row scrub-row">
+          <text class="muted">帧 {{overlayFrame}} / {{overlayMax}}</text>
+          <text class="muted" wx:if="{{overlayStageName}}">阶段 {{overlayStageName}}</text>
+          <text class="muted" wx:if="{{overlayLoading}}">加载中…</text>
+          <text class="muted" wx:elif="{{overlayError}}">{{overlayError}}</text>
+        </view>
+        <slider
+          min="0"
+          max="{{overlayMax}}"
+          value="{{overlayFrame}}"
+          step="1"
+          show-value
+          disabled="{{overlayMax <= 0}}"
+          bindchange="onOverlayScrub"
+          bindchanging="onOverlayScrub"
+        />
+      </view>
+    </block>
+
     <view class="section-title">骨架预览</view>
     <view class="card">
       <view class="banner-note preview-disclaimer">仅关键点可视化</view>

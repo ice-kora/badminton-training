@@ -145,9 +145,11 @@ def extract_for_video(
     pose_row = apply_pose_success(db, video=video, job=job, result=result, path=path)
     db.flush()
     try:
-        from app.services.scoring.persist import maybe_score_after_pose
+        from app.services.scoring.persist import maybe_score_after_pose, persist_stage_timeline
 
         maybe_score_after_pose(db, video=video, job=job, pose=pose_row)
+        if not pose_row.stage_timeline_json:
+            persist_stage_timeline(db, video=video, pose=pose_row)
     except Exception as exc:  # noqa: BLE001 — keep keypoints even if scoring fails
         logger.warning("post-pose scoring skipped video=%s: %s", video.id, exc)
     db.commit()

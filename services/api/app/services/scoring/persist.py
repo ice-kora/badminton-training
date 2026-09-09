@@ -24,8 +24,43 @@ from app.services.benchmark_pkg import (
 )
 from app.services.pose.runner import SCORING_CODE
 from app.services.scoring.pose_scorer import PoseScorer
+from app.services.scoring.stage_timeline import timeline_from_package
 
 logger = logging.getLogger(__name__)
+
+
+def persist_stage_timeline(
+    db: Session,
+    *,
+    video: TrainingVideo,
+    pose: PoseAnalysis,
+    package: Optional[dict] = None,
+) -> Optional[dict]:
+    """Compute heuristic stage timeline and store on PoseAnalysis."""
+    pkg = package
+    if pkg is None:
+        published = None
+        if pose.job_id:
+            job = db.get(AnalysisJob, pose.job_id)
+            if job and job.benchmark_version_id:
+                from app.models import BenchmarkVersion
+
+                published = db.get(BenchmarkVersion, job.benchmark_version_id)
+        if published is None:
+            published = find_published_version(db, video.skill_id)
+        if published is None:
+            return None
+        pkg = package_dict_from_version(published)
+    if not pose.keypoint_path or not (pkg.get("stages") or []):
+        return None
+    try:
+        timeline = timeline_from_package(pose.keypoint_path, pkg)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("stage timeline failed video=%s: %s", video.id, exc)
+        return None
+    pose.stage_timeline_json = json.dumps(timeline, ensure_ascii=False)
+    db.flush()
+    return timeline
 
 
 def _error_catalog(db: Session) -> dict[str, dict]:
@@ -93,6 +128,9 @@ def maybe_score_after_pose(
         db.flush()
         return None
 
+    # Stage timeline can land even if scoring later fails
+    persist_stage_timeline(db, video=video, pose=pose, package=pkg)
+
     try:
         scorer = PoseScorer()
         result = scorer.score(
@@ -131,6 +169,9 @@ def maybe_score_after_pose(
     )
     existing.result_json = json.dumps(result.to_dict(), ensure_ascii=False)
     db.flush()
+
+    # V2: stage timeline boundaries on pose analysis
+    persist_stage_timeline(db, video=video, pose=pose, package=pkg)
 
     # Replace problems
     for old in list(existing.problems or []):

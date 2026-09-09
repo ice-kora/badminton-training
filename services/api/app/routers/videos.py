@@ -28,16 +28,25 @@ from app.schemas import (
     BaselineVideoSummaryOut,
     PoseExtractOut,
     PoseMetaOut,
+    PoseOverlayOut,
     PosePreviewOut,
     PrecheckReportOut,
     RetestCompareOut,
+    StageTimelineOut,
     TrainingVideoOut,
     VideoDetailOut,
     VideoListItemOut,
     VideoUploadOut,
 )
-from app.services.benchmark_pkg import SYNTHETIC_BANNER, find_published_version
+from app.services.benchmark_pkg import (
+    SYNTHETIC_BANNER,
+    find_published_version,
+    package_dict_from_version,
+)
+from app.services.scoring.overlay import build_overlay_json
+from app.services.scoring.persist import persist_stage_timeline
 from app.services.scoring.serialize import score_for_video, score_out
+from app.services.scoring.stage_timeline import timeline_from_package
 from app.services.pose.landmarks import POSE_LANDMARK_NAMES
 from app.services.pose.null_extractor import PoseExtractorUnavailable
 from app.services.pose.preview import (
@@ -201,6 +210,40 @@ def _job_out(row: AnalysisJob, db: Optional[Session] = None) -> AnalysisJobOut:
         benchmark_kind=kind,
     )
 
+
+
+def _loads_timeline(pose: Optional[PoseAnalysis]) -> Optional[dict]:
+    if pose is None or not pose.stage_timeline_json:
+        return None
+    try:
+        data = json.loads(pose.stage_timeline_json)
+        return data if isinstance(data, dict) else None
+    except json.JSONDecodeError:
+        return None
+
+
+def _ensure_timeline(
+    db: Session, video: TrainingVideo, pose: PoseAnalysis
+) -> Optional[dict]:
+    existing = _loads_timeline(pose)
+    if existing and existing.get("segments"):
+        return existing
+    return persist_stage_timeline(db, video=video, pose=pose)
+
+
+def _published_package(db: Session, video: TrainingVideo, job: Optional[AnalysisJob]):
+    published = None
+    if job and job.benchmark_version_id:
+        from app.models import BenchmarkVersion
+
+        published = db.get(BenchmarkVersion, job.benchmark_version_id)
+        if published is not None and published.status != "published":
+            published = None
+    if published is None:
+        published = find_published_version(db, video.skill_id)
+    if published is None:
+        return None, None
+    return published, package_dict_from_version(published)
 
 def _pose_for_video(db: Session, video_id: int) -> Optional[PoseAnalysis]:
     return (
@@ -478,6 +521,17 @@ def get_video(
         notice = "关键点可提取；无已发布标准库时评分不开放（ANALYSIS_NOT_IMPLEMENTED / awaiting_published_benchmark）"
     elif kind == "synthetic_demo":
         notice = SYNTHETIC_BANNER
+    stage_timeline = None
+    overlay_available = False
+    if pose is not None:
+        overlay_available = True
+        stage_timeline = _ensure_timeline(db, row, pose)
+        if stage_timeline:
+            db.commit()
+        if kind is None and stage_timeline:
+            kind = stage_timeline.get("benchmark_kind") or kind
+            if kind == "synthetic_demo" and not banner:
+                banner = SYNTHETIC_BANNER
     return VideoDetailOut(
         id=row.id,
         user_id=row.user_id,
@@ -500,6 +554,8 @@ def get_video(
         problems=problems,
         benchmark_kind=kind,
         scoring_banner=banner,
+        stage_timeline=stage_timeline,
+        overlay_available=overlay_available,
         notice=notice,
     )
 
@@ -672,3 +728,88 @@ def retest_compare(
     except PosePreviewError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+@router.get("/videos/{video_id}/stage-timeline", response_model=StageTimelineOut)
+def get_stage_timeline(
+    video_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Heuristic stage segments for the user pose sequence (not coach cuts)."""
+    row = _owned_video(db, video_id, user)
+    pose = _pose_for_video(db, row.id)
+    if pose is None or not pose.keypoint_path:
+        raise HTTPException(status_code=404, detail="关键点尚未提取")
+    timeline = _ensure_timeline(db, row, pose)
+    if timeline is None:
+        # Try skill stages without published package — still honest heuristic
+        skill = db.get(BadmintonSkill, row.skill_id)
+        stages = [
+            {"code": f"stage_{i}", "name": s.name, "sort_order": s.sort_order}
+            for i, s in enumerate(getattr(skill, "stages", None) or [], start=1)
+        ]
+        if stages:
+            timeline = timeline_from_package(
+                pose.keypoint_path,
+                {
+                    "stages": stages,
+                    "keyframes": [],
+                    "verification_status": "draft_unverified",
+                },
+            )
+            pose.stage_timeline_json = json.dumps(timeline, ensure_ascii=False)
+            db.commit()
+    if timeline is None:
+        raise HTTPException(status_code=404, detail="无可用阶段定义")
+    db.commit()
+    return StageTimelineOut(
+        segments=timeline.get("segments") or [],
+        user_t0_ms=timeline.get("user_t0_ms"),
+        user_t1_ms=timeline.get("user_t1_ms"),
+        template_total_ms=timeline.get("template_total_ms"),
+        method=timeline.get("method"),
+        benchmark_kind=timeline.get("benchmark_kind"),
+        has_template_timing=bool(timeline.get("has_template_timing")),
+        notice=timeline.get("notice")
+        or "阶段时间轴为相对时序启发式切分，非专家标注",
+    )
+
+
+@router.get("/videos/{video_id}/pose/overlay", response_model=PoseOverlayOut)
+def get_pose_overlay(
+    video_id: int,
+    frame: int = Query(0, ge=0, description="Scrub index into user frames (0-based)"),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Standard (green) vs user skeleton overlay with synced scrub.
+
+    Label: 非评分叠加. Template from package synthetic_keypoint_template when
+    present; otherwise a generated synthetic_demo sequence.
+    """
+    row = _owned_video(db, video_id, user)
+    pose = _pose_for_video(db, row.id)
+    if pose is None or not pose.keypoint_path:
+        raise HTTPException(status_code=404, detail="关键点尚未提取")
+    job = _latest_job(list(row.analysis_jobs or []))
+    _published, pkg = _published_package(db, row, job)
+    timeline = _ensure_timeline(db, row, pose)
+    if timeline:
+        db.commit()
+    try:
+        data = build_overlay_json(
+            video_id=row.id,
+            keypoint_path=pose.keypoint_path,
+            frame=frame,
+            package=pkg,
+            timeline=timeline,
+            landmark_count=pose.landmark_count,
+            extractor=pose.extractor,
+        )
+        return PoseOverlayOut(**data)
+    except FrameOutOfRange as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PoseNotExtracted as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PosePreviewError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

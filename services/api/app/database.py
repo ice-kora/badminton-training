@@ -66,6 +66,16 @@ def ensure_schema() -> None:
                         "ADD COLUMN baseline_video_id INTEGER"
                     )
                 )
+        pose_rows = conn.execute(text("PRAGMA table_info(pose_analyses)")).fetchall()
+        if pose_rows:
+            pose_names = {r[1] for r in pose_rows}
+            if "stage_timeline_json" not in pose_names:
+                conn.execute(
+                    text(
+                        "ALTER TABLE pose_analyses "
+                        "ADD COLUMN stage_timeline_json TEXT"
+                    )
+                )
 
 
 def init_db() -> None:

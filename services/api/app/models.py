@@ -445,6 +445,8 @@ class PoseAnalysis(Base):
     sample_stride: Mapped[int] = mapped_column(Integer, default=2)
     max_seconds: Mapped[float] = mapped_column(Float, default=60.0)
     landmark_count: Mapped[int] = mapped_column(Integer, default=33)
+    # V2: heuristic stage boundaries JSON (segments + timing deltas)
+    stage_timeline_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     video: Mapped[TrainingVideo] = relationship(back_populates="pose_analyses")

@@ -329,6 +329,8 @@ class VideoDetailOut(BaseModel):
     problems: list["PoseProblemOut"] = Field(default_factory=list)
     benchmark_kind: Optional[str] = None
     scoring_banner: Optional[str] = None
+    stage_timeline: Optional[dict[str, Any]] = None
+    overlay_available: bool = False
     notice: str = "关键点可提取；无已发布标准库时评分不开放"
 
 
@@ -431,6 +433,64 @@ class TrainingScoreOut(BaseModel):
     benchmark_version_id: Optional[int] = None
     benchmark_version_label: Optional[str] = None
     explainable: list[dict[str, Any]] = Field(default_factory=list)
+
+
+# ---- V2 stage timeline + overlay ----
+class StageSegmentOut(BaseModel):
+    code: str
+    name: str
+    sort_order: int = 0
+    t0_ms: int
+    t1_ms: int
+    frame_i0: int = 0
+    frame_i1: int = 0
+    template_t0_ms: Optional[int] = None
+    template_t1_ms: Optional[int] = None
+    delta_ms: Optional[int] = None
+
+
+class StageTimelineOut(BaseModel):
+    segments: list[StageSegmentOut] = Field(default_factory=list)
+    user_t0_ms: Optional[int] = None
+    user_t1_ms: Optional[int] = None
+    template_total_ms: Optional[int] = None
+    method: Optional[str] = None
+    benchmark_kind: Optional[str] = None
+    has_template_timing: bool = False
+    notice: str = "阶段时间轴为相对时序启发式切分，非专家标注"
+
+
+class OverlaySkeletonOut(BaseModel):
+    role: str
+    color: str
+    frame: int
+    frame_count: int
+    timestamp_ms: Optional[int] = None
+    landmarks: list[dict[str, Any]] = Field(default_factory=list)
+    bones: list[dict[str, Any]] = Field(default_factory=list)
+    landmark_count: int = 33
+    source: Optional[str] = None
+    synthetic: Optional[bool] = None
+    synthetic_demo: Optional[bool] = None
+
+
+class PoseOverlayOut(BaseModel):
+    """Standard (green) vs user skeleton overlay — 非评分叠加."""
+
+    video_id: int
+    frame: int
+    frame_count: int
+    user: OverlaySkeletonOut
+    standard: OverlaySkeletonOut
+    colors: dict[str, str] = Field(default_factory=dict)
+    stage_timeline: Optional[dict[str, Any]] = None
+    current_stage: Optional[dict[str, Any]] = None
+    benchmark_kind: str = "synthetic_demo"
+    banner: Optional[str] = None
+    notice: str = "非评分叠加"
+    label: str = "非评分叠加"
+    topology: str = "mediapipe_pose_33"
+    landmark_names: list[str] = Field(default_factory=list)
 
 
 # ---- Motion Benchmark (read-only) ----

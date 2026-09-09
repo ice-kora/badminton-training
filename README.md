@@ -1,4 +1,4 @@
-# 羽毛球 AI 学习训练助手（Phase-2 / V1 拍摄预检）
+# 羽毛球 AI 学习训练助手（Phase-2 / V2 阶段时间轴 + 骨架叠加）
 
 微信小程序 + FastAPI 内容/计划 MVP。  
 目标仓库：https://github.com/ice-kora/badminton-training.git
@@ -52,6 +52,7 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 6. 通过后返回 `video_id` + `analysis_job`（默认 `queued`；另开终端 `make worker` 或 `python -m app.worker extract --loop` → `extracting`→`pose_extracted`；卡死 extracting 超 `POSE_EXTRACT_STALE_SECONDS` 会回收为 queued；`scoring_status=blocked` / `ANALYSIS_NOT_IMPLEMENTED`）。
 7. 「我的」详情分别显示「关键点已提取/未提取」与「评分未开放」；已提取时可滑帧「骨架预览」（仅关键点可视化，非评分）。
 8. **复测对比（仅骨架）**：详情点「针对此视频复测」→ 拍摄页带 `baseline_video_id` 上传 → 复测详情在双方均 `pose_extracted` 后显示左右并排骨架滑帧（`GET /videos/{id}/retest-compare`）；**无分数、无正确性判断**。
+9. **V2**：`pose_extracted`/`scored` 后详情展示阶段时间轴与「标准 vs 用户」叠加（绿/蓝，标 **非评分叠加**）；`GET /videos/{id}/stage-timeline`、`GET /videos/{id}/pose/overlay`。
 
 **真预检**：duration / resolution / brightness / orientation（OpenCV 探测）。  
 **占位**：full_body / distance → `deferred_to_pose` 或客户端清单确认（非姿态 AI）。
@@ -70,6 +71,8 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 | GET | /videos | 当前用户视频列表（`?skill_id=` 可选过滤） |
 | GET | /videos/{id} | 视频详情 + 预检 + 关联任务；有复测链时含 `baseline` 摘要 |
 | GET | /videos/{id}/retest-compare | 基准 vs 当前双骨架预览（`?frame=`）；双方均需已提取；仅可视化非评分 |
+| GET | /videos/{id}/stage-timeline | V2 阶段时间轴（启发式切分；可选相对模板 Δt） |
+| GET | /videos/{id}/pose/overlay | V2 标准(绿) vs 用户骨架叠加（`?frame=` 同步 scrub；非评分叠加） |
 | GET | /videos/{id}/pose | 关键点元数据（无分数） |
 | GET | /videos/{id}/pose/preview | 骨架预览 JSON（`?frame=`）；`?format=png` 调试图；仅可视化非评分 |
 | POST | /videos/{id}/extract-pose | 触发离线关键点提取 |
@@ -86,7 +89,7 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 | GET | /benchmarks/{skill_code} | 某技能标准库摘要 |
 | GET | /benchmarks/{skill_code}/versions | 版本历史 |
 
-## Motion Benchmark + V1 评分
+## Motion Benchmark + V1 评分 + V2 可视化
 
 - 文档：`docs/BENCHMARK_ANNOTATION.md`，schema：`docs/benchmark/schema.json`
 - 空模板（数值全 null）：`docs/benchmark/templates/*.v0.json`
@@ -96,6 +99,8 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
   - `synthetic_demo` 仅 `--allow-synthetic-demo` 可发布
 - Worker：`pose_extracted` 后若有 published → `PoseScorer` → `scored`（结果写入 `training_scores` / `pose_problems`）
 - 无 published：保持 `ANALYSIS_NOT_IMPLEMENTED` + `awaiting_published_benchmark`
+- **V2 阶段时间轴**：用 demo `stages` / `keyframes` 相对时序启发式切分用户关键点序列，边界写入 `pose_analyses.stage_timeline_json`；有模板时序则返回 `delta_ms`
+- **V2 骨架叠加**：绿=标准（包内 `synthetic_keypoint_template`，否则生成 `synthetic_demo` 序列），蓝=用户；接口与详情页均标 **非评分叠加** / synthetic_demo 横幅；**禁止实时**
 
 ## License
 

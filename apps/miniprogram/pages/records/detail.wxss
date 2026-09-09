@@ -83,3 +83,7 @@
   margin-bottom: 12rpx;
   font-weight: 600;
 }
+
+.stage-row { margin-top: 12rpx; padding-top: 8rpx; border-top: 1rpx solid #e2e8f0; }
+.stage-row:first-child { border-top: none; padding-top: 0; }
+.stage-name { font-weight: 600; }

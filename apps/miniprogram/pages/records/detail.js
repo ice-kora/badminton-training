@@ -70,11 +70,25 @@ Page({
     scoreDeltaText: '',
     baselineOverall: null,
     currentOverall: null,
+    stageSegments: [],
+    stageNotice: '',
+    overlayAvailable: false,
+    overlaySynthetic: false,
+    overlayFrame: 0,
+    overlayMax: 0,
+    overlayLoading: false,
+    overlayError: '',
+    overlayStageName: '',
+    overlayCssW: 360,
+    overlayCssH: 480,
   },
   _canvas: null,
   _ctx: null,
   _previewSeq: 0,
   _compareSeq: 0,
+  _overlaySeq: 0,
+  _overlayCanvas: null,
+  _overlayCtx: null,
   _baseCanvas: null,
   _baseCtx: null,
   _curCanvas: null,
@@ -115,6 +129,16 @@ Page({
         const isSyntheticDemo = benchmarkKind === 'synthetic_demo'
         const scoringBanner =
           video.scoring_banner || (score && score.banner) || SYNTHETIC_BANNER
+        const stageTimeline = video.stage_timeline || null
+        const stageSegments = ((stageTimeline && stageTimeline.segments) || []).map((s) => {
+          const d = s.delta_ms
+          let deltaText = ''
+          if (d != null) {
+            deltaText = (d > 0 ? '+' : '') + d + ' ms'
+          }
+          return { ...s, deltaText }
+        })
+        const overlayAvailable = !!(video.overlay_available || poseExtracted)
         this.setData({
           loading: false,
           video,
@@ -139,9 +163,18 @@ Page({
           benchmarkKind,
           isSyntheticDemo,
           scoringBanner,
+          stageSegments,
+          stageNotice: (stageTimeline && stageTimeline.notice) || '',
+          overlayAvailable,
+          overlaySynthetic: isSyntheticDemo,
+          overlayFrame: 0,
+          overlayMax: Math.max(0, frameCount - 1),
         })
         if (poseExtracted) {
           wx.nextTick(() => this.initCanvasAndLoad(0))
+        }
+        if (overlayAvailable) {
+          wx.nextTick(() => this.initOverlayCanvasAndLoad(0))
         }
         if (canCompare) {
           wx.nextTick(() => this.initCompareCanvasesAndLoad(0))
@@ -333,6 +366,132 @@ Page({
           compareError: (e && (e.message || e.detail)) || '对比加载失败',
         })
       })
+  },
+
+  initOverlayCanvasAndLoad(frame) {
+    const query = wx.createSelectorQuery()
+    query
+      .select('#overlayCanvas')
+      .fields({ node: true, size: true })
+      .exec((res) => {
+        if (!res || !res[0] || !res[0].node) {
+          this.setData({ overlayError: '叠加画布不可用' })
+          return
+        }
+        const canvas = res[0].node
+        const ctx = canvas.getContext('2d')
+        const dpr = wx.getSystemInfoSync().pixelRatio || 1
+        const cssW = res[0].width || 360
+        const cssH = res[0].height || 480
+        canvas.width = cssW * dpr
+        canvas.height = cssH * dpr
+        ctx.scale(dpr, dpr)
+        this._overlayCanvas = canvas
+        this._overlayCtx = ctx
+        this._overlayCssW = cssW
+        this._overlayCssH = cssH
+        this.setData({ overlayCssW: cssW, overlayCssH: cssH })
+        this.loadOverlayFrame(frame)
+      })
+  },
+  onOverlayScrub(e) {
+    const frame = Number(e.detail.value) || 0
+    this.setData({ overlayFrame: frame })
+    this.loadOverlayFrame(frame)
+  },
+  loadOverlayFrame(frame) {
+    const videoId = this.data.videoId
+    if (!videoId || !this.data.overlayAvailable) return
+    const seq = ++this._overlaySeq
+    this.setData({ overlayLoading: true, overlayError: '' })
+    request({
+      url: `/videos/${videoId}/pose/overlay`,
+      auth: true,
+      data: { frame },
+    })
+      .then((body) => {
+        if (seq !== this._overlaySeq) return
+        const stage = body.current_stage || null
+        const patch = {
+          overlayLoading: false,
+          overlayMax: Math.max(0, (body.frame_count || 1) - 1),
+          overlayFrame: body.frame != null ? body.frame : frame,
+          overlayStageName: stage ? stage.name || stage.code : '',
+          overlaySynthetic:
+            body.benchmark_kind === 'synthetic_demo' ||
+            !!(body.standard && body.standard.synthetic_demo),
+        }
+        if (body.banner) {
+          patch.scoringBanner = body.banner
+          patch.isSyntheticDemo = body.benchmark_kind === 'synthetic_demo'
+        }
+        if (body.stage_timeline && body.stage_timeline.segments && !this.data.stageSegments.length) {
+          patch.stageSegments = body.stage_timeline.segments.map((s) => {
+            const d = s.delta_ms
+            let deltaText = ''
+            if (d != null) deltaText = (d > 0 ? '+' : '') + d + ' ms'
+            return { ...s, deltaText }
+          })
+          patch.stageNotice = body.stage_timeline.notice || ''
+        }
+        this.setData(patch)
+        this.drawOverlay(this._overlayCtx, this._overlayCssW || 360, this._overlayCssH || 480, body)
+      })
+      .catch((e) => {
+        if (seq !== this._overlaySeq) return
+        this.setData({
+          overlayLoading: false,
+          overlayError: (e && (e.message || e.detail)) || '叠加加载失败',
+        })
+      })
+  },
+  drawOverlay(ctx, w, h, body) {
+    if (!ctx) return
+    ctx.clearRect(0, 0, w, h)
+    ctx.fillStyle = '#181820'
+    ctx.fillRect(0, 0, w, h)
+
+    const drawSide = (side, fallbackColor) => {
+      if (!side) return
+      const landmarks = side.landmarks || []
+      const bones = side.bones || []
+      const color = side.color || fallbackColor
+      const pts = landmarks.map((lm) => {
+        if (!lm || lm.x == null || lm.y == null) return null
+        if (lm.visibility != null && lm.visibility < 0.1) return null
+        return { x: lm.x * w, y: lm.y * h }
+      })
+      ctx.strokeStyle = color
+      ctx.lineWidth = 2
+      bones.forEach((b) => {
+        const a = pts[b.from]
+        const c = pts[b.to]
+        if (!a || !c) return
+        ctx.beginPath()
+        ctx.moveTo(a.x, a.y)
+        ctx.lineTo(c.x, c.y)
+        ctx.stroke()
+      })
+      ctx.fillStyle = color
+      pts.forEach((p) => {
+        if (!p) return
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2)
+        ctx.fill()
+      })
+    }
+
+    // green standard under, blue user on top
+    drawSide(body.standard, '#50c878')
+    drawSide(body.user, '#4da3ff')
+
+    ctx.fillStyle = '#b4b4c8'
+    ctx.font = '12px sans-serif'
+    ctx.fillText(body.label || body.notice || '非评分叠加', 8, 18)
+    ctx.fillStyle = '#50c878'
+    ctx.fillText('标准', 8, 36)
+    ctx.fillStyle = '#4da3ff'
+    ctx.fillText('用户', 48, 36)
   },
   drawSkeleton(ctx, w, h, body, label) {
     if (!ctx) return
