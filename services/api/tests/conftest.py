@@ -18,6 +18,8 @@ os.environ["JWT_SECRET"] = "test-secret"
 _UPLOAD = Path(__file__).resolve().parent / "_test_uploads"
 _UPLOAD.mkdir(parents=True, exist_ok=True)
 os.environ["UPLOAD_DIR"] = str(_UPLOAD)
+os.environ["POSE_EXTRACTOR"] = "fake"
+os.environ["POSE_INLINE_EXTRACT"] = "true"
 
 from app.config import get_settings
 

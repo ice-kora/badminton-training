@@ -20,6 +20,7 @@ def _job_out(job: AnalysisJob) -> AnalysisJobOut:
         skill_id=job.skill_id,
         benchmark_version_id=job.benchmark_version_id,
         status=job.status,
+        scoring_status=job.scoring_status,
         error_code=job.error_code,
         message=job.message,
         created_at=job.created_at,

@@ -77,19 +77,21 @@ def test_upload_success_creates_video_and_job(
     assert body["video"]["height"] == 1280
     assert body["video"]["orientation"] == "portrait"
     job = body["analysis_job"]
-    assert job["status"] == "not_implemented"
+    # Inline fake extractor → pose_extracted; scoring still blocked
+    assert job["status"] in ("pose_extracted", "queued")
     assert job["error_code"] == "ANALYSIS_NOT_IMPLEMENTED"
+    assert job.get("scoring_status") == "blocked"
     assert job.get("benchmark_version_id") is None
-    assert "awaiting_published_benchmark" in (job.get("message") or "")
     assert "score" not in job
     assert "scores" not in body
-    assert "分析" in body["notice"] or "尚未" in body["notice"]
+    assert "评分" in body["notice"] or "尚未" in body["notice"] or "关键点" in body["notice"]
 
     vid = client.get(f"/videos/{body['video']['id']}", headers=auth_headers)
     assert vid.status_code == 200
     job_r = client.get(f"/analysis/jobs/{job['id']}", headers=auth_headers)
     assert job_r.status_code == 200
     assert job_r.json()["error_code"] == "ANALYSIS_NOT_IMPLEMENTED"
+    assert job_r.json().get("scoring_status") == "blocked"
     assert "score" not in job_r.json()
 
 

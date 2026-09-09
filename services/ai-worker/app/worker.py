@@ -1,8 +1,8 @@
-"""AI worker stub — honest ANALYSIS_NOT_IMPLEMENTED, no scores.
+"""AI worker — pose extract reclaim + scoring still blocked.
 
-V1 upload already creates analysis_job with status=not_implemented and
-error_code=ANALYSIS_NOT_IMPLEMENTED. This worker is a no-op for the common
-path, and optionally drains any legacy/pending rows the same honest way.
+Pose keypoints: use services/api `python -m app.worker extract` or
+scripts/run_pose_extract.py. This stub documents status vocabulary and
+refuses to invent scores.
 """
 from __future__ import annotations
 
@@ -11,63 +11,62 @@ from typing import Any, Optional, Protocol
 
 CODE = "ANALYSIS_NOT_IMPLEMENTED"
 MESSAGE = (
-    "视频姿态分析尚未实现。本 Worker 不产出动作分数或伪报告；"
-    "待标准动作库专家标注完成后接入离线分析流水线。"
+    "评分未开放。关键点提取请使用 API worker / scripts/run_pose_extract.py；"
+    "本 stub 不产出动作分数或伪报告。"
 )
 
 # Job status vocabulary (keep in sync with API models):
-# pending | rejected_precheck | queued | not_implemented | failed
+# pending | rejected_precheck | queued | pose_extracted | pose_failed |
+# not_implemented | failed
 
 
 class _JobLike(Protocol):
     status: str
     error_code: Optional[str]
     message: Optional[str]
+    scoring_status: Optional[str]
 
 
 def describe() -> dict[str, Any]:
     return {
         "code": CODE,
         "message": MESSAGE,
-        "status": "stub",
+        "status": "pose_extract_via_api_worker",
         "note": (
-            "Upload path already marks jobs not_implemented; "
-            "claim_pending_jobs only handles residual pending rows."
+            "Upload sets jobs to queued; pose extract → pose_extracted; "
+            "scoring_status stays blocked / ANALYSIS_NOT_IMPLEMENTED."
         ),
     }
 
 
 def analyze(_payload: dict) -> dict[str, Any]:
-    """Always refuse — no mock scores."""
+    """Always refuse scoring — no mock scores."""
     return {"code": CODE, "message": MESSAGE}
 
 
-def mark_not_implemented(job: _JobLike, message: Optional[str] = None) -> _JobLike:
-    """Mutate a job-like object to the honest terminal state."""
-    job.status = "not_implemented"
+def mark_scoring_blocked(job: _JobLike, message: Optional[str] = None) -> _JobLike:
+    job.scoring_status = "blocked"
     job.error_code = CODE
-    job.message = message or MESSAGE
+    if message:
+        job.message = message
     return job
 
 
 def claim_pending_jobs(jobs: list[_JobLike]) -> list[_JobLike]:
     """
-    Mark given pending jobs as not_implemented (honest, no scores).
-
-    Callers that talk to the API DB should query status=pending themselves
-    and pass rows in. Upload already writes not_implemented, so this is
-    usually a no-op.
+    Legacy helper: pending → queued for pose extract (does NOT score).
+    Prefer scripts/run_pose_extract.py for actual keypoint extraction.
     """
     claimed: list[_JobLike] = []
     for job in jobs:
         if getattr(job, "status", None) == "pending":
-            mark_not_implemented(job)
+            job.status = "queued"
+            mark_scoring_blocked(job, MESSAGE)
             claimed.append(job)
     return claimed
 
 
 def process_once(pending_jobs: Optional[list[_JobLike]] = None) -> dict[str, Any]:
-    """Single tick for future schedulers — drains provided pending jobs."""
     claimed = claim_pending_jobs(pending_jobs or [])
     return {
         "code": CODE,
@@ -75,6 +74,6 @@ def process_once(pending_jobs: Optional[list[_JobLike]] = None) -> dict[str, Any
         "message": (
             MESSAGE
             if not claimed
-            else f"marked {len(claimed)} pending → not_implemented"
+            else f"marked {len(claimed)} pending → queued (scoring still blocked)"
         ),
     }

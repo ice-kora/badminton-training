@@ -44,6 +44,11 @@ page {
   color: #92400e;
 }
 
+.tag.ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
 .btn-primary {
   background: #0f172a;
   color: #fff;

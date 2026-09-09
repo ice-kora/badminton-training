@@ -1,4 +1,4 @@
-"""Video precheck + upload pipeline (local storage, no pose scoring)."""
+"""Video precheck + upload + offline pose keypoint extraction (no scoring)."""
 from __future__ import annotations
 
 import json
@@ -13,27 +13,39 @@ from sqlalchemy.orm import Session, joinedload
 from app.auth import get_current_user
 from app.config import get_settings
 from app.database import get_db
-from app.models import AnalysisJob, BadmintonSkill, FilmingGuide, TrainingVideo, User
-from app.services.benchmark_pkg import find_published_version
+from app.models import (
+    AnalysisJob,
+    BadmintonSkill,
+    FilmingGuide,
+    PoseAnalysis,
+    TrainingVideo,
+    User,
+)
 from app.schemas import (
     AnalysisJobOut,
     AnalysisJobSummaryOut,
+    PoseExtractOut,
+    PoseMetaOut,
     PrecheckReportOut,
     TrainingVideoOut,
     VideoDetailOut,
     VideoListItemOut,
     VideoUploadOut,
 )
+from app.services.benchmark_pkg import find_published_version
+from app.services.pose.landmarks import POSE_LANDMARK_NAMES
+from app.services.pose.null_extractor import PoseExtractorUnavailable
+from app.services.pose.runner import (
+    SCORING_CODE,
+    apply_pose_queued,
+    extract_for_video,
+    try_inline_extract,
+)
 from app.services.precheck import run_precheck
 
 router = APIRouter(tags=["videos"])
 
-ANALYSIS_MSG = (
-    "视频姿态分析尚未实现。上传仅完成质量预检与元数据入库；"
-    "禁止返回模拟分数或伪 AI 分析结果。"
-)
-
-DETAIL_NOTICE = "姿态分析尚未开放，不返回分数"
+DETAIL_NOTICE = "关键点可提取；评分尚未开放，不返回分数"
 
 
 def _parse_precheck(row: TrainingVideo) -> Optional[dict[str, Any]]:
@@ -93,6 +105,7 @@ def _job_summary(row: AnalysisJob) -> AnalysisJobSummaryOut:
     return AnalysisJobSummaryOut(
         id=row.id,
         status=row.status,
+        scoring_status=row.scoring_status,
         error_code=row.error_code,
         message=row.message,
         benchmark_version_id=row.benchmark_version_id,
@@ -119,10 +132,47 @@ def _job_out(row: AnalysisJob) -> AnalysisJobOut:
         skill_id=row.skill_id,
         benchmark_version_id=row.benchmark_version_id,
         status=row.status,
+        scoring_status=row.scoring_status,
         error_code=row.error_code,
         message=row.message,
         created_at=row.created_at,
         updated_at=row.updated_at,
+    )
+
+
+def _pose_for_video(db: Session, video_id: int) -> Optional[PoseAnalysis]:
+    return (
+        db.query(PoseAnalysis).filter(PoseAnalysis.video_id == video_id).one_or_none()
+    )
+
+
+def _pose_meta(
+    video_id: int,
+    pose: Optional[PoseAnalysis],
+    job: Optional[AnalysisJob] = None,
+) -> PoseMetaOut:
+    if pose is None:
+        return PoseMetaOut(
+            video_id=video_id,
+            extracted=False,
+            landmark_names=[],
+            job_status=job.status if job else None,
+            scoring_status=job.scoring_status if job else "blocked",
+            notice="关键点尚未提取；评分未开放",
+        )
+    return PoseMetaOut(
+        video_id=video_id,
+        extracted=True,
+        frame_count=pose.frame_count,
+        fps=pose.fps,
+        extractor=pose.extractor,
+        keypoint_path=pose.keypoint_path,
+        landmark_names=list(POSE_LANDMARK_NAMES)[: pose.landmark_count or 33],
+        sample_stride=pose.sample_stride,
+        max_seconds=pose.max_seconds,
+        landmark_count=pose.landmark_count,
+        job_status=job.status if job else "pose_extracted",
+        scoring_status=job.scoring_status if job else "blocked",
     )
 
 
@@ -135,6 +185,18 @@ def _save_upload_temp(file: UploadFile, suffix: str = ".mp4") -> Path:
     with dest.open("wb") as out:
         shutil.copyfileobj(file.file, out)
     return dest
+
+
+def _owned_video(db: Session, video_id: int, user: User) -> TrainingVideo:
+    row = (
+        db.query(TrainingVideo)
+        .options(joinedload(TrainingVideo.analysis_jobs))
+        .filter(TrainingVideo.id == video_id)
+        .first()
+    )
+    if not row or row.user_id != user.id:
+        raise HTTPException(status_code=404, detail="视频不存在")
+    return row
 
 
 @router.post("/videos/precheck", response_model=PrecheckReportOut)
@@ -181,8 +243,8 @@ async def upload_video(
     user: User = Depends(get_current_user),
 ):
     """
-    Precheck → on fail 400 with checks; on pass store file + training_video
-    + analysis_job(status=not_implemented, error_code=ANALYSIS_NOT_IMPLEMENTED).
+    Precheck → store file + training_video + analysis_job(status=queued).
+    Best-effort inline pose extraction; scoring always blocked.
     """
     skill = db.get(BadmintonSkill, skill_id)
     if not skill:
@@ -218,7 +280,7 @@ async def upload_video(
         rel_name = f"{user.id}_{skill_id}_{video_uuid}{suffix}"
         final_path = _uploads_root() / rel_name
         shutil.move(str(tmp), str(final_path))
-        tmp = final_path  # for cleanup on later failure
+        tmp = final_path
 
         video = TrainingVideo(
             user_id=user.id,
@@ -236,33 +298,31 @@ async def upload_video(
         db.flush()
 
         published = find_published_version(db, skill_id)
-        # Scoring remains unimplemented even when a published benchmark exists.
-        msg = ANALYSIS_MSG
-        bv_id = None
-        if published is None:
-            msg = (
-                ANALYSIS_MSG
-                + " awaiting_published_benchmark: 该技能尚无已发布的 Motion Benchmark 版本。"
-            )
-        else:
-            bv_id = published.id
-            msg = (
-                ANALYSIS_MSG
-                + f" benchmark_version_id={bv_id} 已记录；打分流水线仍未实现，不返回分数。"
-            )
+        bv_id = published.id if published else None
         job = AnalysisJob(
             video_id=video.id,
             skill_id=skill_id,
             benchmark_version_id=bv_id,
-            status="not_implemented",
-            error_code="ANALYSIS_NOT_IMPLEMENTED",
-            message=msg,
+            status="queued",
+            scoring_status="blocked",
+            error_code=SCORING_CODE,
+            message="",
         )
+        apply_pose_queued(job)
+        if bv_id:
+            job.message = (
+                (job.message or "")
+                + f" benchmark_version_id={bv_id} 已记录；打分流水线仍未实现。"
+            )
         db.add(job)
         db.commit()
         db.refresh(video)
         db.refresh(job)
-        tmp = None  # owned by storage now
+        tmp = None
+
+        # Best-effort inline extract (fake/mediapipe); leave queued if unavailable
+        try_inline_extract(db, video, job)
+        db.refresh(job)
 
         return VideoUploadOut(
             video=_video_out(video),
@@ -319,19 +379,13 @@ def get_video(
     user: User = Depends(get_current_user),
 ):
     """Video detail + precheck summary + linked analysis jobs (owner only)."""
-    row = (
-        db.query(TrainingVideo)
-        .options(joinedload(TrainingVideo.analysis_jobs))
-        .filter(TrainingVideo.id == video_id)
-        .first()
-    )
-    if not row or row.user_id != user.id:
-        raise HTTPException(status_code=404, detail="视频不存在")
+    row = _owned_video(db, video_id, user)
     jobs = sorted(
         list(row.analysis_jobs or []),
         key=lambda j: (j.created_at, j.id),
         reverse=True,
     )
+    pose = _pose_for_video(db, row.id)
     return VideoDetailOut(
         id=row.id,
         user_id=row.user_id,
@@ -346,5 +400,73 @@ def get_video(
         precheck=_parse_precheck(row),
         created_at=row.created_at,
         jobs=[_job_out(j) for j in jobs],
+        pose_extracted=pose is not None,
+        pose_frame_count=pose.frame_count if pose else None,
         notice=DETAIL_NOTICE,
+    )
+
+
+@router.get("/videos/{video_id}/pose", response_model=PoseMetaOut)
+def get_video_pose(
+    video_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Keypoint extraction metadata — never scores."""
+    row = _owned_video(db, video_id, user)
+    job = _latest_job(list(row.analysis_jobs or []))
+    pose = _pose_for_video(db, row.id)
+    return _pose_meta(row.id, pose, job)
+
+
+@router.post("/videos/{video_id}/extract-pose", response_model=PoseExtractOut)
+def extract_video_pose(
+    video_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Run (or re-run) offline pose keypoint extraction for an owned video."""
+    row = _owned_video(db, video_id, user)
+    job = _latest_job(list(row.analysis_jobs or []))
+    if job is None:
+        published = find_published_version(db, row.skill_id)
+        job = AnalysisJob(
+            video_id=row.id,
+            skill_id=row.skill_id,
+            benchmark_version_id=published.id if published else None,
+            status="queued",
+            scoring_status="blocked",
+            error_code=SCORING_CODE,
+        )
+        apply_pose_queued(job)
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+
+    try:
+        extract_for_video(db, row, job)
+    except PoseExtractorUnavailable as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "POSE_EXTRACTOR_UNAVAILABLE",
+                "message": str(exc),
+                "hint": "安装 mediapipe 或设置 POSE_EXTRACTOR=fake 后重试；"
+                "也可运行 scripts/run_pose_extract.py",
+            },
+        ) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "POSE_EXTRACT_FAILED", "message": str(exc)},
+        ) from exc
+
+    db.refresh(job)
+    pose = _pose_for_video(db, row.id)
+    return PoseExtractOut(
+        video_id=row.id,
+        analysis_job=_job_out(job),
+        pose=_pose_meta(row.id, pose, job),
     )

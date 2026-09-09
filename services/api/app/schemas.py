@@ -247,11 +247,12 @@ class AnalysisJobOut(OrmModel):
     skill_id: int
     benchmark_version_id: Optional[int] = None
     status: str
+    scoring_status: Optional[str] = None
     error_code: Optional[str] = None
     message: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    # Explicit: no scores field — analysis not implemented
+    # Explicit: no scores field — scoring blocked
 
 
 class VideoUploadOut(BaseModel):
@@ -259,7 +260,7 @@ class VideoUploadOut(BaseModel):
     analysis_job: AnalysisJobOut
     precheck: PrecheckReportOut
     notice: str = (
-        "分析能力尚未开放（ANALYSIS_NOT_IMPLEMENTED）。"
+        "关键点提取可异步执行；评分未开放（ANALYSIS_NOT_IMPLEMENTED）。"
         "已保存视频与任务元数据，不会返回动作评分。"
     )
 
@@ -270,6 +271,7 @@ class AnalysisJobSummaryOut(BaseModel):
 
     id: int
     status: str
+    scoring_status: Optional[str] = None
     error_code: Optional[str] = None
     message: Optional[str] = None
     benchmark_version_id: Optional[int] = None
@@ -301,7 +303,33 @@ class VideoDetailOut(BaseModel):
     precheck: Optional[dict[str, Any]] = None
     created_at: datetime
     jobs: list[AnalysisJobOut] = Field(default_factory=list)
-    notice: str = "姿态分析尚未开放，不返回分数"
+    pose_extracted: bool = False
+    pose_frame_count: Optional[int] = None
+    notice: str = "关键点可提取；评分尚未开放，不返回分数"
+
+
+# ---- Pose keypoints (no scoring) ----
+class PoseMetaOut(BaseModel):
+    video_id: int
+    extracted: bool
+    frame_count: Optional[int] = None
+    fps: Optional[float] = None
+    extractor: Optional[str] = None
+    keypoint_path: Optional[str] = None
+    landmark_names: list[str] = Field(default_factory=list)
+    sample_stride: Optional[int] = None
+    max_seconds: Optional[float] = None
+    landmark_count: Optional[int] = None
+    job_status: Optional[str] = None
+    scoring_status: Optional[str] = None
+    notice: str = "仅关键点序列，不含评分或动作正确性判断"
+
+
+class PoseExtractOut(BaseModel):
+    video_id: int
+    analysis_job: AnalysisJobOut
+    pose: PoseMetaOut
+    notice: str = "关键点提取完成或已排队；评分未开放"
 
 
 # ---- Motion Benchmark (read-only) ----

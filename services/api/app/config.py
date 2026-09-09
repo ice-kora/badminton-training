@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     upload_dir: str = str(_API_ROOT / "data" / "uploads")
     # Local acceptance: set PRECHECK_RELAX_ORIENTATION=true to allow landscape.
     precheck_relax_orientation: bool = False
+    # Pose extraction (keypoints only — never scoring)
+    pose_extractor: str = "auto"  # auto|mediapipe|fake|null
+    pose_max_seconds: int = 60
+    pose_frame_stride: int = 2
+    pose_inline_extract: bool = True
+    pose_model_path: str = str(_API_ROOT / "data" / "models" / "pose_landmarker_lite.task")
 
 
 @lru_cache

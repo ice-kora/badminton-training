@@ -3,7 +3,9 @@ const { request, ensureLogin } = require('../../utils/request')
 const STATUS_LABEL = {
   pending: '等待中',
   rejected_precheck: '预检未通过',
-  queued: '排队中',
+  queued: '关键点排队中',
+  pose_extracted: '关键点已提取',
+  pose_failed: '关键点提取失败',
   not_implemented: '分析未开放',
   failed: '失败',
 }
@@ -35,6 +37,9 @@ Page({
     precheckPassed: false,
     durationText: '',
     createdText: '',
+    poseExtracted: false,
+    poseFrameCount: null,
+    scoringBlocked: true,
   },
   onLoad(q) {
     const id = q.id
@@ -61,6 +66,9 @@ Page({
           precheckPassed: !!(video.precheck && video.precheck.passed),
           durationText: formatDuration(video.duration_ms),
           createdText: formatTime(video.created_at),
+          poseExtracted: !!video.pose_extracted,
+          poseFrameCount: video.pose_frame_count || null,
+          scoringBlocked: true,
         })
       })
       .catch((e) => {

@@ -86,7 +86,20 @@ curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/analysis/jobs
 curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1
 ```
 
-上传成功后 `analysis_job.status=not_implemented`，`error_code=ANALYSIS_NOT_IMPLEMENTED`（保持一致性）。若该技能尚无 published benchmark，`message` 可附带 `awaiting_published_benchmark` 说明（仍无分数）。
+上传成功后 `analysis_job.status=queued`（若本机可提取则变为 `pose_extracted`），`scoring_status=blocked`，`error_code=ANALYSIS_NOT_IMPLEMENTED`（评分侧）。关键点 JSON：`data/uploads/pose/{video_id}.json`。
+
+```bash
+# 手动 / 补跑关键点提取
+cd services/api && source .venv/bin/activate
+python -m app.worker extract --limit 10
+# 或
+python ../../scripts/run_pose_extract.py
+
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/pose
+curl -X POST -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/extract-pose
+```
+
+测试默认 `POSE_EXTRACTOR=fake`。真实 MediaPipe 需安装 `mediapipe` 并下载 lite `.task` 模型（首次提取自动下载）。
 
 ## Motion Benchmark 包
 

@@ -380,11 +380,14 @@ class TrainingVideo(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     analysis_jobs: Mapped[list["AnalysisJob"]] = relationship(back_populates="video")
+    pose_analyses: Mapped[list["PoseAnalysis"]] = relationship(
+        back_populates="video"
+    )
 
 
 class AnalysisJob(Base):
     """
-    Analysis job shell. V1 does NOT run pose; status stays not_implemented / pending.
+    Analysis job. Pose extraction may reach pose_extracted; scoring stays blocked.
     Never store fake scores here.
     """
 
@@ -398,8 +401,10 @@ class AnalysisJob(Base):
     benchmark_version_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("benchmark_versions.id"), nullable=True, index=True
     )
-    # pending|rejected_precheck|queued|not_implemented|failed
-    status: Mapped[str] = mapped_column(String(32), default="not_implemented")
+    # pending|rejected_precheck|queued|pose_extracted|pose_failed|not_implemented|failed
+    status: Mapped[str] = mapped_column(String(32), default="queued")
+    # Scoring side: blocked | awaiting_published_benchmark (never scored in V1)
+    scoring_status: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     error_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -408,3 +413,29 @@ class AnalysisJob(Base):
     )
 
     video: Mapped[Optional[TrainingVideo]] = relationship(back_populates="analysis_jobs")
+    pose_analyses: Mapped[list["PoseAnalysis"]] = relationship(back_populates="job")
+
+
+class PoseAnalysis(Base):
+    """Offline keypoint extraction artifact. No scores / joint-angle judgments."""
+
+    __tablename__ = "pose_analyses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    video_id: Mapped[int] = mapped_column(
+        ForeignKey("training_videos.id"), unique=True, index=True
+    )
+    job_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("analysis_jobs.id"), nullable=True, index=True
+    )
+    frame_count: Mapped[int] = mapped_column(Integer, default=0)
+    fps: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    keypoint_path: Mapped[str] = mapped_column(String(512))
+    extractor: Mapped[str] = mapped_column(String(64), default="mediapipe_pose")
+    sample_stride: Mapped[int] = mapped_column(Integer, default=2)
+    max_seconds: Mapped[float] = mapped_column(Float, default=60.0)
+    landmark_count: Mapped[int] = mapped_column(Integer, default=33)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    video: Mapped[TrainingVideo] = relationship(back_populates="pose_analyses")
+    job: Mapped[Optional[AnalysisJob]] = relationship(back_populates="pose_analyses")

@@ -12,3 +12,5 @@ services/api/tests/_test_uploads/
 .env
 .DS_Store
 node_modules/
+services/api/data/models/*
+!services/api/data/models/.gitkeep

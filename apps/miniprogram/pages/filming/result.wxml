@@ -1,9 +1,13 @@
 <view class="container">
-  <view class="banner-note">姿态分析尚未开放，不返回分数。已保存视频元数据与分析任务。</view>
+  <view class="banner-note">关键点可异步提取；评分未开放，不返回分数。</view>
   <view class="card">
     <view class="card-title">上传成功</view>
     <view>视频 ID：{{videoId}}</view>
     <view>任务 ID：{{jobId}}</view>
+    <view class="row" style="margin-top:12rpx;">
+      <text class="tag ok">{{poseLabel}}</text>
+      <text class="tag warn">{{scoringLabel}}</text>
+    </view>
     <view class="tag warn" style="margin-top:12rpx;">{{jobStatus}}</view>
     <view class="muted" style="margin-top:12rpx;">{{jobMessage}}</view>
     <view class="muted" wx:if="{{errorCode}}">error_code: {{errorCode}}</view>

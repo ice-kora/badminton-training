@@ -41,10 +41,10 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
         title=settings.app_name,
-        version="0.5.0",
+        version="0.6.0",
         description=(
             "羽毛球 AI 学习训练助手 API（Phase-2）。"
-            "姿态分析未实现，返回 ANALYSIS_NOT_IMPLEMENTED。"
+            "离线关键点提取已接入；评分仍返回 ANALYSIS_NOT_IMPLEMENTED。"
         ),
         lifespan=lifespan,
     )

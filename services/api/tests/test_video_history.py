@@ -74,8 +74,9 @@ def test_upload_appears_in_list_and_detail(
     assert mine["skill_name"]
     assert mine["orientation"] == "portrait"
     assert mine["latest_job"] is not None
-    assert mine["latest_job"]["status"] == "not_implemented"
+    assert mine["latest_job"]["status"] in ("pose_extracted", "queued")
     assert mine["latest_job"]["error_code"] == "ANALYSIS_NOT_IMPLEMENTED"
+    assert mine["latest_job"].get("scoring_status") == "blocked"
     assert "score" not in mine["latest_job"]
 
     detail = client.get(f"/videos/{video_id}", headers=auth_headers)
@@ -85,7 +86,8 @@ def test_upload_appears_in_list_and_detail(
     assert body["skill_name"]
     assert body["precheck"] and body["precheck"]["passed"] is True
     assert any(j["id"] == job_id for j in body["jobs"])
-    assert "姿态分析尚未开放" in body["notice"]
+    assert "评分" in body["notice"] or "关键点" in body["notice"]
+    assert body.get("pose_extracted") in (True, False)
     assert "score" not in body
 
     jobs = client.get("/analysis/jobs", headers=auth_headers)

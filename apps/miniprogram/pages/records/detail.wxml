@@ -1,5 +1,5 @@
 <view class="container">
-  <view class="banner-note">姿态分析尚未开放，不返回分数</view>
+  <view class="banner-note">关键点可提取；评分未开放，不返回分数</view>
   <view class="muted" wx:if="{{loading}}">加载中…</view>
   <view class="muted" wx:elif="{{error}}">{{error}}</view>
 
@@ -9,6 +9,20 @@
       <view>文件：{{video.filename}}</view>
       <view class="muted">时长 {{durationText}} · {{video.orientation || '-'}} · {{createdText}}</view>
       <view class="muted">分辨率 {{video.width || '-'}}×{{video.height || '-'}}</view>
+    </view>
+
+    <view class="section-title">关键点 / 评分</view>
+    <view class="card">
+      <view class="row">
+        <text>关键点</text>
+        <text class="tag {{poseExtracted ? 'ok' : 'warn'}}">{{poseExtracted ? '关键点已提取' : '关键点未提取'}}</text>
+      </view>
+      <view class="muted" wx:if="{{poseExtracted && poseFrameCount}}">帧数 {{poseFrameCount}}（仅坐标序列）</view>
+      <view class="row" style="margin-top:12rpx;">
+        <text>评分</text>
+        <text class="tag warn">评分未开放</text>
+      </view>
+      <view class="muted">error_code: ANALYSIS_NOT_IMPLEMENTED · 不返回动作正确性判断</view>
     </view>
 
     <view class="section-title">预检结果</view>
@@ -27,10 +41,11 @@
     <view class="card" wx:for="{{jobs}}" wx:key="id">
       <view class="row">
         <text>任务 #{{item.id}}</text>
-        <text class="tag warn">{{item.statusLabel}}</text>
+        <text class="tag {{item.status === 'pose_extracted' ? 'ok' : 'warn'}}">{{item.statusLabel}}</text>
       </view>
-      <view class="muted">{{item.message || '姿态分析尚未开放'}}</view>
-      <view class="muted" wx:if="{{item.error_code}}">{{item.error_code}}</view>
+      <view class="muted">{{item.message || '评分尚未开放'}}</view>
+      <view class="muted" wx:if="{{item.error_code}}">评分侧：{{item.error_code}}</view>
+      <view class="muted" wx:if="{{item.scoring_status}}">scoring_status：{{item.scoring_status}}</view>
     </view>
     <view class="muted" wx:if="{{!jobs.length}}">暂无关联任务</view>
   </block>

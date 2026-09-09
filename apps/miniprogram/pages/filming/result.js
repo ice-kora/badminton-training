@@ -8,6 +8,8 @@ Page({
     jobStatus: '',
     jobMessage: '',
     errorCode: '',
+    poseLabel: '关键点未提取',
+    scoringLabel: '评分未开放',
     error: '',
   },
   onLoad(q) {
@@ -20,10 +22,13 @@ Page({
     ensureLogin()
       .then(() => request({ url: `/analysis/jobs/${q.job_id}`, auth: true }))
       .then((job) => {
+        const poseOk = job.status === 'pose_extracted'
         this.setData({
           jobStatus: job.status,
-          jobMessage: job.message || '分析能力尚未开放',
+          jobMessage: job.message || '评分未开放',
           errorCode: job.error_code || '',
+          poseLabel: poseOk ? '关键点已提取' : (job.status === 'queued' ? '关键点排队中' : '关键点未提取'),
+          scoringLabel: '评分未开放',
         })
       })
       .catch((e) => this.setData({ error: e.message || '加载任务失败' }))
