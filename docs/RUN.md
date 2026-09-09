@@ -96,6 +96,10 @@ python -m app.worker extract --limit 10
 python ../../scripts/run_pose_extract.py
 
 curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/pose
+# 骨架预览（JSON，小程序 canvas；仅可视化非评分）
+curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8000/videos/1/pose/preview?frame=0"
+# 调试 PNG
+curl -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8000/videos/1/pose/preview?format=png&frame=0" -o /tmp/pose_preview.png
 curl -X POST -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/extract-pose
 ```
 

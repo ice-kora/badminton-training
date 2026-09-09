@@ -25,6 +25,35 @@
       <view class="muted">error_code: ANALYSIS_NOT_IMPLEMENTED · 不返回动作正确性判断</view>
     </view>
 
+    <view class="section-title">骨架预览</view>
+    <view class="card">
+      <view class="banner-note preview-disclaimer">仅关键点可视化，非评分</view>
+      <block wx:if="{{poseExtracted}}">
+        <canvas
+          type="2d"
+          id="skeletonCanvas"
+          class="skeleton-canvas"
+          style="width: {{canvasCssW}}px; height: {{canvasCssH}}px;"
+        ></canvas>
+        <view class="row scrub-row">
+          <text class="muted">帧 {{previewFrame}} / {{previewMax}}</text>
+          <text class="muted" wx:if="{{previewLoading}}">加载中…</text>
+          <text class="muted" wx:elif="{{previewError}}">{{previewError}}</text>
+        </view>
+        <slider
+          min="0"
+          max="{{previewMax}}"
+          value="{{previewFrame}}"
+          step="1"
+          show-value
+          disabled="{{previewMax <= 0}}"
+          bindchange="onPreviewScrub"
+          bindchanging="onPreviewScrub"
+        />
+      </block>
+      <view class="muted" wx:else>需先完成关键点提取后可预览骨架</view>
+    </view>
+
     <view class="section-title">预检结果</view>
     <view class="card">
       <view class="row">

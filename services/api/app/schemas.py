@@ -332,6 +332,47 @@ class PoseExtractOut(BaseModel):
     notice: str = "关键点提取完成或已排队；评分未开放"
 
 
+class PoseBoneOut(BaseModel):
+    """MediaPipe pose bone edge (landmark index pair)."""
+
+    from_: int = Field(alias="from")
+    to: int
+    from_name: str
+    to_name: str
+
+    model_config = {"populate_by_name": True}
+
+
+class PoseLandmarkOut(BaseModel):
+    name: Optional[str] = None
+    x: float
+    y: float
+    z: float = 0.0
+    visibility: float = 1.0
+
+
+class PosePreviewOut(BaseModel):
+    """Single-frame skeleton preview for client canvas (no scoring)."""
+
+    video_id: int
+    frame: int
+    frame_count: int
+    source_frame_index: Optional[int] = None
+    timestamp_ms: Optional[int] = None
+    landmarks: list[dict[str, Any]] = Field(default_factory=list)
+    landmark_names: list[str] = Field(default_factory=list)
+    landmark_count: int = 33
+    bones: list[dict[str, Any]] = Field(default_factory=list)
+    normalized: bool = True
+    extractor: Optional[str] = None
+    topology: str = "mediapipe_pose_33"
+    mapping_note: str = (
+        "FakePoseExtractor and MediaPipePoseExtractor both store 33 "
+        "MediaPipe landmarks 1:1; bone list is full POSE_CONNECTIONS."
+    )
+    notice: str = "仅关键点可视化，非评分"
+
+
 # ---- Motion Benchmark (read-only) ----
 class BenchmarkStageOut(BaseModel):
     code: str

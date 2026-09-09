@@ -7,7 +7,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import get_current_user
@@ -26,6 +27,7 @@ from app.schemas import (
     AnalysisJobSummaryOut,
     PoseExtractOut,
     PoseMetaOut,
+    PosePreviewOut,
     PrecheckReportOut,
     TrainingVideoOut,
     VideoDetailOut,
@@ -35,6 +37,13 @@ from app.schemas import (
 from app.services.benchmark_pkg import find_published_version
 from app.services.pose.landmarks import POSE_LANDMARK_NAMES
 from app.services.pose.null_extractor import PoseExtractorUnavailable
+from app.services.pose.preview import (
+    FrameOutOfRange,
+    PoseNotExtracted,
+    PosePreviewError,
+    build_preview_json,
+    render_preview_png,
+)
 from app.services.pose.runner import (
     SCORING_CODE,
     apply_pose_queued,
@@ -470,3 +479,50 @@ def extract_video_pose(
         analysis_job=_job_out(job),
         pose=_pose_meta(row.id, pose, job),
     )
+
+@router.get("/videos/{video_id}/pose/preview")
+def get_video_pose_preview(
+    video_id: int,
+    frame: int = Query(0, ge=0, description="Scrub index into stored frames (0-based)"),
+    format: str = Query("json", pattern="^(json|png)$"),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    2D skeleton preview for one stored pose frame — visualization only.
+
+    Default JSON: normalized landmarks + MediaPipe bone edges for mini-program canvas.
+    Optional `?format=png&frame=0` returns a debug PNG (no score overlay).
+    """
+    row = _owned_video(db, video_id, user)
+    pose = _pose_for_video(db, row.id)
+    if pose is None or not pose.keypoint_path:
+        raise HTTPException(status_code=404, detail="关键点尚未提取")
+
+    try:
+        if format == "png":
+            png = render_preview_png(
+                video_id=row.id,
+                keypoint_path=pose.keypoint_path,
+                frame=frame,
+                landmark_count=pose.landmark_count,
+            )
+            return Response(
+                content=png,
+                media_type="image/png",
+                headers={"X-Pose-Preview-Notice": "keypoints_only_no_scoring"},
+            )
+        data = build_preview_json(
+            video_id=row.id,
+            keypoint_path=pose.keypoint_path,
+            frame=frame,
+            landmark_count=pose.landmark_count,
+            extractor=pose.extractor,
+        )
+        return PosePreviewOut(**data)
+    except FrameOutOfRange as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PoseNotExtracted as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PosePreviewError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
