@@ -9,7 +9,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-from app.services.benchmark_pkg import SYNTHETIC_BANNER, benchmark_kind_for_status
+from app.services.benchmark_pkg import (
+    LITERATURE_BANNER,
+    SYNTHETIC_BANNER,
+    benchmark_kind_for_status,
+)
 from app.services.scoring.geometry import measure_metric
 
 SEVERITY_ORDER = {"P0": 0, "P1": 1, "P2": 2}
@@ -161,6 +165,8 @@ class PoseScorer:
         banner = str(benchmark_package.get("banner") or "")
         if kind == "synthetic_demo" and SYNTHETIC_BANNER not in banner:
             banner = SYNTHETIC_BANNER
+        if kind == "literature_cited" and LITERATURE_BANNER not in banner:
+            banner = LITERATURE_BANNER
 
         error_catalog = error_catalog or {}
         problem_to_drills = problem_to_drills or {}

@@ -30,6 +30,11 @@ def main() -> int:
         help="Forwarded to validator",
     )
     ap.add_argument(
+        "--allow-literature-cited",
+        action="store_true",
+        help="Allow importing literature_cited packages",
+    )
+    ap.add_argument(
         "--allow-synthetic-demo",
         action="store_true",
         help="Allow importing synthetic_demo packages",
@@ -52,6 +57,7 @@ def main() -> int:
             data,
             allow_unverified_numbers=args.allow_unverified_numbers,
             allow_synthetic_demo=args.allow_synthetic_demo,
+            allow_literature_cited=args.allow_literature_cited,
         )
         init_db()
         db = SessionLocal()

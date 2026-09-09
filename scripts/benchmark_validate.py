@@ -26,6 +26,11 @@ def main() -> int:
         help="Allow numeric ranges while verification_status=draft_unverified",
     )
     ap.add_argument(
+        "--allow-literature-cited",
+        action="store_true",
+        help="Allow literature_cited packages with cited numeric ranges",
+    )
+    ap.add_argument(
         "--allow-synthetic-demo",
         action="store_true",
         help="Allow synthetic_demo packages with explicitly labeled synthetic ranges",
@@ -37,6 +42,7 @@ def main() -> int:
             data,
             allow_unverified_numbers=args.allow_unverified_numbers,
             allow_synthetic_demo=args.allow_synthetic_demo,
+            allow_literature_cited=args.allow_literature_cited,
         )
     except (OSError, ValueError, BenchmarkValidationError) as exc:
         print(f"FAIL: {exc}", file=sys.stderr)

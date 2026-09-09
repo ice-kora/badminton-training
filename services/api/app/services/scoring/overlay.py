@@ -168,6 +168,8 @@ def build_overlay_json(
         banner = package.get("banner")
         if kind == "synthetic_demo" and not banner:
             banner = SYNTHETIC_BANNER
+        if kind == "literature_cited" and not banner:
+            banner = LITERATURE_BANNER
     if std_synthetic:
         kind = kind or "synthetic_demo"
         banner = banner or SYNTHETIC_BANNER

@@ -4,6 +4,8 @@ Hard rule: do not invent verified joint-angle ranges.
 Numeric range_* with verification_status=draft_unverified fails unless allowed.
 synthetic_demo packages may carry explicitly labeled synthetic ranges and publish
 only with --allow-synthetic-demo.
+literature_cited packages carry peer-reviewed extracted ranges (with citations)
+and publish only with --allow-literature-cited — NOT coach sign-off.
 """
 from __future__ import annotations
 
@@ -26,12 +28,28 @@ REQUIRED_TOP = (
 )
 
 ALLOWED_STATUS = frozenset(
-    {"draft_unverified", "expert_pending", "verified", "synthetic_demo"}
+    {
+        "draft_unverified",
+        "expert_pending",
+        "verified",
+        "synthetic_demo",
+        "literature_cited",
+    }
 )
 ALLOWED_HANDEDNESS = frozenset({"left", "right", "either", None})
 
 SYNTHETIC_SOURCE = "engineering_synthetic_demo"
 SYNTHETIC_BANNER = "非专家验证，仅供流水线演示"
+
+LITERATURE_SOURCE = "peer_reviewed_literature"
+LITERATURE_BANNER = "文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示"
+LITERATURE_RANGE_KINDS = frozenset(
+    {
+        "literature_mean_sd",
+        "literature_point_tolerance",
+        "literature_proxy_related_stroke",
+    }
+)
 
 
 class BenchmarkValidationError(ValueError):
@@ -61,9 +79,17 @@ def is_synthetic_demo(data_or_status: Any) -> bool:
     return data_or_status == "synthetic_demo"
 
 
+def is_literature_cited(data_or_status: Any) -> bool:
+    if isinstance(data_or_status, dict):
+        return data_or_status.get("verification_status") == "literature_cited"
+    return data_or_status == "literature_cited"
+
+
 def benchmark_kind_for_status(verification_status: str) -> str:
     if verification_status == "synthetic_demo":
         return "synthetic_demo"
+    if verification_status == "literature_cited":
+        return "literature_cited"
     if verification_status == "verified":
         return "verified"
     return verification_status or "unknown"
@@ -74,6 +100,7 @@ def validate_package(
     *,
     allow_unverified_numbers: bool = False,
     allow_synthetic_demo: bool = False,
+    allow_literature_cited: bool = False,
 ) -> list[str]:
     """
     Validate package. Returns list of warnings (empty if clean).
@@ -148,8 +175,25 @@ def validate_package(
                 f"synthetic_demo should set banner containing {SYNTHETIC_BANNER!r}"
             )
 
+    if status == "literature_cited":
+        if not allow_literature_cited:
+            errors.append(
+                "verification_status=literature_cited requires --allow-literature-cited"
+            )
+        if data.get("source") != LITERATURE_SOURCE:
+            errors.append(
+                f"literature_cited source must be {LITERATURE_SOURCE!r}, "
+                f"got {data.get('source')!r}"
+            )
+        banner = data.get("banner") or ""
+        if LITERATURE_BANNER not in str(banner):
+            errors.append(
+                f"literature_cited must set banner containing {LITERATURE_BANNER!r}"
+            )
+
     numeric_hits: list[str] = []
     synthetic_range_ok: list[str] = []
+    literature_range_ok: list[str] = []
     for i, m in enumerate(data["metrics"]):
         if not isinstance(m, dict) or not m.get("id") or not m.get("name"):
             errors.append(f"metrics[{i}] needs id and name")
@@ -167,6 +211,38 @@ def validate_package(
                     )
                 else:
                     synthetic_range_ok.append(str(m.get("id")))
+            elif status == "literature_cited":
+                kind = m.get("range_kind")
+                if kind not in LITERATURE_RANGE_KINDS:
+                    errors.append(
+                        f"metrics[{i}] id={m.get('id')}: literature_cited numeric "
+                        f"ranges require range_kind in {sorted(LITERATURE_RANGE_KINDS)}, "
+                        f"got {kind!r}"
+                    )
+                cites = m.get("citations")
+                if not isinstance(cites, list) or not cites:
+                    errors.append(
+                        f"metrics[{i}] id={m.get('id')}: literature_cited numeric "
+                        "ranges require non-empty citations "
+                        "[{title, doi_or_url, extracted, year}]"
+                    )
+                else:
+                    cite_ok = True
+                    for j, c in enumerate(cites):
+                        if not isinstance(c, dict):
+                            errors.append(
+                                f"metrics[{i}].citations[{j}] must be an object"
+                            )
+                            cite_ok = False
+                            continue
+                        for req in ("title", "doi_or_url", "extracted", "year"):
+                            if c.get(req) in (None, ""):
+                                errors.append(
+                                    f"metrics[{i}].citations[{j}] missing {req}"
+                                )
+                                cite_ok = False
+                    if cite_ok and kind in LITERATURE_RANGE_KINDS:
+                        literature_range_ok.append(str(m.get("id")))
 
     if status == "synthetic_demo" and not numeric_hits:
         warnings.append("synthetic_demo package has no numeric ranges")
@@ -178,6 +254,7 @@ def validate_package(
             + ", ".join(numeric_hits)
             + "). Keep ranges null, raise status to expert_pending/verified, "
             "use synthetic_demo + --allow-synthetic-demo, "
+            "literature_cited + --allow-literature-cited, "
             "or pass --allow-unverified-numbers."
         )
     elif numeric_hits and status == "draft_unverified" and allow_unverified_numbers:
@@ -195,6 +272,12 @@ def validate_package(
             f"(ids: {', '.join(synthetic_range_ok or numeric_hits)}); "
             + SYNTHETIC_BANNER
         )
+    elif numeric_hits and status == "literature_cited" and allow_literature_cited:
+        warnings.append(
+            "literature_cited ranges accepted (not coach-verified) "
+            f"(ids: {', '.join(literature_range_ok or numeric_hits)}); "
+            + LITERATURE_BANNER
+        )
 
     if errors:
         raise BenchmarkValidationError("; ".join(errors))
@@ -207,8 +290,9 @@ def publish_allowed(
     force_allow_draft: bool = False,
     force_allow_expert_pending: bool = False,
     allow_synthetic_demo: bool = False,
+    allow_literature_cited: bool = False,
 ) -> tuple[bool, str]:
-    """Return (ok, reason). Default: only verified; synthetic_demo needs flag; draft blocked."""
+    """Return (ok, reason). Default: only verified; demo/lit need flags; draft blocked."""
     if verification_status == "verified":
         return True, "verified"
     if verification_status == "synthetic_demo":
@@ -217,6 +301,13 @@ def publish_allowed(
         return False, (
             "publish blocked: verification_status=synthetic_demo "
             "(pass --allow-synthetic-demo to publish demo package)"
+        )
+    if verification_status == "literature_cited":
+        if allow_literature_cited:
+            return True, "literature_cited with --allow-literature-cited"
+        return False, (
+            "publish blocked: verification_status=literature_cited "
+            "(pass --allow-literature-cited to publish literature package)"
         )
     if verification_status == "expert_pending" and force_allow_expert_pending:
         return True, "forced expert_pending"
@@ -357,6 +448,9 @@ def import_package_to_db(db, data: dict[str, Any], *, change_log: Optional[str] 
             notes = f"{notes} {extra}".strip() if notes else extra
         if m.get("linked_error_id"):
             extra = f"[linked_error_id={m['linked_error_id']}]"
+            notes = f"{notes} {extra}".strip() if notes else extra
+        if m.get("citations"):
+            extra = f"[citations={json.dumps(m['citations'], ensure_ascii=False)}]"
             notes = f"{notes} {extra}".strip() if notes else extra
         db.add(
             BenchmarkMetric(

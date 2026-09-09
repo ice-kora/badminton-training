@@ -27,6 +27,7 @@ Page({
     skillCode: '',
     skillName: '',
     banner: '',
+    benchmarkKind: '',
     stages: [],
     hudAngles: [],
     speeds: [0.25, 0.5, 1],
@@ -97,6 +98,7 @@ Page({
         this.setData({
           skillName: m.skill_name || skillCode,
           banner: m.banner || '非专家验证，仅供流水线演示',
+          benchmarkKind: m.benchmark_kind || '',
           stages: m.stages || [],
           hudAngles: (m.hud_angles || []).slice(0, 4),
           speeds: m.playback_speeds || [0.25, 0.5, 1],

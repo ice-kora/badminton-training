@@ -18,6 +18,7 @@ from app.models import (
     TrainingVideo,
 )
 from app.services.benchmark_pkg import (
+    LITERATURE_BANNER,
     SYNTHETIC_BANNER,
     find_published_version,
     package_dict_from_version,
@@ -164,9 +165,14 @@ def maybe_score_after_pose(
     existing.benchmark_kind = result.benchmark_kind
     existing.verification_status = result.verification_status
     existing.source = result.source
-    existing.banner = result.banner or (
-        SYNTHETIC_BANNER if result.benchmark_kind == "synthetic_demo" else None
-    )
+    if result.banner:
+        existing.banner = result.banner
+    elif result.benchmark_kind == "synthetic_demo":
+        existing.banner = SYNTHETIC_BANNER
+    elif result.benchmark_kind == "literature_cited":
+        existing.banner = LITERATURE_BANNER
+    else:
+        existing.banner = None
     existing.result_json = json.dumps(result.to_dict(), ensure_ascii=False)
     db.flush()
 
@@ -208,6 +214,8 @@ def maybe_score_after_pose(
     banner_note = ""
     if result.benchmark_kind == "synthetic_demo":
         banner_note = f" 【{SYNTHETIC_BANNER}】"
+    elif result.benchmark_kind == "literature_cited":
+        banner_note = f" 【{LITERATURE_BANNER}】"
     job.message = (
         f"scored overall={result.overall_score:.1f} "
         f"problems={len(result.problems)} "

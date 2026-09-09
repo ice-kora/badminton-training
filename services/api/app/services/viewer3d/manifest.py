@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from app.services.benchmark_pkg import SYNTHETIC_BANNER, benchmark_kind_for_status
+from app.services.benchmark_pkg import LITERATURE_BANNER, LITERATURE_RANGE_KINDS, SYNTHETIC_BANNER, benchmark_kind_for_status
 from app.services.pose.landmarks import POSE_CONNECTIONS, POSE_LANDMARK_NAMES, bone_edges
 from app.services.scoring.overlay import generate_synthetic_template_sequence
 
@@ -95,6 +95,10 @@ def _hud_angles(metrics: list[dict[str, Any]], stage_code: Optional[str] = None)
             mid = (float(rmin) + float(rmax)) / 2.0
             value = round(mid, 1)
             value_label = f"{value}{'' if unit == 'ratio' else '°'} (synthetic_demo)"
+        elif kind in LITERATURE_RANGE_KINDS and rmin is not None and rmax is not None:
+            mid = (float(rmin) + float(rmax)) / 2.0
+            value = round(mid, 1)
+            value_label = f"{value}{'' if unit == 'ratio' else '°'} (literature_cited)"
         elif rmin is None and rmax is None:
             value = HUD_NA
             value_label = HUD_NA
@@ -111,8 +115,9 @@ def _hud_angles(metrics: list[dict[str, Any]], stage_code: Optional[str] = None)
                 "range_max": rmax,
                 "range_kind": kind or None,
                 "active": active,
-                "synthetic_demo": kind == "synthetic_demo" or value != HUD_NA,
-                "note": "占位 HUD · 非专家验证",
+                "synthetic_demo": kind == "synthetic_demo",
+                "literature_cited": kind in LITERATURE_RANGE_KINDS or kind == "literature_cited",
+                "note": "占位 HUD · 非教练现场标定",
             }
         )
     if not rows:
@@ -182,7 +187,9 @@ def build_viewer3d_manifest(
     status = str(package.get("verification_status") or "synthetic_demo")
     kind = benchmark_kind_for_status(status) or "synthetic_demo"
     banner = package.get("banner") or (
-        SYNTHETIC_BANNER if kind == "synthetic_demo" else None
+        SYNTHETIC_BANNER if kind == "synthetic_demo"
+        else LITERATURE_BANNER if kind == "literature_cited"
+        else None
     )
 
     tmpl = package.get("synthetic_keypoint_template")
@@ -222,9 +229,14 @@ def build_viewer3d_manifest(
         "verification_status": status,
         "benchmark_kind": kind,
         "source": package.get("source") or "engineering_synthetic_demo",
-        "banner": banner or SYNTHETIC_BANNER,
-        "notice": VIEWER3D_NOTICE,
-        "synthetic_demo": True,
+        "banner": banner or (LITERATURE_BANNER if kind == "literature_cited" else SYNTHETIC_BANNER),
+        "notice": (
+            "3D 标准动作 · 文献抽取区间 · 非实时 · 非教练现场标定"
+            if kind == "literature_cited"
+            else VIEWER3D_NOTICE
+        ),
+        "synthetic_demo": kind == "synthetic_demo",
+        "literature_cited": kind == "literature_cited",
         "realtime": False,
         "playback_speeds": list(PLAYBACK_SPEEDS),
         "default_speed": 1.0,

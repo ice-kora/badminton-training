@@ -144,14 +144,14 @@
               "number",
               "null"
             ],
-            "description": "Null until expert verification OR synthetic_demo package with range_kind=synthetic_demo"
+            "description": "Null until expert verification OR synthetic_demo/literature_cited with labeled range_kind"
           },
           "range_max": {
             "type": [
               "number",
               "null"
             ],
-            "description": "Null until expert verification OR synthetic_demo package with range_kind=synthetic_demo"
+            "description": "Null until expert verification OR synthetic_demo/literature_cited with labeled range_kind"
           },
           "notes": {
             "type": [
@@ -164,7 +164,7 @@
               "string",
               "null"
             ],
-            "description": "synthetic_demo | expert_verified; null for unverified shells"
+            "description": "synthetic_demo | expert_verified | literature_mean_sd | literature_point_tolerance | literature_proxy_related_stroke; null for unverified shells"
           },
           "linked_error_id": {
             "type": [
@@ -172,6 +172,41 @@
               "null"
             ],
             "description": "Optional common_error code linked to this metric"
+          },
+          "citations": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "description": "Required for numeric metrics when verification_status=literature_cited",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "title",
+                "doi_or_url",
+                "extracted",
+                "year"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "doi_or_url": {
+                  "type": "string"
+                },
+                "extracted": {
+                  "type": "string",
+                  "description": "Quote or paraphrase of extracted statistic"
+                },
+                "year": {
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -209,7 +244,8 @@
         "draft_unverified",
         "expert_pending",
         "verified",
-        "synthetic_demo"
+        "synthetic_demo",
+        "literature_cited"
       ]
     },
     "source": {
@@ -227,7 +263,7 @@
         "string",
         "null"
       ],
-      "description": "UI banner; required semantically for synthetic_demo"
+      "description": "UI banner; required semantically for synthetic_demo and literature_cited"
     },
     "synthetic_keypoint_template": {
       "type": [

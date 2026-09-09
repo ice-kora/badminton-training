@@ -39,6 +39,7 @@ from app.schemas import (
     VideoUploadOut,
 )
 from app.services.benchmark_pkg import (
+    LITERATURE_BANNER,
     SYNTHETIC_BANNER,
     find_published_version,
     package_dict_from_version,
@@ -516,11 +517,15 @@ def get_video(
     banner = None
     if kind == "synthetic_demo":
         banner = (sc.banner if sc is not None else None) or SYNTHETIC_BANNER
+    elif kind == "literature_cited":
+        banner = (sc.banner if sc is not None else None) or LITERATURE_BANNER
     notice = DETAIL_NOTICE
     if score_payload is None:
         notice = "关键点可提取；无已发布标准库时评分不开放（ANALYSIS_NOT_IMPLEMENTED / awaiting_published_benchmark）"
     elif kind == "synthetic_demo":
         notice = SYNTHETIC_BANNER
+    elif kind == "literature_cited":
+        notice = LITERATURE_BANNER
     stage_timeline = None
     overlay_available = False
     if pose is not None:
@@ -532,6 +537,8 @@ def get_video(
             kind = stage_timeline.get("benchmark_kind") or kind
             if kind == "synthetic_demo" and not banner:
                 banner = SYNTHETIC_BANNER
+            if kind == "literature_cited" and not banner:
+                banner = LITERATURE_BANNER
     return VideoDetailOut(
         id=row.id,
         user_id=row.user_id,
@@ -713,6 +720,10 @@ def retest_compare(
                 base_out.benchmark_kind == "synthetic_demo"
             ):
                 notice += f" · {SYNTHETIC_BANNER}"
+            if cur_out.benchmark_kind == "literature_cited" or (
+                base_out.benchmark_kind == "literature_cited"
+            ):
+                notice += f" · {LITERATURE_BANNER}"
         return RetestCompareOut(
             baseline=PosePreviewOut(**baseline_preview),
             current=PosePreviewOut(**current_preview),

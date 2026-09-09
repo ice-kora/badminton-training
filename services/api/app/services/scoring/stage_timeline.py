@@ -237,6 +237,8 @@ def build_stage_timeline(
     notice = "阶段时间轴为相对时序启发式切分，非专家标注"
     if benchmark_kind == "synthetic_demo":
         notice += " · synthetic_demo"
+    elif benchmark_kind == "literature_cited":
+        notice += " · literature_cited"
 
     return {
         "segments": segments,
@@ -267,6 +269,8 @@ def timeline_from_package(
     status = str(package.get("verification_status") or "")
     if status == "synthetic_demo":
         kind = "synthetic_demo"
+    elif status == "literature_cited":
+        kind = "literature_cited"
     elif status == "verified":
         kind = "verified"
     return build_stage_timeline(

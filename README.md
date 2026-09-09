@@ -4,7 +4,7 @@
 目标仓库：https://github.com/ice-kora/badminton-training.git
 
 > **硬约束**：**禁止**实时摄像头纠错；**禁止**把 LLM/工程合成关节区间当作专家标准。  
-> 评分仅在存在 **published** Motion Benchmark 时开放；`synthetic_demo` 包须 `--allow-synthetic-demo` 发布，并全链路展示横幅：**非专家验证，仅供流水线演示**。无 published 时仍为 `ANALYSIS_NOT_IMPLEMENTED` / `awaiting_published_benchmark`。
+> 评分仅在存在 **published** Motion Benchmark 时开放。生产评分优先使用 `literature_cited`（`--allow-literature-cited`，横幅：**文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示**）。`synthetic_demo` 仍须 `--allow-synthetic-demo` 并展示合成横幅。无 published 时仍为 `ANALYSIS_NOT_IMPLEMENTED` / `awaiting_published_benchmark`。
 
 ## 结构
 
@@ -97,9 +97,11 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 - 文档：`docs/BENCHMARK_ANNOTATION.md`，schema：`docs/benchmark/schema.json`
 - 空模板（数值全 null）：`docs/benchmark/templates/*.v0.json`
 - **合成演示包**：`docs/benchmark/demo/*.synthetic_demo.json`（`verification_status=synthetic_demo`，`source=engineering_synthetic_demo`）
-- 校验 / 导入 / 发布：`scripts/benchmark_*.py`
+- **文献抽取包（生产评分）**：`docs/benchmark/literature/*.literature_v1.json`（`verification_status=literature_cited`，`source=peer_reviewed_literature`）；说明见 `docs/BENCHMARK_LITERATURE.md`
+- 校验 / 导入 / 发布：`scripts/benchmark_*.py`；一键：`scripts/benchmark_publish_literature.sh`
   - `draft_unverified` 默认不可发布
   - `synthetic_demo` 仅 `--allow-synthetic-demo` 可发布
+  - `literature_cited` 仅 `--allow-literature-cited` 可发布（须 citations + range_kind）
 - Worker：`pose_extracted` 后若有 published → `PoseScorer` → `scored`（结果写入 `training_scores` / `pose_problems`）
 - 无 published：保持 `ANALYSIS_NOT_IMPLEMENTED` + `awaiting_published_benchmark`
 - **V2 阶段时间轴**：用 demo `stages` / `keyframes` 相对时序启发式切分用户关键点序列，边界写入 `pose_analyses.stage_timeline_json`；有模板时序则返回 `delta_ms`

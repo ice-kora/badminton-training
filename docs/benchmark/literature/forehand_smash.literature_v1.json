@@ -1,0 +1,160 @@
+{
+  "skill_code": "forehand_smash",
+  "skill_name": "正手杀球",
+  "version": "1.0.0-lit",
+  "handedness": "right",
+  "camera_view": "lab_3d_vicon_not_single_camera",
+  "stages": [
+    {
+      "code": "approach",
+      "name": "准备与并步",
+      "sort_order": 1
+    },
+    {
+      "code": "backswing",
+      "name": "引拍蓄力",
+      "sort_order": 2
+    },
+    {
+      "code": "contact",
+      "name": "击球下压",
+      "sort_order": 3
+    },
+    {
+      "code": "landing",
+      "name": "落地缓冲与回动",
+      "sort_order": 4
+    }
+  ],
+  "keyframes": [
+    {
+      "code": "kf_plant",
+      "name": "并步到位",
+      "stage_code": "approach",
+      "t_ms": null,
+      "notes": "literature_cited shell"
+    },
+    {
+      "code": "kf_contact",
+      "name": "下压击球瞬间",
+      "stage_code": "contact",
+      "t_ms": null,
+      "notes": "literature_cited shell"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "trunk_coil_backswing",
+      "name": "引拍 X-factor / 躯干扭转（文献 mean±1SD）",
+      "unit": "deg",
+      "stage_code": "backswing",
+      "range_min": 35.7,
+      "range_max": 58.1,
+      "range_kind": "literature_mean_sd",
+      "linked_error_id": "smash_arm_only_power",
+      "notes": "Mapped from Shan 2016 skilled-group X-factor (trunk rotation) 46.9±11.2°. Literature X-factor is pelvis–shoulder separation in horizontal plane; PoseScorer trunk_coil_backswing is a 2D MediaPipe shoulder-hip line angle proxy (different quantity). Alias intent: trunk_x_factor_prep.",
+      "citations": [
+        {
+          "title": "Shan et al. Biomechanical analysis of badminton forehand smash (J Hum Kinet 2016)",
+          "doi_or_url": "https://doi.org/10.1515/hukin-2016-0006",
+          "extracted": "Skilled group (SG) X-factor (trunk rotation) mean±SD: 46.9 ± 11.2° → range_min=35.7, range_max=58.1 (mean±1SD).",
+          "year": 2016
+        }
+      ]
+    },
+    {
+      "id": "shoulder_rotation_rom",
+      "name": "肩旋转 ROM（文献 mean±1SD；MediaPipe 代理）",
+      "unit": "deg",
+      "stage_code": "backswing",
+      "range_min": 76.6,
+      "range_max": 138.4,
+      "range_kind": "literature_mean_sd",
+      "linked_error_id": "smash_arm_only_power",
+      "notes": "Shan 2016 SG shoulder rotation ROM 107.5±30.9° → 76.6–138.4. PROXY: MediaPipe single-camera cannot measure true 3D shoulder IR/ER ROM; scorer uses crude shoulder-line orientation excursion as labeled proxy of a different lab quantity.",
+      "citations": [
+        {
+          "title": "Shan et al. Biomechanical analysis of badminton forehand smash (J Hum Kinet 2016)",
+          "doi_or_url": "https://doi.org/10.1515/hukin-2016-0006",
+          "extracted": "Skilled group shoulder rotation ROM mean±SD: 107.5 ± 30.9° → 76.6–138.4 (mean±1SD).",
+          "year": 2016
+        }
+      ]
+    },
+    {
+      "id": "elbow_flex_ext_rom",
+      "name": "肘屈伸 ROM（文献 mean±1SD；2D 代理）",
+      "unit": "deg",
+      "stage_code": "contact",
+      "range_min": 61.5,
+      "range_max": 79.7,
+      "range_kind": "literature_mean_sd",
+      "linked_error_id": "smash_arm_only_power",
+      "notes": "Shan 2016 SG elbow flex/ext ROM 70.6±9.1° → 61.5–79.7. PROXY: PoseScorer measures peak-to-peak 2D elbow angle across clip; lab measured 3D ROM.",
+      "citations": [
+        {
+          "title": "Shan et al. Biomechanical analysis of badminton forehand smash (J Hum Kinet 2016)",
+          "doi_or_url": "https://doi.org/10.1515/hukin-2016-0006",
+          "extracted": "Skilled group elbow flex/ext ROM mean±SD: 70.6 ± 9.1° → 61.5–79.7 (mean±1SD).",
+          "year": 2016
+        }
+      ]
+    },
+    {
+      "id": "wrist_flex_ext_rom",
+      "name": "腕屈伸 ROM（文献高方差；MediaPipe 不可靠）",
+      "unit": "deg",
+      "stage_code": "contact",
+      "range_min": 40.0,
+      "range_max": 130.0,
+      "range_kind": "literature_mean_sd",
+      "linked_error_id": null,
+      "notes": "Shan 2016 SG wrist flex/ext ROM 85.9±50.4° (mean±1SD would be 35.5–136.3; package uses caution band 40–130). MediaPipe Pose lacks reliable wrist FE; scorer returns null (neutral) — literature range retained for documentation only.",
+      "citations": [
+        {
+          "title": "Shan et al. Biomechanical analysis of badminton forehand smash (J Hum Kinet 2016)",
+          "doi_or_url": "https://doi.org/10.1515/hukin-2016-0006",
+          "extracted": "Skilled group wrist flex/ext ROM mean±SD: 85.9 ± 50.4° (high variance); package caution range 40–130.",
+          "year": 2016
+        }
+      ]
+    },
+    {
+      "id": "elbow_flexion_at_contact",
+      "name": "击球时肘角（文献教学描述；数值留空）",
+      "unit": "deg",
+      "stage_code": "contact",
+      "range_min": null,
+      "range_max": null,
+      "range_kind": null,
+      "linked_error_id": "smash_contact_too_late",
+      "notes": "instructional_not_mean: Shan 2016 discussion prefers contact with arm extended / elbow straightened. No consistent mean±SD mapped to PoseScorer elbow angle convention — ranges left null.",
+      "citations": [
+        {
+          "title": "Shan et al. Biomechanical analysis of badminton forehand smash (J Hum Kinet 2016)",
+          "doi_or_url": "https://doi.org/10.1515/hukin-2016-0006",
+          "extracted": "Instructional (discussion): contact with arm extended / elbow straightened at contact — not a skilled-group mean±SD for elbow angle at contact.",
+          "year": 2016
+        }
+      ]
+    }
+  ],
+  "common_error_refs": [
+    {
+      "id": "smash_arm_only_power",
+      "title": "杀球发力只用手臂"
+    },
+    {
+      "id": "smash_contact_too_late",
+      "title": "击球点太后"
+    }
+  ],
+  "linked_drill_codes": [
+    "smash_power_chain",
+    "smash_footwork"
+  ],
+  "verification_status": "literature_cited",
+  "source": "peer_reviewed_literature",
+  "banner": "文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示",
+  "notes": "Literature-cited package from Shan et al. 2016 (PMC5260572). NOT coach field calibration. Single-camera MediaPipe ≠ lab Vicon. Replaces synthetic_demo numeric reliance for production scoring paths that choose this package."
+}

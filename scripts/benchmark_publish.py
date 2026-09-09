@@ -4,6 +4,7 @@
 Default policy: draft_unverified cannot be published.
 verified publishes cleanly.
 synthetic_demo publishes only with --allow-synthetic-demo.
+literature_cited publishes only with --allow-literature-cited.
 """
 from __future__ import annotations
 
@@ -50,6 +51,11 @@ def main() -> int:
         "--allow-synthetic-demo",
         action="store_true",
         help="Allow publishing synthetic_demo packages (pipeline demo only)",
+    )
+    ap.add_argument(
+        "--allow-literature-cited",
+        action="store_true",
+        help="Allow publishing literature_cited packages (peer-reviewed extracted ranges)",
     )
     args = ap.parse_args()
 
@@ -100,6 +106,7 @@ def main() -> int:
             force_allow_draft=args.force_allow_draft,
             force_allow_expert_pending=args.force_expert_pending,
             allow_synthetic_demo=args.allow_synthetic_demo,
+            allow_literature_cited=args.allow_literature_cited,
         )
         if not ok:
             print(f"FAIL: {reason}", file=sys.stderr)
@@ -111,6 +118,11 @@ def main() -> int:
             if ver.verification_status == "synthetic_demo" and not args.allow_synthetic_demo:
                 print(
                     "hint: pass --allow-synthetic-demo for pipeline demo publish",
+                    file=sys.stderr,
+                )
+            if ver.verification_status == "literature_cited" and not args.allow_literature_cited:
+                print(
+                    "hint: pass --allow-literature-cited for literature package publish",
                     file=sys.stderr,
                 )
             return 1

@@ -1,0 +1,133 @@
+{
+  "skill_code": "net_tumble",
+  "skill_name": "网前搓球",
+  "version": "1.0.0-lit",
+  "handedness": "right",
+  "camera_view": "lab_conference_capture_not_phone",
+  "stages": [
+    {
+      "code": "approach",
+      "name": "上网步伐",
+      "sort_order": 1
+    },
+    {
+      "code": "set_up",
+      "name": "引拍与接触点",
+      "sort_order": 2
+    },
+    {
+      "code": "tumble",
+      "name": "搓切动作",
+      "sort_order": 3
+    },
+    {
+      "code": "recover",
+      "name": "还原",
+      "sort_order": 4
+    }
+  ],
+  "keyframes": [
+    {
+      "code": "kf_reach",
+      "name": "上网到位",
+      "stage_code": "approach",
+      "t_ms": null,
+      "notes": "literature_cited shell"
+    },
+    {
+      "code": "kf_contact",
+      "name": "搓切接触",
+      "stage_code": "tumble",
+      "t_ms": null,
+      "notes": "literature_cited shell"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "elbow_flexion_at_contact",
+      "name": "击球时肘角（文献点估计±容差）",
+      "unit": "deg",
+      "stage_code": "tumble",
+      "range_min": 130.0,
+      "range_max": 150.0,
+      "range_kind": "literature_point_tolerance",
+      "linked_error_id": "tumble_becomes_push",
+      "notes": "Hsueh et al. ISB 2009 tumble net at contact: elbow angle 139° (dab 142°); tolerance band 130–150 around tumble. MediaPipe 2D elbow angle is a proxy of lab joint angle.",
+      "citations": [
+        {
+          "title": "Hsueh, Tsai, Pan, Chang. Biomechanical analysis of badminton tumble net shot (ISB 2009)",
+          "doi_or_url": "https://media.isbweb.org/images/conf/2009/data/pdf/544.pdf",
+          "extracted": "Elite collegiate Taiwanese males (n=8), tumble net shot at contact: Elbow angle 139° (dab 142°) → range 130–150.",
+          "year": 2009
+        }
+      ]
+    },
+    {
+      "id": "racket_face_vs_horizontal_proxy",
+      "name": "拍面相对水平角代理（文献点估计±容差）",
+      "unit": "deg",
+      "stage_code": "tumble",
+      "range_min": 15.0,
+      "range_max": 27.0,
+      "range_kind": "literature_point_tolerance",
+      "linked_error_id": "tumble_unstable_face",
+      "notes": "Hsueh 2009 racket angle vs horizontal 21° (dab 33°) → tumble band 15–27. PROXY: PoseScorer uses forearm (elbow→wrist) vs horizontal; literature measured racket face — different quantity.",
+      "citations": [
+        {
+          "title": "Hsueh, Tsai, Pan, Chang. Biomechanical analysis of badminton tumble net shot (ISB 2009)",
+          "doi_or_url": "https://media.isbweb.org/images/conf/2009/data/pdf/544.pdf",
+          "extracted": "Racket angle vs horizontal at contact: 21° (dab 33°) → range 15–27 for tumble racket face proxy.",
+          "year": 2009
+        }
+      ]
+    },
+    {
+      "id": "contact_height_lab_m",
+      "name": "击球高度实验室绝对值（不可相机归一化）",
+      "unit": "m",
+      "stage_code": "tumble",
+      "range_min": null,
+      "range_max": null,
+      "range_kind": null,
+      "linked_error_id": null,
+      "notes": "Hsueh 2009 contact height 1.24 m (dab 1.21 m) — absolute lab meters. MediaPipe yields only relative/normalized height; metric kept null (do not fake camera-normalized range).",
+      "citations": [
+        {
+          "title": "Hsueh, Tsai, Pan, Chang. Biomechanical analysis of badminton tumble net shot (ISB 2009)",
+          "doi_or_url": "https://media.isbweb.org/images/conf/2009/data/pdf/544.pdf",
+          "extracted": "Contact height: 1.24 m (dab 1.21 m) — absolute meters; not camera-normalized.",
+          "year": 2009
+        }
+      ]
+    },
+    {
+      "id": "racket_face_vs_net",
+      "name": "拍面相对球网（无文献数值；占位）",
+      "unit": "qualitative",
+      "stage_code": "set_up",
+      "range_min": null,
+      "range_max": null,
+      "range_kind": null,
+      "notes": "No Hsueh numeric for this MediaPipe relative metric; left null.",
+      "citations": null
+    }
+  ],
+  "common_error_refs": [
+    {
+      "id": "tumble_becomes_push",
+      "title": "搓球变推球"
+    },
+    {
+      "id": "tumble_unstable_face",
+      "title": "拍面角度不稳"
+    }
+  ],
+  "linked_drill_codes": [
+    "tumble_touch",
+    "tumble_approach"
+  ],
+  "verification_status": "literature_cited",
+  "source": "peer_reviewed_literature",
+  "banner": "文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示",
+  "notes": "Literature-cited from Hsueh et al. ISB 2009 tumble net shot. NOT coach field calibration. Absolute contact height left null for phone video."
+}

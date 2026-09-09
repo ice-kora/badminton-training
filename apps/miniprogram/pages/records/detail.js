@@ -13,6 +13,7 @@ const STATUS_LABEL = {
 }
 
 const SYNTHETIC_BANNER = '非专家验证，仅供流水线演示'
+const LITERATURE_BANNER = '文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示'
 
 function formatTime(iso) {
   if (!iso) return ''
@@ -65,6 +66,7 @@ Page({
     dimensionList: [],
     benchmarkKind: null,
     isSyntheticDemo: false,
+    isLiteratureCited: false,
     scoringBanner: SYNTHETIC_BANNER,
     scoreDelta: null,
     scoreDeltaText: '',
@@ -127,8 +129,11 @@ Page({
         }))
         const benchmarkKind = video.benchmark_kind || (score && score.benchmark_kind) || null
         const isSyntheticDemo = benchmarkKind === 'synthetic_demo'
+        const isLiteratureCited = benchmarkKind === 'literature_cited'
         const scoringBanner =
-          video.scoring_banner || (score && score.banner) || SYNTHETIC_BANNER
+          video.scoring_banner ||
+          (score && score.banner) ||
+          (isLiteratureCited ? LITERATURE_BANNER : isSyntheticDemo ? SYNTHETIC_BANNER : '')
         const stageTimeline = video.stage_timeline || null
         const stageSegments = ((stageTimeline && stageTimeline.segments) || []).map((s) => {
           const d = s.delta_ms
@@ -162,6 +167,7 @@ Page({
           dimensionList,
           benchmarkKind,
           isSyntheticDemo,
+          isLiteratureCited,
           scoringBanner,
           stageSegments,
           stageNotice: (stageTimeline && stageTimeline.notice) || '',
@@ -337,7 +343,9 @@ Page({
           patch.currentOverall = curSc.overall_score
           if (
             baseSc.benchmark_kind === 'synthetic_demo' ||
-            curSc.benchmark_kind === 'synthetic_demo'
+            curSc.benchmark_kind === 'synthetic_demo' ||
+            baseSc.benchmark_kind === 'literature_cited' ||
+            curSc.benchmark_kind === 'literature_cited'
           ) {
             patch.isSyntheticDemo = true
             patch.scoringBanner = SYNTHETIC_BANNER
@@ -424,6 +432,7 @@ Page({
         if (body.banner) {
           patch.scoringBanner = body.banner
           patch.isSyntheticDemo = body.benchmark_kind === 'synthetic_demo'
+          patch.isLiteratureCited = body.benchmark_kind === 'literature_cited'
         }
         if (body.stage_timeline && body.stage_timeline.segments && !this.data.stageSegments.length) {
           patch.stageSegments = body.stage_timeline.segments.map((s) => {

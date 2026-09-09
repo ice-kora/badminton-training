@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models import PoseProblem, TrainingScore
 from app.schemas import PoseProblemOut, TrainingScoreOut
-from app.services.benchmark_pkg import SYNTHETIC_BANNER
+from app.services.benchmark_pkg import LITERATURE_BANNER, SYNTHETIC_BANNER
 
 
 def _loads(raw: Optional[str], default: Any):
@@ -59,6 +59,8 @@ def score_out(row: TrainingScore) -> TrainingScoreOut:
     banner = row.banner
     if row.benchmark_kind == "synthetic_demo" and not banner:
         banner = SYNTHETIC_BANNER
+    if row.benchmark_kind == "literature_cited" and not banner:
+        banner = LITERATURE_BANNER
     return TrainingScoreOut(
         overall_score=float(row.overall_score or 0.0),
         dimension_scores=_loads(row.dimension_scores_json, {})

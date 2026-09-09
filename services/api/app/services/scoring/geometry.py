@@ -150,24 +150,72 @@ def measure_metric(metric_id: str, frames: list[dict[str, Any]]) -> Optional[flo
             return 0.0
         return max(angles) - min(angles)
 
+    def elbow_rom(frames_in: list[dict[str, Any]]) -> Optional[float]:
+        vals = []
+        for fr in frames_in:
+            m = _lm_map(fr)
+            v = elbow_flexion(m)
+            if v is not None:
+                vals.append(v)
+        if len(vals) < 2:
+            return None
+        return max(vals) - min(vals)
+
+    def shoulder_line_rom(frames_in: list[dict[str, Any]]) -> Optional[float]:
+        """Crude PROXY of shoulder rotation: excursion of shoulder-line angle in image plane."""
+        angs = []
+        for fr in frames_in:
+            m = _lm_map(fr)
+            ls, rs = m.get("LEFT_SHOULDER"), m.get("RIGHT_SHOULDER")
+            if not (ls and rs):
+                continue
+            angs.append(math.degrees(math.atan2(rs["y"] - ls["y"], rs["x"] - ls["x"])))
+        if len(angs) < 2:
+            return None
+        # unwrap-ish peak-to-peak on circular? use simple max-min for demo proxy
+        return max(angs) - min(angs)
+
+    def racket_vs_horizontal(m: dict[str, dict[str, float]]) -> Optional[float]:
+        """PROXY: forearm (elbow→wrist) angle vs horizontal, degrees."""
+        e, w = m.get("RIGHT_ELBOW"), m.get("RIGHT_WRIST")
+        if not (e and w):
+            return None
+        vx, vy = w["x"] - e["x"], w["y"] - e["y"]
+        # angle from +x horizontal; image y down
+        ang = abs(math.degrees(math.atan2(vy, vx)))
+        # map to acute-ish vs horizontal: 0 = horizontal
+        if ang > 90:
+            ang = 180 - ang
+        return ang
+
     mid = metric_id
-    if mid == "elbow_flexion_at_contact":
+    if mid in ("elbow_flexion_at_contact",):
         return elbow_flexion(cm)
     if mid == "contact_height_rel_shoulder":
         return contact_height_rel_shoulder(cm)
-    if mid == "trunk_rotation_backswing":
+    if mid in ("trunk_rotation_backswing", "trunk_coil_backswing", "trunk_x_factor_prep"):
         return trunk_rotation(bm)
     if mid == "contact_forward_of_body":
         return contact_forward(cm)
     if mid == "racket_face_depression":
         return racket_depression(cm)
-    if mid == "trunk_coil_backswing":
-        return trunk_rotation(bm)
     if mid == "racket_face_vs_net":
         return wrist_vs_shoulder_y(cm)
     if mid == "contact_softness":
         return wrist_travel(frames)
     if mid == "wrist_action_extent":
         return wrist_action_extent(frames)
-    # Fallback: try elbow flexion as generic
-    return elbow_flexion(cm)
+    if mid == "elbow_flex_ext_rom":
+        return elbow_rom(frames)
+    if mid == "shoulder_rotation_rom":
+        return shoulder_line_rom(frames)
+    if mid == "wrist_flex_ext_rom":
+        # MediaPipe Pose cannot reliably measure wrist flex/ext — leave null
+        return None
+    if mid == "racket_face_vs_horizontal_proxy":
+        return racket_vs_horizontal(cm)
+    if mid == "contact_height_lab_m":
+        # Absolute lab meters not available from normalized MediaPipe
+        return None
+    # Unknown metric ids: do NOT silently invent elbow flexion for lit packages
+    return None

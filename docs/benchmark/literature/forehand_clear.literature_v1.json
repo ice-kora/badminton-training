@@ -1,0 +1,154 @@
+{
+  "skill_code": "forehand_clear",
+  "skill_name": "正手高远球",
+  "version": "1.0.0-lit",
+  "handedness": "right",
+  "camera_view": "literature_proxy_related_overhead",
+  "stages": [
+    {
+      "code": "ready",
+      "name": "准备架拍",
+      "sort_order": 1
+    },
+    {
+      "code": "backswing",
+      "name": "引拍",
+      "sort_order": 2
+    },
+    {
+      "code": "contact",
+      "name": "击球",
+      "sort_order": 3
+    },
+    {
+      "code": "follow_through",
+      "name": "随挥回收",
+      "sort_order": 4
+    }
+  ],
+  "keyframes": [
+    {
+      "code": "kf_ready",
+      "name": "架拍定型",
+      "stage_code": "ready",
+      "t_ms": null,
+      "notes": "literature_cited shell"
+    },
+    {
+      "code": "kf_contact",
+      "name": "击球瞬间",
+      "stage_code": "contact",
+      "t_ms": null,
+      "notes": "literature_cited shell"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "trunk_rotation_backswing",
+      "name": "引拍躯干协调 / X-factor 相关代理（相关击球文献）",
+      "unit": "deg",
+      "stage_code": "backswing",
+      "range_min": 35.7,
+      "range_max": 58.1,
+      "range_kind": "literature_proxy_related_stroke",
+      "linked_error_id": "clear_no_side_stance",
+      "notes": "related_overhead_proxy: Shan 2016 overhead smash X-factor 46.9±11.2° used as related overhead stroke reference; clear-specific means not available in extracted open text. Korean J Sports Sci 2020 cited for X-factor/coordination importance without fabricated clear angles. MediaPipe trunk_rotation_backswing ≠ lab X-factor.",
+      "citations": [
+        {
+          "title": "Shan et al. Biomechanical analysis of badminton forehand smash (J Hum Kinet 2016)",
+          "doi_or_url": "https://doi.org/10.1515/hukin-2016-0006",
+          "extracted": "SG X-factor 46.9 ± 11.2° (mean±1SD → 35.7–58.1) reused as related_overhead_proxy for clear — clear-specific means not in extracted open text.",
+          "year": 2016
+        },
+        {
+          "title": "Korean J Sports Sci 2020 high-clear skill-level study (X-factor/coordination)",
+          "doi_or_url": "https://doi.org/10.35159/kjss.2020.02.29.1.793",
+          "extracted": "High-clear skill-level differences emphasize X-factor / trunk-shoulder coordination importance (open abstract; clear-specific angle means not extracted).",
+          "year": 2020
+        }
+      ]
+    },
+    {
+      "id": "trunk_coil_backswing",
+      "name": "躯干扭转协调标志（同 X-factor 相关代理）",
+      "unit": "deg",
+      "stage_code": "backswing",
+      "range_min": 35.7,
+      "range_max": 58.1,
+      "range_kind": "literature_proxy_related_stroke",
+      "linked_error_id": "clear_no_side_stance",
+      "notes": "Alias/geometry twin of trunk_rotation_backswing for scorer id coverage; same Shan 2016 related_overhead_proxy. Not clear-specific lab means.",
+      "citations": [
+        {
+          "title": "Shan et al. Biomechanical analysis of badminton forehand smash (J Hum Kinet 2016)",
+          "doi_or_url": "https://doi.org/10.1515/hukin-2016-0006",
+          "extracted": "SG X-factor 46.9 ± 11.2° reused as related_overhead_proxy (clear-specific means unavailable).",
+          "year": 2016
+        },
+        {
+          "title": "Korean J Sports Sci 2020 high-clear skill-level study (X-factor/coordination)",
+          "doi_or_url": "https://doi.org/10.35159/kjss.2020.02.29.1.793",
+          "extracted": "High-clear skill-level differences emphasize X-factor / trunk-shoulder coordination importance (open abstract; clear-specific angle means not extracted).",
+          "year": 2020
+        }
+      ]
+    },
+    {
+      "id": "elbow_flexion_at_contact",
+      "name": "击球时肘屈曲（无可靠 clear 文献均值；留空）",
+      "unit": "deg",
+      "stage_code": "contact",
+      "range_min": null,
+      "range_max": null,
+      "range_kind": null,
+      "linked_error_id": "clear_contact_too_low",
+      "notes": "Clear-specific elbow angle means not extracted from open literature — left null (honesty).",
+      "citations": [
+        {
+          "title": "Korean J Sports Sci 2020 high-clear skill-level study (X-factor/coordination)",
+          "doi_or_url": "https://doi.org/10.35159/kjss.2020.02.29.1.793",
+          "extracted": "High-clear skill-level differences emphasize X-factor / trunk-shoulder coordination importance (open abstract; clear-specific angle means not extracted).",
+          "year": 2020
+        }
+      ]
+    },
+    {
+      "id": "contact_height_rel_shoulder",
+      "name": "击球高度相对肩（定性/无抽取数值；留空）",
+      "unit": "ratio",
+      "stage_code": "contact",
+      "range_min": null,
+      "range_max": null,
+      "range_kind": null,
+      "linked_error_id": "clear_contact_too_low",
+      "notes": "No open-text numeric range extracted; qualitative coordination emphasis only.",
+      "citations": [
+        {
+          "title": "Korean J Sports Sci 2020 high-clear skill-level study (X-factor/coordination)",
+          "doi_or_url": "https://doi.org/10.35159/kjss.2020.02.29.1.793",
+          "extracted": "High-clear skill-level differences emphasize X-factor / trunk-shoulder coordination importance (open abstract; clear-specific angle means not extracted).",
+          "year": 2020
+        }
+      ]
+    }
+  ],
+  "common_error_refs": [
+    {
+      "id": "clear_contact_too_low",
+      "title": "击球点过低"
+    },
+    {
+      "id": "clear_no_side_stance",
+      "title": "正面硬挥无侧身"
+    }
+  ],
+  "linked_drill_codes": [
+    "clear_stance_hold",
+    "clear_rhythm_breakdown",
+    "clear_placement"
+  ],
+  "verification_status": "literature_cited",
+  "source": "peer_reviewed_literature",
+  "banner": "文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示",
+  "notes": "Honest clear package: mostly null numeric metrics; 1–2 related_overhead_proxy ranges from Shan 2016 X-factor plus KJSS 2020 qualitative coordination citation. NOT clear-specific fabricated angles."
+}

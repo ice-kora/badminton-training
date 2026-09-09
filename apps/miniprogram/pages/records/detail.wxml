@@ -1,5 +1,6 @@
 <view class="container">
   <view class="banner-synthetic" wx:if="{{isSyntheticDemo}}">⚠️ {{scoringBanner}}</view>
+  <view class="banner-literature" wx:elif="{{isLiteratureCited}}">📚 {{scoringBanner}}</view>
   <view class="banner-note" wx:elif="{{!score}}">关键点可提取；无已发布标准库时评分不开放</view>
   <view class="banner-note" wx:else>{{video.notice || '已评分'}}</view>
   <view class="muted" wx:if="{{loading}}">加载中…</view>
@@ -33,6 +34,7 @@
 
     <block wx:if="{{score}}">
       <view class="banner-synthetic" wx:if="{{isSyntheticDemo}}">{{scoringBanner}}</view>
+      <view class="banner-literature" wx:elif="{{isLiteratureCited}}">{{scoringBanner}}</view>
       <view class="section-title">分数拆解</view>
       <view class="card">
         <view class="dim-row" wx:for="{{dimensionList}}" wx:key="id">
@@ -78,6 +80,7 @@
       <view class="section-title">标准 vs 用户骨架叠加</view>
       <view class="card">
         <view class="banner-synthetic" wx:if="{{isSyntheticDemo || overlaySynthetic}}">⚠️ {{scoringBanner}}</view>
+        <view class="banner-literature" wx:elif="{{isLiteratureCited}}">📚 {{scoringBanner}}</view>
         <view class="banner-note preview-disclaimer">非评分叠加 · 绿=标准 · 蓝=用户</view>
         <canvas
           type="2d"
@@ -137,6 +140,7 @@
       <view class="section-title">复测对比</view>
       <view class="card">
         <view class="banner-synthetic" wx:if="{{isSyntheticDemo}}">{{scoringBanner}}</view>
+        <view class="banner-literature" wx:elif="{{isLiteratureCited}}">{{scoringBanner}}</view>
         <view class="banner-note preview-disclaimer" wx:else>左右并排骨架</view>
         <view class="score-delta" wx:if="{{scoreDelta != null}}">
           分数差：{{scoreDeltaText}}（基准 {{baselineOverall}} → 当前 {{currentOverall}}）
