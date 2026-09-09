@@ -125,8 +125,13 @@ async def precheck_video(
     suffix = Path(file.filename or "clip.mp4").suffix or ".mp4"
     tmp = _save_upload_temp(file, suffix=suffix)
     try:
+        settings = get_settings()
         report = run_precheck(
-            tmp, guide=guide, client_checklist=checklist, client_hints=hints
+            tmp,
+            guide=guide,
+            client_checklist=checklist,
+            client_hints=hints,
+            relax_orientation=settings.precheck_relax_orientation,
         )
     finally:
         tmp.unlink(missing_ok=True)
@@ -157,8 +162,13 @@ async def upload_video(
     suffix = Path(original_name).suffix or ".mp4"
     tmp = _save_upload_temp(file, suffix=suffix)
     try:
+        settings = get_settings()
         report = run_precheck(
-            tmp, guide=guide, client_checklist=checklist, client_hints=hints
+            tmp,
+            guide=guide,
+            client_checklist=checklist,
+            client_hints=hints,
+            relax_orientation=settings.precheck_relax_orientation,
         )
         if not report["passed"]:
             raise HTTPException(

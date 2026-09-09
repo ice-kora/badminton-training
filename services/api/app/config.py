@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24 * 7
     allow_dev_login: bool = True
     upload_dir: str = str(_API_ROOT / "data" / "uploads")
+    # Local acceptance: set PRECHECK_RELAX_ORIENTATION=true to allow landscape.
+    precheck_relax_orientation: bool = False
 
 
 @lru_cache

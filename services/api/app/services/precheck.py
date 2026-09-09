@@ -137,6 +137,7 @@ def run_precheck(
     guide: Any = None,
     client_checklist: Optional[dict[str, Any]] = None,
     client_hints: Optional[dict[str, Any]] = None,
+    relax_orientation: bool = False,
 ) -> dict[str, Any]:
     """
     Return structured precheck report.
@@ -144,6 +145,8 @@ def run_precheck(
     Pose-related items are deferred_to_pose / client_checklist_only.
     """
     policy = _policy_from_guide(guide)
+    if relax_orientation:
+        policy["relax_orientation"] = True
     client_checklist = client_checklist or {}
     client_hints = client_hints or {}
     checks: list[dict[str, Any]] = []
@@ -278,7 +281,8 @@ def run_precheck(
 
     # --- orientation ---
     required_orient = policy.get("orientation", "portrait")
-    if probe.orientation != required_orient:
+    relax_orientation = bool(policy.get("relax_orientation", False))
+    if probe.orientation != required_orient and not relax_orientation:
         checks.append(
             {
                 "id": "orientation",
@@ -290,6 +294,24 @@ def run_precheck(
                 "evidence": {
                     "actual": probe.orientation,
                     "required": required_orient,
+                    "width": probe.width,
+                    "height": probe.height,
+                },
+            }
+        )
+    elif probe.orientation != required_orient and relax_orientation:
+        checks.append(
+            {
+                "id": "orientation",
+                "status": "pass",
+                "message": (
+                    f"方向已放宽（本地测试）：当前 {probe.orientation}，"
+                    f"正式要求 {required_orient}"
+                ),
+                "evidence": {
+                    "actual": probe.orientation,
+                    "required": required_orient,
+                    "relaxed": True,
                     "width": probe.width,
                     "height": probe.height,
                 },
