@@ -112,6 +112,7 @@ class FilmingGuideOut(OrmModel, ProvenanceMixin):
 class DrillOut(OrmModel, ProvenanceMixin):
     id: int
     skill_id: Optional[int] = None
+    code: Optional[str] = None
     name: str
     goal: Optional[str] = None
     steps: str
@@ -253,7 +254,8 @@ class AnalysisJobOut(OrmModel):
     message: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    # Explicit: no scores field — scoring blocked
+    score: Optional["TrainingScoreOut"] = None
+    benchmark_kind: Optional[str] = None
 
 
 class VideoUploadOut(BaseModel):
@@ -323,7 +325,11 @@ class VideoDetailOut(BaseModel):
     jobs: list[AnalysisJobOut] = Field(default_factory=list)
     pose_extracted: bool = False
     pose_frame_count: Optional[int] = None
-    notice: str = "关键点可提取；评分尚未开放，不返回分数"
+    score: Optional["TrainingScoreOut"] = None
+    problems: list["PoseProblemOut"] = Field(default_factory=list)
+    benchmark_kind: Optional[str] = None
+    scoring_banner: Optional[str] = None
+    notice: str = "关键点可提取；无已发布标准库时评分不开放"
 
 
 # ---- Pose keypoints (no scoring) ----
@@ -392,11 +398,39 @@ class PosePreviewOut(BaseModel):
 
 
 class RetestCompareOut(BaseModel):
-    """Side-by-side skeleton frames for baseline vs retest — visualization only."""
+    """Side-by-side skeleton frames for baseline vs retest; score delta when both scored."""
 
     baseline: PosePreviewOut
     current: PosePreviewOut
-    notice: str = "复测对比（仅骨架，非评分）"
+    baseline_score: Optional["TrainingScoreOut"] = None
+    current_score: Optional["TrainingScoreOut"] = None
+    score_delta: Optional[float] = None
+    notice: str = "复测对比（骨架 + 可选分数差）"
+
+
+# ---- Scoring ----
+class PoseProblemOut(BaseModel):
+    error_code: str
+    title: str
+    severity: str
+    metric_id: Optional[str] = None
+    evidence: dict[str, Any] = Field(default_factory=dict)
+    drills: list[dict[str, Any]] = Field(default_factory=list)
+    drill_codes: list[str] = Field(default_factory=list)
+
+
+class TrainingScoreOut(BaseModel):
+    overall_score: float
+    dimension_scores: dict[str, float] = Field(default_factory=dict)
+    metrics: list[dict[str, Any]] = Field(default_factory=list)
+    problems: list[PoseProblemOut] = Field(default_factory=list)
+    benchmark_kind: str = "synthetic_demo"
+    verification_status: Optional[str] = None
+    source: Optional[str] = None
+    banner: Optional[str] = None
+    benchmark_version_id: Optional[int] = None
+    benchmark_version_label: Optional[str] = None
+    explainable: list[dict[str, Any]] = Field(default_factory=list)
 
 
 # ---- Motion Benchmark (read-only) ----

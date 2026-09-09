@@ -6,10 +6,13 @@ const STATUS_LABEL = {
   queued: '关键点排队中',
   extracting: '关键点提取中',
   pose_extracted: '关键点已提取',
+  scored: '已评分',
   pose_failed: '关键点提取失败',
   failed: '关键点提取失败',
   not_implemented: '分析未开放',
 }
+
+const SYNTHETIC_BANNER = '非专家验证，仅供流水线演示'
 
 function formatTime(iso) {
   if (!iso) return ''
@@ -57,6 +60,16 @@ Page({
     compareError: '',
     compareCanvasCssW: 160,
     compareCanvasCssH: 240,
+    score: null,
+    problems: [],
+    dimensionList: [],
+    benchmarkKind: null,
+    isSyntheticDemo: false,
+    scoringBanner: SYNTHETIC_BANNER,
+    scoreDelta: null,
+    scoreDeltaText: '',
+    baselineOverall: null,
+    currentOverall: null,
   },
   _canvas: null,
   _ctx: null,
@@ -90,6 +103,18 @@ Page({
         const hasBaseline = !!(video.baseline_video_id && baseline)
         const baselinePoseOk = !!(baseline && baseline.pose_extracted)
         const canCompare = hasBaseline && poseExtracted && baselinePoseOk
+        const score = video.score || null
+        const problems = (video.problems || (score && score.problems) || []).slice(0, 3)
+        const dims = score && score.dimension_scores ? score.dimension_scores : {}
+        const dimensionList = Object.keys(dims).map((id) => ({
+          id,
+          name: id,
+          score: dims[id],
+        }))
+        const benchmarkKind = video.benchmark_kind || (score && score.benchmark_kind) || null
+        const isSyntheticDemo = benchmarkKind === 'synthetic_demo'
+        const scoringBanner =
+          video.scoring_banner || (score && score.banner) || SYNTHETIC_BANNER
         this.setData({
           loading: false,
           video,
@@ -100,7 +125,7 @@ Page({
           createdText: formatTime(video.created_at),
           poseExtracted,
           poseFrameCount: frameCount || null,
-          scoringBlocked: true,
+          scoringBlocked: !score,
           previewFrame: 0,
           previewMax: Math.max(0, frameCount - 1),
           hasBaseline,
@@ -108,6 +133,12 @@ Page({
           canCompare,
           compareFrame: 0,
           compareMax: 0,
+          score,
+          problems,
+          dimensionList,
+          benchmarkKind,
+          isSyntheticDemo,
+          scoringBanner,
         })
         if (poseExtracted) {
           wx.nextTick(() => this.initCanvasAndLoad(0))
@@ -129,6 +160,14 @@ Page({
     wx.navigateTo({
       url: `/pages/filming/record?skill_id=${video.skill_id}&baseline_video_id=${video.id}`,
     })
+  },
+  goDrill(e) {
+    const code = e.currentTarget.dataset.code
+    wx.showToast({
+      title: code ? `练习 ${code}` : '查看练习',
+      icon: 'none',
+    })
+    wx.navigateTo({ url: '/pages/plan/index' })
   },
   initCanvasAndLoad(frame) {
     const query = wx.createSelectorQuery()
@@ -249,11 +288,29 @@ Page({
         const cur = body.current || {}
         const maxB = Math.max(0, (base.frame_count || 1) - 1)
         const maxC = Math.max(0, (cur.frame_count || 1) - 1)
-        this.setData({
+        const delta = body.score_delta
+        const baseSc = body.baseline_score
+        const curSc = body.current_score
+        const patch = {
           compareLoading: false,
           compareMax: Math.min(maxB, maxC),
           compareFrame: frame,
-        })
+        }
+        if (delta != null && baseSc && curSc) {
+          const sign = delta > 0 ? '+' : ''
+          patch.scoreDelta = delta
+          patch.scoreDeltaText = `${sign}${delta}`
+          patch.baselineOverall = baseSc.overall_score
+          patch.currentOverall = curSc.overall_score
+          if (
+            baseSc.benchmark_kind === 'synthetic_demo' ||
+            curSc.benchmark_kind === 'synthetic_demo'
+          ) {
+            patch.isSyntheticDemo = true
+            patch.scoringBanner = SYNTHETIC_BANNER
+          }
+        }
+        this.setData(patch)
         this.drawSkeleton(
           this._baseCtx,
           this._baseCssW || 160,

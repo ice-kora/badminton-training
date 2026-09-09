@@ -1,4 +1,4 @@
-"""Persist pose extraction results; never scores."""
+"""Persist pose extraction results; optionally score when published benchmark exists."""
 from __future__ import annotations
 
 import json
@@ -18,8 +18,9 @@ logger = logging.getLogger(__name__)
 
 SCORING_CODE = "ANALYSIS_NOT_IMPLEMENTED"
 SCORING_MSG = (
-    "关键点已提取（或排队中）；评分未开放。"
-    "禁止返回模拟分数；待已发布 Motion Benchmark 经专家标注后再接入打分。"
+    "关键点已提取（或排队中）；评分需已发布 Motion Benchmark。"
+    "无 published 版本时保持 ANALYSIS_NOT_IMPLEMENTED；"
+    "synthetic_demo 须展示「非专家验证，仅供流水线演示」。"
 )
 
 
@@ -46,7 +47,10 @@ def write_keypoints(video_id: int, result: PoseExtractResult) -> Path:
 def _scoring_message(job: AnalysisJob) -> str:
     msg = SCORING_MSG
     if job.benchmark_version_id:
-        msg += f" benchmark_version_id={job.benchmark_version_id} 已记录，仍不打分。"
+        msg += (
+            f" benchmark_version_id={job.benchmark_version_id} 已记录；"
+            "若该版本已发布将尝试评分。"
+        )
     else:
         msg += " awaiting_published_benchmark。"
     return msg
@@ -139,6 +143,13 @@ def extract_for_video(
 
     path = write_keypoints(video.id, result)
     pose_row = apply_pose_success(db, video=video, job=job, result=result, path=path)
+    db.flush()
+    try:
+        from app.services.scoring.persist import maybe_score_after_pose
+
+        maybe_score_after_pose(db, video=video, job=job, pose=pose_row)
+    except Exception as exc:  # noqa: BLE001 — keep keypoints even if scoring fails
+        logger.warning("post-pose scoring skipped video=%s: %s", video.id, exc)
     db.commit()
     db.refresh(pose_row)
     db.refresh(job)

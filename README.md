@@ -3,8 +3,8 @@
 微信小程序 + FastAPI 内容/计划 MVP。  
 目标仓库：https://github.com/ice-kora/badminton-training.git
 
-> **硬约束**：可离线提取 MediaPipe 关键点；**禁止**姿态评分 / 随机分数 / 捏造关节角标准 / 实时纠错。  
-> 评分侧仍为 `ANALYSIS_NOT_IMPLEMENTED`。内容带 `source` + `verification_status`。
+> **硬约束**：**禁止**实时摄像头纠错；**禁止**把 LLM/工程合成关节区间当作专家标准。  
+> 评分仅在存在 **published** Motion Benchmark 时开放；`synthetic_demo` 包须 `--allow-synthetic-demo` 发布，并全链路展示横幅：**非专家验证，仅供流水线演示**。无 published 时仍为 `ANALYSIS_NOT_IMPLEMENTED` / `awaiting_published_benchmark`。
 
 ## 结构
 
@@ -86,12 +86,16 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 | GET | /benchmarks/{skill_code} | 某技能标准库摘要 |
 | GET | /benchmarks/{skill_code}/versions | 版本历史 |
 
-## Motion Benchmark（数据资产壳）
+## Motion Benchmark + V1 评分
 
 - 文档：`docs/BENCHMARK_ANNOTATION.md`，schema：`docs/benchmark/schema.json`
 - 空模板（数值全 null）：`docs/benchmark/templates/*.v0.json`
-- 校验 / 导入 draft / 发布：`scripts/benchmark_*.py`（`draft_unverified` 默认不可发布）
-- 分析仍为 `ANALYSIS_NOT_IMPLEMENTED`，无分数；无 published 版本时 message 含 `awaiting_published_benchmark`
+- **合成演示包**：`docs/benchmark/demo/*.synthetic_demo.json`（`verification_status=synthetic_demo`，`source=engineering_synthetic_demo`）
+- 校验 / 导入 / 发布：`scripts/benchmark_*.py`
+  - `draft_unverified` 默认不可发布
+  - `synthetic_demo` 仅 `--allow-synthetic-demo` 可发布
+- Worker：`pose_extracted` 后若有 published → `PoseScorer` → `scored`（结果写入 `training_scores` / `pose_problems`）
+- 无 published：保持 `ANALYSIS_NOT_IMPLEMENTED` + `awaiting_published_benchmark`
 
 ## License
 

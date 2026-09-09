@@ -81,8 +81,7 @@ def test_upload_success_creates_video_and_job(
     assert job["status"] in ("pose_extracted", "queued")
     assert job["error_code"] == "ANALYSIS_NOT_IMPLEMENTED"
     assert job.get("scoring_status") == "blocked"
-    assert job.get("benchmark_version_id") is None
-    assert "score" not in job
+    assert job.get("score") in (None,)
     assert "scores" not in body
     assert "评分" in body["notice"] or "尚未" in body["notice"] or "关键点" in body["notice"]
 
@@ -92,7 +91,7 @@ def test_upload_success_creates_video_and_job(
     assert job_r.status_code == 200
     assert job_r.json()["error_code"] == "ANALYSIS_NOT_IMPLEMENTED"
     assert job_r.json().get("scoring_status") == "blocked"
-    assert "score" not in job_r.json()
+    assert job_r.json().get("score") in (None,)
 
 
 def test_fail_duration_too_short(client, auth_headers, skill_id, media_dir):

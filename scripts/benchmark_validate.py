@@ -25,11 +25,18 @@ def main() -> int:
         action="store_true",
         help="Allow numeric ranges while verification_status=draft_unverified",
     )
+    ap.add_argument(
+        "--allow-synthetic-demo",
+        action="store_true",
+        help="Allow synthetic_demo packages with explicitly labeled synthetic ranges",
+    )
     args = ap.parse_args()
     try:
         data = load_package(args.package)
         warnings = validate_package(
-            data, allow_unverified_numbers=args.allow_unverified_numbers
+            data,
+            allow_unverified_numbers=args.allow_unverified_numbers,
+            allow_synthetic_demo=args.allow_synthetic_demo,
         )
     except (OSError, ValueError, BenchmarkValidationError) as exc:
         print(f"FAIL: {exc}", file=sys.stderr)

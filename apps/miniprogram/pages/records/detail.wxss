@@ -48,3 +48,38 @@
   display: block;
   margin: 0 auto;
 }
+
+.banner-synthetic {
+  background: #fff7ed;
+  border: 2rpx solid #f97316;
+  color: #9a3412;
+  padding: 16rpx 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+  font-weight: 600;
+}
+
+.dim-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8rpx;
+}
+
+.sev {
+  font-weight: 700;
+  margin-right: 12rpx;
+}
+.sev.P0 { color: #b91c1c; }
+.sev.P1 { color: #c2410c; }
+.sev.P2 { color: #a16207; }
+
+.drill-cta {
+  margin-top: 12rpx;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.score-delta {
+  margin-bottom: 12rpx;
+  font-weight: 600;
+}

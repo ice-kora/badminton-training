@@ -2,6 +2,8 @@
 
 Hard rule: do not invent verified joint-angle ranges.
 Numeric range_* with verification_status=draft_unverified fails unless allowed.
+synthetic_demo packages may carry explicitly labeled synthetic ranges and publish
+only with --allow-synthetic-demo.
 """
 from __future__ import annotations
 
@@ -23,8 +25,13 @@ REQUIRED_TOP = (
     "source",
 )
 
-ALLOWED_STATUS = frozenset({"draft_unverified", "expert_pending", "verified"})
+ALLOWED_STATUS = frozenset(
+    {"draft_unverified", "expert_pending", "verified", "synthetic_demo"}
+)
 ALLOWED_HANDEDNESS = frozenset({"left", "right", "either", None})
+
+SYNTHETIC_SOURCE = "engineering_synthetic_demo"
+SYNTHETIC_BANNER = "非专家验证，仅供流水线演示"
 
 
 class BenchmarkValidationError(ValueError):
@@ -48,10 +55,25 @@ def _has_numeric_range(metric: dict[str, Any]) -> bool:
     return False
 
 
+def is_synthetic_demo(data_or_status: Any) -> bool:
+    if isinstance(data_or_status, dict):
+        return data_or_status.get("verification_status") == "synthetic_demo"
+    return data_or_status == "synthetic_demo"
+
+
+def benchmark_kind_for_status(verification_status: str) -> str:
+    if verification_status == "synthetic_demo":
+        return "synthetic_demo"
+    if verification_status == "verified":
+        return "verified"
+    return verification_status or "unknown"
+
+
 def validate_package(
     data: dict[str, Any],
     *,
     allow_unverified_numbers: bool = False,
+    allow_synthetic_demo: bool = False,
 ) -> list[str]:
     """
     Validate package. Returns list of warnings (empty if clean).
@@ -81,7 +103,13 @@ def validate_package(
     if handed not in ALLOWED_HANDEDNESS:
         errors.append(f"handedness must be left|right|either|null, got {handed!r}")
 
-    for list_key in ("stages", "keyframes", "metrics", "common_error_refs", "linked_drill_codes"):
+    for list_key in (
+        "stages",
+        "keyframes",
+        "metrics",
+        "common_error_refs",
+        "linked_drill_codes",
+    ):
         if not isinstance(data.get(list_key), list):
             errors.append(f"{list_key} must be an array")
 
@@ -104,13 +132,44 @@ def validate_package(
         if not isinstance(code, str) or not code:
             errors.append(f"linked_drill_codes[{i}] must be non-empty string")
 
+    if status == "synthetic_demo":
+        if not allow_synthetic_demo:
+            errors.append(
+                "verification_status=synthetic_demo requires --allow-synthetic-demo"
+            )
+        if data.get("source") != SYNTHETIC_SOURCE:
+            errors.append(
+                f"synthetic_demo source must be {SYNTHETIC_SOURCE!r}, "
+                f"got {data.get('source')!r}"
+            )
+        banner = data.get("banner") or ""
+        if SYNTHETIC_BANNER not in str(banner):
+            warnings.append(
+                f"synthetic_demo should set banner containing {SYNTHETIC_BANNER!r}"
+            )
+
     numeric_hits: list[str] = []
+    synthetic_range_ok: list[str] = []
     for i, m in enumerate(data["metrics"]):
         if not isinstance(m, dict) or not m.get("id") or not m.get("name"):
             errors.append(f"metrics[{i}] needs id and name")
             continue
         if _has_numeric_range(m):
             numeric_hits.append(str(m.get("id")))
+            if status == "synthetic_demo":
+                kind = m.get("range_kind")
+                notes = str(m.get("notes") or "")
+                if kind != "synthetic_demo" and "SYNTHETIC" not in notes.upper():
+                    errors.append(
+                        f"metrics[{i}] id={m.get('id')}: synthetic_demo package "
+                        "numeric ranges must set range_kind=synthetic_demo "
+                        "or notes containing SYNTHETIC"
+                    )
+                else:
+                    synthetic_range_ok.append(str(m.get("id")))
+
+    if status == "synthetic_demo" and not numeric_hits:
+        warnings.append("synthetic_demo package has no numeric ranges")
 
     if numeric_hits and status == "draft_unverified" and not allow_unverified_numbers:
         errors.append(
@@ -118,6 +177,7 @@ def validate_package(
             "draft_unverified (ids: "
             + ", ".join(numeric_hits)
             + "). Keep ranges null, raise status to expert_pending/verified, "
+            "use synthetic_demo + --allow-synthetic-demo, "
             "or pass --allow-unverified-numbers."
         )
     elif numeric_hits and status == "draft_unverified" and allow_unverified_numbers:
@@ -128,6 +188,12 @@ def validate_package(
     elif numeric_hits and status == "expert_pending":
         warnings.append(
             "numeric ranges present with expert_pending — not publishable as verified yet"
+        )
+    elif numeric_hits and status == "synthetic_demo" and allow_synthetic_demo:
+        warnings.append(
+            "synthetic_demo ranges accepted for pipeline demo only "
+            f"(ids: {', '.join(synthetic_range_ok or numeric_hits)}); "
+            + SYNTHETIC_BANNER
         )
 
     if errors:
@@ -140,10 +206,18 @@ def publish_allowed(
     *,
     force_allow_draft: bool = False,
     force_allow_expert_pending: bool = False,
+    allow_synthetic_demo: bool = False,
 ) -> tuple[bool, str]:
-    """Return (ok, reason). Default: only verified may publish; draft always blocked."""
+    """Return (ok, reason). Default: only verified; synthetic_demo needs flag; draft blocked."""
     if verification_status == "verified":
         return True, "verified"
+    if verification_status == "synthetic_demo":
+        if allow_synthetic_demo:
+            return True, "synthetic_demo with --allow-synthetic-demo"
+        return False, (
+            "publish blocked: verification_status=synthetic_demo "
+            "(pass --allow-synthetic-demo to publish demo package)"
+        )
     if verification_status == "expert_pending" and force_allow_expert_pending:
         return True, "forced expert_pending"
     if verification_status == "draft_unverified":
@@ -249,7 +323,6 @@ def import_package_to_db(db, data: dict[str, Any], *, change_log: Optional[str] 
                 f"version {version_label} already published; bump version to re-import"
             )
         ver = existing
-        # replace children
         for row in list(ver.stages):
             db.delete(row)
         for row in list(ver.metrics):
@@ -278,6 +351,13 @@ def import_package_to_db(db, data: dict[str, Any], *, change_log: Optional[str] 
             )
         )
     for m in data.get("metrics") or []:
+        notes = m.get("notes")
+        if m.get("range_kind"):
+            extra = f"[range_kind={m['range_kind']}]"
+            notes = f"{notes} {extra}".strip() if notes else extra
+        if m.get("linked_error_id"):
+            extra = f"[linked_error_id={m['linked_error_id']}]"
+            notes = f"{notes} {extra}".strip() if notes else extra
         db.add(
             BenchmarkMetric(
                 version_id=ver.id,
@@ -287,7 +367,7 @@ def import_package_to_db(db, data: dict[str, Any], *, change_log: Optional[str] 
                 stage_code=m.get("stage_code"),
                 range_min=m.get("range_min"),
                 range_max=m.get("range_max"),
-                notes=m.get("notes"),
+                notes=notes,
             )
         )
     db.flush()
@@ -309,8 +389,30 @@ def find_published_version(db, skill_id: int):
     )
 
 
+def package_dict_from_version(ver) -> dict[str, Any]:
+    if ver.package_json:
+        try:
+            data = json.loads(ver.package_json)
+            if isinstance(data, dict):
+                return data
+        except json.JSONDecodeError:
+            pass
+    return {
+        "skill_code": None,
+        "version": ver.version_label,
+        "verification_status": ver.verification_status,
+        "source": ver.source,
+        "metrics": json.loads(ver.metrics_json) if ver.metrics_json else [],
+        "common_error_refs": [],
+        "linked_drill_codes": [],
+        "stages": [],
+        "keyframes": [],
+        "handedness": None,
+        "camera_view": None,
+    }
+
+
 def repo_root_from_here() -> Path:
-    # services/api/app/services/benchmark_pkg.py -> repo root
     return Path(__file__).resolve().parents[4]
 
 

@@ -1,5 +1,7 @@
 <view class="container">
-  <view class="banner-note">关键点可提取；评分未开放，不返回分数</view>
+  <view class="banner-synthetic" wx:if="{{isSyntheticDemo}}">⚠️ {{scoringBanner}}</view>
+  <view class="banner-note" wx:elif="{{!score}}">关键点可提取；无已发布标准库时评分不开放</view>
+  <view class="banner-note" wx:else>{{video.notice || '已评分'}}</view>
   <view class="muted" wx:if="{{loading}}">加载中…</view>
   <view class="muted" wx:elif="{{error}}">{{error}}</view>
 
@@ -11,7 +13,7 @@
       <view class="muted">分辨率 {{video.width || '-'}}×{{video.height || '-'}}</view>
       <view class="muted" wx:if="{{hasBaseline}}">复测关联基准 #{{video.baseline_video_id}}（{{baselineSummary.filename}}）</view>
       <view class="btn-primary" style="margin-top:20rpx;" bindtap="goRetest">针对此视频复测</view>
-      <view class="muted" style="margin-top:8rpx;">复测仅骨架对比，不评分</view>
+      <view class="muted" style="margin-top:8rpx;">复测可对比骨架；双方均已评分时显示分数差</view>
     </view>
 
     <view class="section-title">关键点 / 评分</view>
@@ -20,17 +22,46 @@
         <text>关键点</text>
         <text class="tag {{poseExtracted ? 'ok' : 'warn'}}">{{poseExtracted ? '关键点已提取' : '关键点未提取'}}</text>
       </view>
-      <view class="muted" wx:if="{{poseExtracted && poseFrameCount}}">帧数 {{poseFrameCount}}（仅坐标序列）</view>
+      <view class="muted" wx:if="{{poseExtracted && poseFrameCount}}">帧数 {{poseFrameCount}}</view>
       <view class="row" style="margin-top:12rpx;">
         <text>评分</text>
-        <text class="tag warn">评分未开放</text>
+        <text class="tag {{score ? 'ok' : 'warn'}}">{{score ? ('总分 ' + score.overall_score) : '评分未开放'}}</text>
       </view>
-      <view class="muted">error_code: ANALYSIS_NOT_IMPLEMENTED · 不返回动作正确性判断</view>
+      <view class="muted" wx:if="{{benchmarkKind}}">benchmark_kind：{{benchmarkKind}}</view>
+      <view class="muted" wx:if="{{!score}}">error_code: ANALYSIS_NOT_IMPLEMENTED · awaiting_published_benchmark</view>
     </view>
+
+    <block wx:if="{{score}}">
+      <view class="banner-synthetic" wx:if="{{isSyntheticDemo}}">{{scoringBanner}}</view>
+      <view class="section-title">分数拆解</view>
+      <view class="card">
+        <view class="dim-row" wx:for="{{dimensionList}}" wx:key="id">
+          <text>{{item.name}}</text>
+          <text class="tag">{{item.score}}</text>
+        </view>
+        <view class="muted" wx:if="{{!dimensionList.length}}">无维度分数</view>
+      </view>
+
+      <view class="section-title">主要问题（最多 3 条）</view>
+      <view class="card" wx:for="{{problems}}" wx:key="error_code">
+        <view class="row">
+          <text class="sev {{item.severity}}">{{item.severity}}</text>
+          <text>{{item.title}}</text>
+        </view>
+        <view class="muted" wx:if="{{item.metric_id}}">指标 {{item.metric_id}}</view>
+        <view class="muted" wx:if="{{item.evidence.measured != null}}">
+          测得 {{item.evidence.measured}} · 区间 [{{item.evidence.range_min}}, {{item.evidence.range_max}}]
+        </view>
+        <view wx:if="{{item.drills && item.drills.length}}" class="drill-cta" data-code="{{item.drills[0].code}}" bindtap="goDrill">
+          推荐练习：{{item.drills[0].name}} →
+        </view>
+      </view>
+      <view class="muted" wx:if="{{!problems.length}}">未检出显著问题</view>
+    </block>
 
     <view class="section-title">骨架预览</view>
     <view class="card">
-      <view class="banner-note preview-disclaimer">仅关键点可视化，非评分</view>
+      <view class="banner-note preview-disclaimer">仅关键点可视化</view>
       <block wx:if="{{poseExtracted}}">
         <canvas
           type="2d"
@@ -58,9 +89,13 @@
     </view>
 
     <block wx:if="{{hasBaseline}}">
-      <view class="section-title">复测对比（仅骨架，非评分）</view>
+      <view class="section-title">复测对比</view>
       <view class="card">
-        <view class="banner-note preview-disclaimer">左右并排骨架，无分数、无正确性判断</view>
+        <view class="banner-synthetic" wx:if="{{isSyntheticDemo}}">{{scoringBanner}}</view>
+        <view class="banner-note preview-disclaimer" wx:else>左右并排骨架</view>
+        <view class="score-delta" wx:if="{{scoreDelta != null}}">
+          分数差：{{scoreDeltaText}}（基准 {{baselineOverall}} → 当前 {{currentOverall}}）
+        </view>
         <block wx:if="{{canCompare}}">
           <view class="compare-row">
             <view class="compare-col">
@@ -122,11 +157,12 @@
     <view class="card" wx:for="{{jobs}}" wx:key="id">
       <view class="row">
         <text>任务 #{{item.id}}</text>
-        <text class="tag {{item.status === 'pose_extracted' ? 'ok' : 'warn'}}">{{item.statusLabel}}</text>
+        <text class="tag {{item.status === 'scored' || item.status === 'pose_extracted' ? 'ok' : 'warn'}}">{{item.statusLabel}}</text>
       </view>
-      <view class="muted">{{item.message || '评分尚未开放'}}</view>
+      <view class="muted">{{item.message || ''}}</view>
       <view class="muted" wx:if="{{item.error_code}}">评分侧：{{item.error_code}}</view>
       <view class="muted" wx:if="{{item.scoring_status}}">scoring_status：{{item.scoring_status}}</view>
+      <view class="muted" wx:if="{{item.benchmark_kind}}">benchmark_kind：{{item.benchmark_kind}}</view>
     </view>
     <view class="muted" wx:if="{{!jobs.length}}">暂无关联任务</view>
   </block>

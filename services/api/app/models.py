@@ -396,8 +396,9 @@ class TrainingVideo(Base):
 
 class AnalysisJob(Base):
     """
-    Analysis job. Pose extraction may reach pose_extracted; scoring stays blocked.
-    Never store fake scores here.
+    Analysis job. Pose extraction → pose_extracted; scoring → scored when a
+    published benchmark exists (incl. synthetic_demo with allow flag).
+    Without published benchmark: ANALYSIS_NOT_IMPLEMENTED / awaiting_published_benchmark.
     """
 
     __tablename__ = "analysis_jobs"
@@ -410,9 +411,9 @@ class AnalysisJob(Base):
     benchmark_version_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("benchmark_versions.id"), nullable=True, index=True
     )
-    # pending|rejected_precheck|queued|extracting|pose_extracted|failed|not_implemented
+    # pending|rejected_precheck|queued|extracting|pose_extracted|scored|failed|not_implemented
     status: Mapped[str] = mapped_column(String(32), default="queued")
-    # Scoring side: blocked | awaiting_published_benchmark (never scored in V1)
+    # Scoring side: blocked | awaiting_published_benchmark | scored
     scoring_status: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     error_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -426,7 +427,7 @@ class AnalysisJob(Base):
 
 
 class PoseAnalysis(Base):
-    """Offline keypoint extraction artifact. No scores / joint-angle judgments."""
+    """Offline keypoint extraction artifact. Scoring lives in TrainingScore."""
 
     __tablename__ = "pose_analyses"
 
@@ -448,3 +449,60 @@ class PoseAnalysis(Base):
 
     video: Mapped[TrainingVideo] = relationship(back_populates="pose_analyses")
     job: Mapped[Optional[AnalysisJob]] = relationship(back_populates="pose_analyses")
+
+
+class TrainingScore(Base):
+    """Persisted multi-dim score for a video against a published benchmark version."""
+
+    __tablename__ = "training_scores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    video_id: Mapped[int] = mapped_column(
+        ForeignKey("training_videos.id"), unique=True, index=True
+    )
+    job_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("analysis_jobs.id"), nullable=True, index=True
+    )
+    pose_analysis_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("pose_analyses.id"), nullable=True, index=True
+    )
+    benchmark_version_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("benchmark_versions.id"), nullable=True, index=True
+    )
+    overall_score: Mapped[float] = mapped_column(Float, default=0.0)
+    dimension_scores_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    evidence_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    result_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # synthetic_demo | verified
+    benchmark_kind: Mapped[str] = mapped_column(String(32), default="synthetic_demo")
+    verification_status: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    source: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    banner: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    problems: Mapped[list["PoseProblem"]] = relationship(
+        back_populates="score", cascade="all, delete-orphan"
+    )
+
+
+class PoseProblem(Base):
+    """Top problems derived from score evidence (max 1–3 surfaced by API)."""
+
+    __tablename__ = "pose_problems"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    score_id: Mapped[int] = mapped_column(ForeignKey("training_scores.id"), index=True)
+    error_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("common_errors.id"), nullable=True
+    )
+    error_code: Mapped[str] = mapped_column(String(64))
+    title: Mapped[str] = mapped_column(String(128))
+    severity: Mapped[str] = mapped_column(String(8), default="P1")  # P0|P1|P2
+    metric_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    evidence_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    drill_codes_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    drills_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    score: Mapped[TrainingScore] = relationship(back_populates="problems")
+

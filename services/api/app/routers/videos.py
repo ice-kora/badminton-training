@@ -1,4 +1,4 @@
-"""Video precheck + upload + offline pose keypoint extraction (no scoring)."""
+"""Video precheck + upload + pose extract + gated scoring against published benchmarks."""
 from __future__ import annotations
 
 import json
@@ -36,7 +36,8 @@ from app.schemas import (
     VideoListItemOut,
     VideoUploadOut,
 )
-from app.services.benchmark_pkg import find_published_version
+from app.services.benchmark_pkg import SYNTHETIC_BANNER, find_published_version
+from app.services.scoring.serialize import score_for_video, score_out
 from app.services.pose.landmarks import POSE_LANDMARK_NAMES
 from app.services.pose.null_extractor import PoseExtractorUnavailable
 from app.services.pose.preview import (
@@ -56,7 +57,7 @@ from app.services.precheck import run_precheck
 
 router = APIRouter(tags=["videos"])
 
-DETAIL_NOTICE = "关键点可提取；评分尚未开放，不返回分数"
+DETAIL_NOTICE = "关键点可提取；有已发布标准库时返回评分（合成演示须展示横幅）"
 
 
 def _parse_precheck(row: TrainingVideo) -> Optional[dict[str, Any]]:
@@ -177,7 +178,14 @@ def _skill_name(db: Session, skill_id: int) -> str:
     return skill.name if skill else f"技能#{skill_id}"
 
 
-def _job_out(row: AnalysisJob) -> AnalysisJobOut:
+def _job_out(row: AnalysisJob, db: Optional[Session] = None) -> AnalysisJobOut:
+    score = None
+    kind = None
+    if db is not None and row.video_id:
+        sc = score_for_video(db, row.video_id)
+        if sc is not None:
+            score = score_out(sc)
+            kind = sc.benchmark_kind
     return AnalysisJobOut(
         id=row.id,
         video_id=row.video_id,
@@ -189,6 +197,8 @@ def _job_out(row: AnalysisJob) -> AnalysisJobOut:
         message=row.message,
         created_at=row.created_at,
         updated_at=row.updated_at,
+        score=score,
+        benchmark_kind=kind,
     )
 
 
@@ -374,7 +384,7 @@ async def upload_video(
         if bv_id:
             job.message = (
                 (job.message or "")
-                + f" benchmark_version_id={bv_id} 已记录；打分流水线仍未实现。"
+                + f" benchmark_version_id={bv_id} 已记录；提取后将尝试评分。"
             )
         db.add(job)
         db.commit()
@@ -388,7 +398,7 @@ async def upload_video(
 
         return VideoUploadOut(
             video=_video_out(video),
-            analysis_job=_job_out(job),
+            analysis_job=_job_out(job, db),
             precheck=PrecheckReportOut(**report),
         )
     except HTTPException:
@@ -456,6 +466,18 @@ def get_video(
         baseline = db.get(TrainingVideo, row.baseline_video_id)
         if baseline is not None and baseline.user_id == user.id:
             baseline_out = _baseline_summary(db, baseline)
+    sc = score_for_video(db, row.id)
+    score_payload = score_out(sc) if sc is not None else None
+    problems = list(score_payload.problems) if score_payload else []
+    kind = sc.benchmark_kind if sc is not None else None
+    banner = None
+    if kind == "synthetic_demo":
+        banner = (sc.banner if sc is not None else None) or SYNTHETIC_BANNER
+    notice = DETAIL_NOTICE
+    if score_payload is None:
+        notice = "关键点可提取；无已发布标准库时评分不开放（ANALYSIS_NOT_IMPLEMENTED / awaiting_published_benchmark）"
+    elif kind == "synthetic_demo":
+        notice = SYNTHETIC_BANNER
     return VideoDetailOut(
         id=row.id,
         user_id=row.user_id,
@@ -471,10 +493,14 @@ def get_video(
         baseline_video_id=row.baseline_video_id,
         baseline=baseline_out,
         created_at=row.created_at,
-        jobs=[_job_out(j) for j in jobs],
+        jobs=[_job_out(j, db) for j in jobs],
         pose_extracted=pose is not None,
         pose_frame_count=pose.frame_count if pose else None,
-        notice=DETAIL_NOTICE,
+        score=score_payload,
+        problems=problems,
+        benchmark_kind=kind,
+        scoring_banner=banner,
+        notice=notice,
     )
 
 
@@ -539,7 +565,7 @@ def extract_video_pose(
     pose = _pose_for_video(db, row.id)
     return PoseExtractOut(
         video_id=row.id,
-        analysis_job=_job_out(job),
+        analysis_job=_job_out(job, db),
         pose=_pose_meta(row.id, pose, job),
     )
 
@@ -618,9 +644,26 @@ def retest_compare(
     try:
         baseline_preview = _preview_for_pose(baseline, baseline_pose, frame)
         current_preview = _preview_for_pose(current, current_pose, frame)
+        base_sc = score_for_video(db, baseline.id)
+        cur_sc = score_for_video(db, current.id)
+        base_out = score_out(base_sc) if base_sc is not None else None
+        cur_out = score_out(cur_sc) if cur_sc is not None else None
+        delta = None
+        notice = "复测对比（仅骨架，非评分）"
+        if base_out is not None and cur_out is not None:
+            delta = round(cur_out.overall_score - base_out.overall_score, 1)
+            notice = f"复测对比：分数差 {delta:+.1f}"
+            if cur_out.benchmark_kind == "synthetic_demo" or (
+                base_out.benchmark_kind == "synthetic_demo"
+            ):
+                notice += f" · {SYNTHETIC_BANNER}"
         return RetestCompareOut(
             baseline=PosePreviewOut(**baseline_preview),
             current=PosePreviewOut(**current_preview),
+            baseline_score=base_out,
+            current_score=cur_out,
+            score_delta=delta,
+            notice=notice,
         )
     except FrameOutOfRange as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

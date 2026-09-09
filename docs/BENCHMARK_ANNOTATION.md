@@ -52,4 +52,19 @@ python scripts/benchmark_publish.py forehand_clear --version 0.1.0
 
 ## 6. 与分析的关系
 
-分析仍返回 `ANALYSIS_NOT_IMPLEMENTED`，**不返回分数**。若该技能尚无 published 版本，任务 `message` 可附带 `awaiting_published_benchmark` 说明。
+- 有 **published** Motion Benchmark：`pose_extracted` 后运行 `PoseScorer`，任务进入 `scored`，写入多维分数 / 至多 3 条问题 / 练习推荐。
+- 无 published：保持 `ANALYSIS_NOT_IMPLEMENTED`，`message` 含 `awaiting_published_benchmark`，**不捏造分数**。
+- `synthetic_demo` 评分结果全链路必须展示横幅「非专家验证，仅供流水线演示」。
+
+
+## 7. synthetic_demo（流水线演示，非专家标准）
+
+工程可提供 `verification_status=synthetic_demo`、`source=engineering_synthetic_demo` 的演示包（见 `docs/benchmark/demo/`），数值区间必须标注 `range_kind=synthetic_demo`。
+
+```bash
+python scripts/benchmark_validate.py docs/benchmark/demo/forehand_clear.synthetic_demo.json --allow-synthetic-demo
+python scripts/benchmark_import.py docs/benchmark/demo/forehand_clear.synthetic_demo.json --allow-synthetic-demo
+python scripts/benchmark_publish.py forehand_clear --version 0.2.0-synthetic --allow-synthetic-demo
+```
+
+**UI/API 必须展示**：非专家验证，仅供流水线演示。禁止把合成区间描述为教练标准。

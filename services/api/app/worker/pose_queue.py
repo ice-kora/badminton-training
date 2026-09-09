@@ -1,7 +1,7 @@
 """DB-backed pose extract queue (SQLite solo deploy — no Redis required).
 
 Claim path: status queued → extracting via optimistic UPDATE ... WHERE status='queued'.
-Process path: extracting → pose_extracted | failed (scoring always blocked).
+Process path: extracting → pose_extracted|scored | failed.
 Stale reclaim: extracting older than POSE_EXTRACT_STALE_SECONDS → queued again.
 """
 from __future__ import annotations
@@ -190,6 +190,9 @@ def process_claimed_job(
 
     try:
         extract_for_video(db, video, job, extractor=extractor)
+        db.refresh(job)
+        if job.status == "scored":
+            return "scored"
         return "pose_extracted"
     except PoseExtractorUnavailable as exc:
         logger.info("pose extract requeued (unavailable) job=%s: %s", job.id, exc)
@@ -218,7 +221,7 @@ def process_batch(
         stats.claimed = len(jobs)
         for job in jobs:
             outcome = process_claimed_job(session, job, extractor=extractor)
-            if outcome == "pose_extracted":
+            if outcome in ("pose_extracted", "scored"):
                 stats.processed += 1
             elif outcome == "requeued":
                 stats.requeued += 1

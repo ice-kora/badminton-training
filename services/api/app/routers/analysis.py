@@ -1,4 +1,4 @@
-"""Honest NOT_IMPLEMENTED analysis endpoints — no mock scores."""
+"""Analysis job endpoints; scores only when published benchmark + scored job."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -8,12 +8,20 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.models import AnalysisJob, BadmintonSkill, TrainingVideo, User
 from app.services.benchmark_pkg import find_published_version
+from app.services.scoring.serialize import score_for_video, score_out
 from app.schemas import AnalysisJobOut, AnalysisJobRequest, AnalysisNotImplemented
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 
-def _job_out(job: AnalysisJob) -> AnalysisJobOut:
+def _job_out(job: AnalysisJob, db: Session | None = None) -> AnalysisJobOut:
+    score = None
+    kind = None
+    if db is not None and job.video_id:
+        sc = score_for_video(db, job.video_id)
+        if sc is not None:
+            score = score_out(sc)
+            kind = sc.benchmark_kind
     return AnalysisJobOut(
         id=job.id,
         video_id=job.video_id,
@@ -25,6 +33,8 @@ def _job_out(job: AnalysisJob) -> AnalysisJobOut:
         message=job.message,
         created_at=job.created_at,
         updated_at=job.updated_at,
+        score=score,
+        benchmark_kind=kind,
     )
 
 
@@ -76,7 +86,7 @@ def list_analysis_jobs(
         .order_by(AnalysisJob.created_at.desc(), AnalysisJob.id.desc())
         .all()
     )
-    return [_job_out(j) for j in rows]
+    return [_job_out(j, db) for j in rows]
 
 
 @router.get("/jobs/{job_id}", response_model=AnalysisJobOut)
@@ -88,4 +98,4 @@ def get_analysis_job(
     job = db.get(AnalysisJob, job_id)
     if not job or not _user_owns_job(db, job, user):
         raise HTTPException(status_code=404, detail="任务不存在")
-    return _job_out(job)
+    return _job_out(job, db)

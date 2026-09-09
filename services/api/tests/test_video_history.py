@@ -77,7 +77,7 @@ def test_upload_appears_in_list_and_detail(
     assert mine["latest_job"]["status"] in ("pose_extracted", "queued")
     assert mine["latest_job"]["error_code"] == "ANALYSIS_NOT_IMPLEMENTED"
     assert mine["latest_job"].get("scoring_status") == "blocked"
-    assert "score" not in mine["latest_job"]
+    assert mine["latest_job"].get("score") in (None,)
 
     detail = client.get(f"/videos/{video_id}", headers=auth_headers)
     assert detail.status_code == 200
@@ -88,13 +88,15 @@ def test_upload_appears_in_list_and_detail(
     assert any(j["id"] == job_id for j in body["jobs"])
     assert "评分" in body["notice"] or "关键点" in body["notice"]
     assert body.get("pose_extracted") in (True, False)
-    assert "score" not in body
+    assert body.get("score") in (None,)
 
     jobs = client.get("/analysis/jobs", headers=auth_headers)
     assert jobs.status_code == 200
     assert any(j["id"] == job_id for j in jobs.json())
-    for j in jobs.json():
-        assert "score" not in j
+    this_job = next(j for j in jobs.json() if j["id"] == job_id)
+    # Unscored jobs must not invent scores; previously scored jobs in shared DB may exist
+    if this_job.get("status") != "scored":
+        assert this_job.get("score") in (None,)
 
 
 def test_user_cannot_see_other_users_videos_or_jobs(

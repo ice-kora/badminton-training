@@ -29,13 +29,16 @@ def main() -> int:
         action="store_true",
         help="Forwarded to validator",
     )
+    ap.add_argument(
+        "--allow-synthetic-demo",
+        action="store_true",
+        help="Allow importing synthetic_demo packages",
+    )
     ap.add_argument("--change-log", default=None)
     args = ap.parse_args()
 
-    # Resolve package path before chdir side effects (already chdir'd)
     pkg_path = args.package if args.package.is_absolute() else (REPO / args.package)
     if not pkg_path.exists():
-        # try relative to cwd (API) as well
         alt = Path(args.package)
         if alt.exists():
             pkg_path = alt.resolve()
@@ -46,7 +49,9 @@ def main() -> int:
     try:
         data = load_package(pkg_path)
         warnings = validate_package(
-            data, allow_unverified_numbers=args.allow_unverified_numbers
+            data,
+            allow_unverified_numbers=args.allow_unverified_numbers,
+            allow_synthetic_demo=args.allow_synthetic_demo,
         )
         init_db()
         db = SessionLocal()

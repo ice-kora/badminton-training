@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Publish a draft benchmark version.
 
-Default policy (--force-draft-forbidden): draft_unverified cannot be published.
-Only verification_status=verified publishes cleanly.
+Default policy: draft_unverified cannot be published.
+verified publishes cleanly.
+synthetic_demo publishes only with --allow-synthetic-demo.
 """
 from __future__ import annotations
 
@@ -45,9 +46,13 @@ def main() -> int:
         action="store_true",
         help="Allow publishing expert_pending (still not verified)",
     )
+    ap.add_argument(
+        "--allow-synthetic-demo",
+        action="store_true",
+        help="Allow publishing synthetic_demo packages (pipeline demo only)",
+    )
     args = ap.parse_args()
 
-    # Default policy: draft forbidden. --force-draft-forbidden is documentary.
     if args.force_draft_forbidden and args.force_allow_draft:
         print(
             "FAIL: conflicting flags --force-draft-forbidden and --force-allow-draft",
@@ -94,6 +99,7 @@ def main() -> int:
             ver.verification_status,
             force_allow_draft=args.force_allow_draft,
             force_allow_expert_pending=args.force_expert_pending,
+            allow_synthetic_demo=args.allow_synthetic_demo,
         )
         if not ok:
             print(f"FAIL: {reason}", file=sys.stderr)
@@ -102,9 +108,13 @@ def main() -> int:
                     "hint: keep draft unpublished until experts fill ranges and set verified",
                     file=sys.stderr,
                 )
+            if ver.verification_status == "synthetic_demo" and not args.allow_synthetic_demo:
+                print(
+                    "hint: pass --allow-synthetic-demo for pipeline demo publish",
+                    file=sys.stderr,
+                )
             return 1
 
-        # Unpublish other published versions for this benchmark (single current)
         others = (
             db.query(BenchmarkVersion)
             .filter(

@@ -23,18 +23,31 @@
       "minLength": 1,
       "description": "Must match badminton_skills.code"
     },
-    "skill_name": { "type": "string" },
+    "skill_name": {
+      "type": "string"
+    },
     "version": {
       "type": "string",
       "minLength": 1,
       "description": "Semver-like label, e.g. 0.1.0"
     },
     "handedness": {
-      "type": ["string", "null"],
-      "enum": ["left", "right", "either", null]
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "left",
+        "right",
+        "either",
+        null
+      ]
     },
     "camera_view": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Placeholder until capture protocol locked"
     },
     "stages": {
@@ -42,11 +55,21 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["code", "name"],
+        "required": [
+          "code",
+          "name"
+        ],
         "properties": {
-          "code": { "type": "string" },
-          "name": { "type": "string" },
-          "sort_order": { "type": "integer", "minimum": 0 }
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sort_order": {
+            "type": "integer",
+            "minimum": 0
+          }
         }
       }
     },
@@ -55,16 +78,36 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["code", "name"],
+        "required": [
+          "code",
+          "name"
+        ],
         "properties": {
-          "code": { "type": "string" },
-          "name": { "type": "string" },
-          "stage_code": { "type": ["string", "null"] },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "stage_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "t_ms": {
-            "type": ["number", "null"],
+            "type": [
+              "number",
+              "null"
+            ],
             "description": "Optional timestamp placeholder; null until annotated"
           },
-          "notes": { "type": ["string", "null"] }
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       }
     },
@@ -73,21 +116,63 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "unit": { "type": ["string", "null"] },
-          "stage_code": { "type": ["string", "null"] },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stage_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "range_min": {
-            "type": ["number", "null"],
-            "description": "MUST stay null until expert verification"
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Null until expert verification OR synthetic_demo package with range_kind=synthetic_demo"
           },
           "range_max": {
-            "type": ["number", "null"],
-            "description": "MUST stay null until expert verification"
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Null until expert verification OR synthetic_demo package with range_kind=synthetic_demo"
           },
-          "notes": { "type": ["string", "null"] }
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "range_kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "synthetic_demo | expert_verified; null for unverified shells"
+          },
+          "linked_error_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional common_error code linked to this metric"
+          }
         }
       }
     },
@@ -96,25 +181,61 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "title": { "type": ["string", "null"] }
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       }
     },
     "linked_drill_codes": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "verification_status": {
       "type": "string",
-      "enum": ["draft_unverified", "expert_pending", "verified"]
+      "enum": [
+        "draft_unverified",
+        "expert_pending",
+        "verified",
+        "synthetic_demo"
+      ]
     },
     "source": {
       "type": "string",
       "minLength": 1
     },
-    "notes": { "type": ["string", "null"] }
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "banner": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "UI banner; required semantically for synthetic_demo"
+    },
+    "synthetic_keypoint_template": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Optional synthetic standard-motion keypoint sequence for demo compare",
+      "additionalProperties": true
+    }
   }
 }
