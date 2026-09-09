@@ -28,6 +28,16 @@ Page({
       })
       .catch((e) => this.setData({ error: e.message || '加载任务失败' }))
   },
+  goDetail() {
+    if (!this.data.videoId) {
+      wx.showToast({ title: '无视频 ID', icon: 'none' })
+      return
+    }
+    wx.navigateTo({ url: `/pages/records/detail?id=${this.data.videoId}` })
+  },
+  goHistory() {
+    wx.switchTab({ url: '/pages/records/index' })
+  },
   backSkill() {
     if (this.data.skillId) {
       wx.navigateBack({ delta: 2 })

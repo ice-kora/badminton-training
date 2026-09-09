@@ -76,3 +76,14 @@ curl -X POST http://127.0.0.1:8000/videos/upload   -H "Authorization: Bearer $TO
 ```
 
 本地文件落在 `services/api/data/uploads/`（已 gitignore 内容）。
+
+## 视频 / 任务历史
+
+```bash
+# 列表（需 Authorization）
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/analysis/jobs
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1
+```
+
+上传成功后 `analysis_job.status=not_implemented`，`error_code=ANALYSIS_NOT_IMPLEMENTED`（保持一致性，不用 awaiting_benchmark）。

@@ -18,6 +18,30 @@
     <text class="muted">></text>
   </view>
 
+  <view class="section-title">上传视频记录</view>
+  <view class="banner-note">姿态分析尚未开放，不返回分数。此处仅展示上传与任务状态。</view>
+  <view class="muted" wx:if="{{loading}}">加载中…</view>
+  <view class="muted" wx:elif="{{error}}">{{error}}</view>
+  <view
+    class="card"
+    wx:for="{{videos}}"
+    wx:key="id"
+    bindtap="goVideoDetail"
+    data-id="{{item.id}}"
+  >
+    <view class="row">
+      <text class="card-title" style="margin-bottom:0;">{{item.skill_name}}</text>
+      <text class="tag warn">{{item.jobStatusLabel}}</text>
+    </view>
+    <view class="muted" style="margin-top:8rpx;">
+      时长 {{item.durationText}} · {{item.orientation || '-'}} · {{item.createdText}}
+    </view>
+    <view class="muted" wx:if="{{item.jobErrorCode}}">{{item.jobErrorCode}}</view>
+  </view>
+  <view class="muted" wx:if="{{!loading && !error && !videos.length}}">
+    暂无上传视频。去「技术库」→ 拍摄引导 → 上传。
+  </view>
+
   <view class="section-title">打卡记录</view>
   <view class="card" wx:for="{{sessions}}" wx:key="id">
     <view class="row">

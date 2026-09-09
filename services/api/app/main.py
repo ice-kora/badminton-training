@@ -40,7 +40,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
         title=settings.app_name,
-        version="0.3.0",
+        version="0.4.0",
         description=(
             "羽毛球 AI 学习训练助手 API（Phase-2）。"
             "姿态分析未实现，返回 ANALYSIS_NOT_IMPLEMENTED。"

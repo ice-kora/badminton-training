@@ -1,4 +1,6 @@
 """Honest NOT_IMPLEMENTED analysis endpoints — no mock scores."""
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,27 @@ from app.models import AnalysisJob, TrainingVideo, User
 from app.schemas import AnalysisJobOut, AnalysisJobRequest, AnalysisNotImplemented
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
+
+
+def _job_out(job: AnalysisJob) -> AnalysisJobOut:
+    return AnalysisJobOut(
+        id=job.id,
+        video_id=job.video_id,
+        skill_id=job.skill_id,
+        status=job.status,
+        error_code=job.error_code,
+        message=job.message,
+        created_at=job.created_at,
+        updated_at=job.updated_at,
+    )
+
+
+def _user_owns_job(db: Session, job: AnalysisJob, user: User) -> bool:
+    """Jobs are scoped via linked TrainingVideo owner."""
+    if not job.video_id:
+        return False
+    video = db.get(TrainingVideo, job.video_id)
+    return bool(video and video.user_id == user.id)
 
 
 @router.post("/jobs", response_model=AnalysisNotImplemented)
@@ -28,6 +51,22 @@ def create_analysis_job(body: AnalysisJobRequest, response: Response):
     )
 
 
+@router.get("/jobs", response_model=list[AnalysisJobOut])
+def list_analysis_jobs(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """List current user's analysis jobs (newest first). No scores."""
+    rows = (
+        db.query(AnalysisJob)
+        .join(TrainingVideo, AnalysisJob.video_id == TrainingVideo.id)
+        .filter(TrainingVideo.user_id == user.id)
+        .order_by(AnalysisJob.created_at.desc(), AnalysisJob.id.desc())
+        .all()
+    )
+    return [_job_out(j) for j in rows]
+
+
 @router.get("/jobs/{job_id}", response_model=AnalysisJobOut)
 def get_analysis_job(
     job_id: int,
@@ -35,19 +74,6 @@ def get_analysis_job(
     user: User = Depends(get_current_user),
 ):
     job = db.get(AnalysisJob, job_id)
-    if not job:
+    if not job or not _user_owns_job(db, job, user):
         raise HTTPException(status_code=404, detail="任务不存在")
-    if job.video_id:
-        video = db.get(TrainingVideo, job.video_id)
-        if video and video.user_id != user.id:
-            raise HTTPException(status_code=404, detail="任务不存在")
-    return AnalysisJobOut(
-        id=job.id,
-        video_id=job.video_id,
-        skill_id=job.skill_id,
-        status=job.status,
-        error_code=job.error_code,
-        message=job.message,
-        created_at=job.created_at,
-        updated_at=job.updated_at,
-    )
+    return _job_out(job)

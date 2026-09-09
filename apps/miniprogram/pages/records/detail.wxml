@@ -1,0 +1,37 @@
+<view class="container">
+  <view class="banner-note">姿态分析尚未开放，不返回分数</view>
+  <view class="muted" wx:if="{{loading}}">加载中…</view>
+  <view class="muted" wx:elif="{{error}}">{{error}}</view>
+
+  <block wx:if="{{video}}">
+    <view class="card">
+      <view class="card-title">{{video.skill_name}}</view>
+      <view>文件：{{video.filename}}</view>
+      <view class="muted">时长 {{durationText}} · {{video.orientation || '-'}} · {{createdText}}</view>
+      <view class="muted">分辨率 {{video.width || '-'}}×{{video.height || '-'}}</view>
+    </view>
+
+    <view class="section-title">预检结果</view>
+    <view class="card">
+      <view class="row">
+        <text>总体</text>
+        <text class="tag {{precheckPassed ? '' : 'warn'}}">{{precheckPassed ? '通过' : '未通过/无数据'}}</text>
+      </view>
+      <view class="check-row" wx:for="{{checks}}" wx:key="id">
+        <text class="{{item.cls}}">[{{item.status}}] {{item.id}} — {{item.message}}</text>
+      </view>
+      <view class="muted" wx:if="{{!checks.length}}">无预检明细</view>
+    </view>
+
+    <view class="section-title">分析任务</view>
+    <view class="card" wx:for="{{jobs}}" wx:key="id">
+      <view class="row">
+        <text>任务 #{{item.id}}</text>
+        <text class="tag warn">{{item.statusLabel}}</text>
+      </view>
+      <view class="muted">{{item.message || '姿态分析尚未开放'}}</view>
+      <view class="muted" wx:if="{{item.error_code}}">{{item.error_code}}</view>
+    </view>
+    <view class="muted" wx:if="{{!jobs.length}}">暂无关联任务</view>
+  </block>
+</view>

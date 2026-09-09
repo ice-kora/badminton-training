@@ -261,3 +261,41 @@ class VideoUploadOut(BaseModel):
         "已保存视频与任务元数据，不会返回动作评分。"
     )
 
+
+# ---- Video / analysis history ----
+class AnalysisJobSummaryOut(BaseModel):
+    """Lightweight job summary for list views — no scores."""
+
+    id: int
+    status: str
+    error_code: Optional[str] = None
+    message: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class VideoListItemOut(BaseModel):
+    id: int
+    skill_id: int
+    skill_name: str
+    duration_ms: Optional[int] = None
+    orientation: Optional[str] = None
+    created_at: datetime
+    latest_job: Optional[AnalysisJobSummaryOut] = None
+
+
+class VideoDetailOut(BaseModel):
+    id: int
+    user_id: int
+    skill_id: int
+    skill_name: str
+    filename: str
+    duration_ms: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    orientation: Optional[str] = None
+    size_bytes: Optional[int] = None
+    precheck: Optional[dict[str, Any]] = None
+    created_at: datetime
+    jobs: list[AnalysisJobOut] = Field(default_factory=list)
+    notice: str = "姿态分析尚未开放，不返回分数"

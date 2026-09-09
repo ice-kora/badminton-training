@@ -1,5 +1,5 @@
 <view class="container">
-  <view class="banner-note">分析能力尚未开放。已保存视频元数据与分析任务，不会返回动作评分。</view>
+  <view class="banner-note">姿态分析尚未开放，不返回分数。已保存视频元数据与分析任务。</view>
   <view class="card">
     <view class="card-title">上传成功</view>
     <view>视频 ID：{{videoId}}</view>
@@ -8,6 +8,8 @@
     <view class="muted" style="margin-top:12rpx;">{{jobMessage}}</view>
     <view class="muted" wx:if="{{errorCode}}">error_code: {{errorCode}}</view>
   </view>
-  <view class="btn-primary" bindtap="backSkill">返回</view>
+  <view class="btn-primary" bindtap="goDetail" style="margin-bottom:16rpx;">查看视频详情</view>
+  <view class="btn-ghost" bindtap="goHistory" style="margin-bottom:16rpx;">查看上传历史</view>
+  <view class="btn-ghost" bindtap="backSkill">返回</view>
   <view class="muted" wx:if="{{error}}">{{error}}</view>
 </view>

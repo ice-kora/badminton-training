@@ -1,0 +1,4 @@
+.check-row { margin-top: 8rpx; }
+.check-pass { color: #166534; }
+.check-fail { color: #b91c1c; }
+.check-other { color: #64748b; }

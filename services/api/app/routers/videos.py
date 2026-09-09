@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.auth import get_current_user
 from app.config import get_settings
@@ -16,8 +16,11 @@ from app.database import get_db
 from app.models import AnalysisJob, BadmintonSkill, FilmingGuide, TrainingVideo, User
 from app.schemas import (
     AnalysisJobOut,
+    AnalysisJobSummaryOut,
     PrecheckReportOut,
     TrainingVideoOut,
+    VideoDetailOut,
+    VideoListItemOut,
     VideoUploadOut,
 )
 from app.services.precheck import run_precheck
@@ -28,6 +31,17 @@ ANALYSIS_MSG = (
     "视频姿态分析尚未实现。上传仅完成质量预检与元数据入库；"
     "禁止返回模拟分数或伪 AI 分析结果。"
 )
+
+DETAIL_NOTICE = "姿态分析尚未开放，不返回分数"
+
+
+def _parse_precheck(row: TrainingVideo) -> Optional[dict[str, Any]]:
+    if not row.precheck_json:
+        return None
+    try:
+        return json.loads(row.precheck_json)
+    except json.JSONDecodeError:
+        return None
 
 
 def _uploads_root() -> Path:
@@ -59,12 +73,6 @@ def _guide_for_skill(db: Session, skill_id: int) -> Optional[FilmingGuide]:
 
 
 def _video_out(row: TrainingVideo) -> TrainingVideoOut:
-    precheck = None
-    if row.precheck_json:
-        try:
-            precheck = json.loads(row.precheck_json)
-        except json.JSONDecodeError:
-            precheck = None
     return TrainingVideoOut(
         id=row.id,
         user_id=row.user_id,
@@ -75,9 +83,31 @@ def _video_out(row: TrainingVideo) -> TrainingVideoOut:
         height=row.height,
         orientation=row.orientation,
         size_bytes=row.size_bytes,
-        precheck=precheck,
+        precheck=_parse_precheck(row),
         created_at=row.created_at,
     )
+
+
+def _job_summary(row: AnalysisJob) -> AnalysisJobSummaryOut:
+    return AnalysisJobSummaryOut(
+        id=row.id,
+        status=row.status,
+        error_code=row.error_code,
+        message=row.message,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
+
+
+def _latest_job(jobs: list[AnalysisJob]) -> Optional[AnalysisJob]:
+    if not jobs:
+        return None
+    return max(jobs, key=lambda j: (j.created_at, j.id))
+
+
+def _skill_name(db: Session, skill_id: int) -> str:
+    skill = db.get(BadmintonSkill, skill_id)
+    return skill.name if skill else f"技能#{skill_id}"
 
 
 def _job_out(row: AnalysisJob) -> AnalysisJobOut:
@@ -233,13 +263,69 @@ async def upload_video(
             tmp.unlink(missing_ok=True)
 
 
-@router.get("/videos/{video_id}", response_model=TrainingVideoOut)
+@router.get("/videos", response_model=list[VideoListItemOut])
+def list_videos(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """List current user's uploaded videos (newest first) with latest job summary."""
+    rows = (
+        db.query(TrainingVideo)
+        .options(joinedload(TrainingVideo.analysis_jobs))
+        .filter(TrainingVideo.user_id == user.id)
+        .order_by(TrainingVideo.created_at.desc(), TrainingVideo.id.desc())
+        .all()
+    )
+    items: list[VideoListItemOut] = []
+    for row in rows:
+        latest = _latest_job(list(row.analysis_jobs or []))
+        items.append(
+            VideoListItemOut(
+                id=row.id,
+                skill_id=row.skill_id,
+                skill_name=_skill_name(db, row.skill_id),
+                duration_ms=row.duration_ms,
+                orientation=row.orientation,
+                created_at=row.created_at,
+                latest_job=_job_summary(latest) if latest else None,
+            )
+        )
+    return items
+
+
+@router.get("/videos/{video_id}", response_model=VideoDetailOut)
 def get_video(
     video_id: int,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    row = db.get(TrainingVideo, video_id)
+    """Video detail + precheck summary + linked analysis jobs (owner only)."""
+    row = (
+        db.query(TrainingVideo)
+        .options(joinedload(TrainingVideo.analysis_jobs))
+        .filter(TrainingVideo.id == video_id)
+        .first()
+    )
     if not row or row.user_id != user.id:
         raise HTTPException(status_code=404, detail="视频不存在")
-    return _video_out(row)
+    jobs = sorted(
+        list(row.analysis_jobs or []),
+        key=lambda j: (j.created_at, j.id),
+        reverse=True,
+    )
+    return VideoDetailOut(
+        id=row.id,
+        user_id=row.user_id,
+        skill_id=row.skill_id,
+        skill_name=_skill_name(db, row.skill_id),
+        filename=row.filename,
+        duration_ms=row.duration_ms,
+        width=row.width,
+        height=row.height,
+        orientation=row.orientation,
+        size_bytes=row.size_bytes,
+        precheck=_parse_precheck(row),
+        created_at=row.created_at,
+        jobs=[_job_out(j) for j in jobs],
+        notice=DETAIL_NOTICE,
+    )

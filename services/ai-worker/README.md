@@ -1,25 +1,28 @@
 # AI Worker（占位）
 
-本包为 Phase-2 **占位 stub**。
+本包为 Phase-2 / V1 **占位 stub**。
 
-## 状态
+## 状态约定
 
-- **视频姿态分析：未实现**（`ANALYSIS_NOT_IMPLEMENTED`）
+上传成功后 API 直接创建 `analysis_job`：
+
+| 字段 | 值 |
+|------|-----|
+| `status` | `not_implemented` |
+| `error_code` | `ANALYSIS_NOT_IMPLEMENTED` |
+
+可选状态全集：`pending` / `rejected_precheck` / `queued` / `not_implemented` / `failed`。
+
 - **禁止**：返回随机分数、伪 AI 报告、MediaPipe 实时纠错
-- 待 `MotionBenchmark` 经专家标注入库、关键点流水线就绪后，再实现离线分析 Job 消费
+- 待 `MotionBenchmark` 经专家标注入库后再实现真正的离线分析消费
 
-## 约定
+## Worker 行为
 
-API `POST /analysis/jobs` 当前直接返回结构化错误：
+`app/worker.py`：
 
-```json
-{
-  "code": "ANALYSIS_NOT_IMPLEMENTED",
-  "message": "视频姿态分析尚未实现。..."
-}
-```
-
-Worker 进程暂不消费队列；`app/worker.py` 仅文档化入口。
+- `describe()` / `analyze()` — 文档化 stub，永不产出分数
+- `claim_pending_jobs(jobs)` — 对传入的 `pending` 任务诚实标为 `not_implemented`（**无分数**）
+- 正常上传路径已写入 `not_implemented`，worker 对常见情况为 **no-op**
 
 ## 本地
 
