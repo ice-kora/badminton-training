@@ -11,7 +11,7 @@ import numpy as np
 
 
 DEFAULT_POLICY: dict[str, Any] = {
-    "duration_range_sec": [5, 15],
+    "duration_range_sec": [5, 60],
     "min_short_side": 720,
     "orientation": "portrait",
     "min_brightness": 40.0,

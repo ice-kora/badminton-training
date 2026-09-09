@@ -193,7 +193,7 @@ class FilmingGuide(Base):
     checklist_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # V1 precheck policy (engineering checks — not pose standards)
     duration_min_sec: Mapped[int] = mapped_column(Integer, default=5)
-    duration_max_sec: Mapped[int] = mapped_column(Integer, default=15)
+    duration_max_sec: Mapped[int] = mapped_column(Integer, default=60)
     min_short_side: Mapped[int] = mapped_column(Integer, default=720)
     min_brightness: Mapped[int] = mapped_column(Integer, default=40)
     precheck_policy_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

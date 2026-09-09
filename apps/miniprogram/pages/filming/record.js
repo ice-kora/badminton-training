@@ -64,12 +64,12 @@ Page({
         const f = res.tempFiles[0]
         const dur = Number(f.duration || 0)
         const videoInfo = `约 ${dur.toFixed ? dur.toFixed(1) : dur}s · ${f.width || '?'}x${f.height || '?'}`
-        if (dur > 30) {
+        if (dur > 60) {
           this.setData({
             videoPath: f.tempFilePath,
             videoInfo,
             failChecks: [],
-            error: `视频约 ${dur.toFixed(1)} 秒，超过 30 秒上限，请换 5–15 秒短视频`,
+            error: `视频约 ${dur.toFixed(1)} 秒，超过 60 秒上限，请换 5–60 秒短视频`,
           })
           wx.showToast({ title: '视频过长，请重选', icon: 'none' })
           return

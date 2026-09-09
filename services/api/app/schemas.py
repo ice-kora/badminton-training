@@ -85,7 +85,7 @@ class FilmingGuideOut(OrmModel, ProvenanceMixin):
     racket_visible: bool
     lighting_notes: Optional[str] = None
     checklist: list[str] = []
-    duration_range_sec: list[int] = Field(default_factory=lambda: [5, 15])
+    duration_range_sec: list[int] = Field(default_factory=lambda: [5, 60])
     min_resolution: dict[str, int] = Field(
         default_factory=lambda: {"min_short_side": 720}
     )

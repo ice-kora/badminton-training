@@ -44,7 +44,7 @@ def test_filming_guide_includes_precheck_policy(client, skill_id):
     r = client.get(f"/filming-guides/{skill_id}")
     assert r.status_code == 200
     g = r.json()[0]
-    assert g["duration_range_sec"] == [5, 15]
+    assert g["duration_range_sec"] == [5, 60]
     assert g["min_resolution"]["min_short_side"] == 720
     assert g["brightness_policy"]["min_mean_luminance"] == 40
     assert "duration" in g["required_checks"]
@@ -112,7 +112,7 @@ def test_fail_duration_too_long(client, auth_headers, skill_id, media_dir):
         media_dir / "long.mp4",
         width=720,
         height=1280,
-        duration_sec=20,
+        duration_sec=70,
         color_bgr=(200, 200, 200),
     )
     r = _upload(client, auth_headers, skill_id, path)

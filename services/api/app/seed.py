@@ -190,7 +190,7 @@ def seed(db: Session | None = None) -> None:
 
         # Filming guides (UX + V1 engineering precheck policy)
         precheck_policy = {
-            "duration_range_sec": [5, 15],
+            "duration_range_sec": [5, 60],
             "min_short_side": 720,
             "orientation": "portrait",
             "min_brightness": 40,
@@ -228,7 +228,7 @@ def seed(db: Session | None = None) -> None:
                     lighting_notes="避免逆光；室内尽量均匀照明。此为产品拍摄 UX 指引，非关节角标准。",
                     checklist_json=json.dumps(checklist, ensure_ascii=False),
                     duration_min_sec=5,
-                    duration_max_sec=15,
+                    duration_max_sec=60,
                     min_short_side=720,
                     min_brightness=40,
                     precheck_policy_json=json.dumps(precheck_policy, ensure_ascii=False),
