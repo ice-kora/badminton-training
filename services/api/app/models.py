@@ -369,6 +369,10 @@ class TrainingVideo(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     skill_id: Mapped[int] = mapped_column(ForeignKey("badminton_skills.id"), index=True)
+    # Optional self-FK: this clip is a visual retest of another owned video (same skill).
+    baseline_video_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("training_videos.id"), nullable=True, index=True
+    )
     storage_path: Mapped[str] = mapped_column(String(512))
     filename: Mapped[str] = mapped_column(String(256))
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -382,6 +386,11 @@ class TrainingVideo(Base):
     analysis_jobs: Mapped[list["AnalysisJob"]] = relationship(back_populates="video")
     pose_analyses: Mapped[list["PoseAnalysis"]] = relationship(
         back_populates="video"
+    )
+    baseline_video: Mapped[Optional["TrainingVideo"]] = relationship(
+        "TrainingVideo",
+        remote_side="TrainingVideo.id",
+        foreign_keys=[baseline_video_id],
     )
 
 

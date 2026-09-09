@@ -3,6 +3,8 @@ const { request, ensureLogin, getToken, baseUrl } = require('../../utils/request
 Page({
   data: {
     skillId: '',
+    baselineVideoId: '',
+    isRetest: false,
     guide: null,
     checklist: [
       { key: 'full_body', label: '全身已入镜（对照剪影）', checked: false },
@@ -25,7 +27,12 @@ Page({
       this.setData({ error: '缺少 skill_id' })
       return
     }
-    this.setData({ skillId })
+    const baselineVideoId = q.baseline_video_id || ''
+    this.setData({
+      skillId,
+      baselineVideoId,
+      isRetest: !!baselineVideoId,
+    })
     request({ url: `/filming-guides/${skillId}` })
       .then((guides) => {
         if (guides && guides[0]) this.setData({ guide: guides[0] })
@@ -107,14 +114,20 @@ Page({
             url: `${baseUrl}/videos/upload`,
             filePath: this.data.videoPath,
             name: 'file',
-            formData: {
-              skill_id: String(this.data.skillId),
-              client_checklist_json: JSON.stringify(checklistObj),
-              frame_coverage_hints_json: JSON.stringify({
-                silhouette_guide: true,
-                note: 'client silhouette + checklist only; not pose',
-              }),
-            },
+            formData: (() => {
+              const fd = {
+                skill_id: String(this.data.skillId),
+                client_checklist_json: JSON.stringify(checklistObj),
+                frame_coverage_hints_json: JSON.stringify({
+                  silhouette_guide: true,
+                  note: 'client silhouette + checklist only; not pose',
+                }),
+              }
+              if (this.data.baselineVideoId) {
+                fd.baseline_video_id = String(this.data.baselineVideoId)
+              }
+              return fd
+            })(),
             header: {
               Authorization: `Bearer ${getToken()}`,
             },

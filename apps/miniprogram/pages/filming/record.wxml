@@ -2,6 +2,9 @@
   <view class="banner-note">
     全身/距离靠剪影参考 + 本页清单确认（非姿态识别）。服务端会实检：时长、分辨率、亮度、朝向。
   </view>
+  <view class="banner-note" wx:if="{{isRetest}}" style="background:#eef2ff;color:#3730a3;">
+    复测模式：将关联基准视频 #{{baselineVideoId}}（仅骨架对比，非评分）
+  </view>
 
   <view class="card silhouette-card">
     <view class="card-title">剪影框（示意）</view>

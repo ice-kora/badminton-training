@@ -51,6 +51,7 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 5. 上传：服务端预检时长/分辨率/亮度/方向；失败展示原因并提示重拍。
 6. 通过后返回 `video_id` + `analysis_job`（默认 `queued`；另开终端 `make worker` 或 `python -m app.worker extract --loop` → `extracting`→`pose_extracted`；卡死 extracting 超 `POSE_EXTRACT_STALE_SECONDS` 会回收为 queued；`scoring_status=blocked` / `ANALYSIS_NOT_IMPLEMENTED`）。
 7. 「我的」详情分别显示「关键点已提取/未提取」与「评分未开放」；已提取时可滑帧「骨架预览」（仅关键点可视化，非评分）。
+8. **复测对比（仅骨架）**：详情点「针对此视频复测」→ 拍摄页带 `baseline_video_id` 上传 → 复测详情在双方均 `pose_extracted` 后显示左右并排骨架滑帧（`GET /videos/{id}/retest-compare`）；**无分数、无正确性判断**。
 
 **真预检**：duration / resolution / brightness / orientation（OpenCV 探测）。  
 **占位**：full_body / distance → `deferred_to_pose` 或客户端清单确认（非姿态 AI）。
@@ -65,9 +66,10 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 | GET | /skills/{id} | 技能详情 |
 | GET | /filming-guides/{skill_id} | 拍摄引导（含预检策略） |
 | POST | /videos/precheck | 仅预检（multipart，需登录） |
-| POST | /videos/upload | 预检+入库+创建 analysis_job（默认 queued，后台 worker 提取） |
-| GET | /videos | 当前用户视频列表（含最新任务摘要） |
-| GET | /videos/{id} | 视频详情 + 预检 + 关联任务 |
+| POST | /videos/upload | 预检+入库+创建 analysis_job（可选 form `baseline_video_id` 同用户同技能复测） |
+| GET | /videos | 当前用户视频列表（`?skill_id=` 可选过滤） |
+| GET | /videos/{id} | 视频详情 + 预检 + 关联任务；有复测链时含 `baseline` 摘要 |
+| GET | /videos/{id}/retest-compare | 基准 vs 当前双骨架预览（`?frame=`）；双方均需已提取；仅可视化非评分 |
 | GET | /videos/{id}/pose | 关键点元数据（无分数） |
 | GET | /videos/{id}/pose/preview | 骨架预览 JSON（`?frame=`）；`?format=png` 调试图；仅可视化非评分 |
 | POST | /videos/{id}/extract-pose | 触发离线关键点提取 |

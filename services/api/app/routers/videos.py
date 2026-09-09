@@ -25,10 +25,12 @@ from app.models import (
 from app.schemas import (
     AnalysisJobOut,
     AnalysisJobSummaryOut,
+    BaselineVideoSummaryOut,
     PoseExtractOut,
     PoseMetaOut,
     PosePreviewOut,
     PrecheckReportOut,
+    RetestCompareOut,
     TrainingVideoOut,
     VideoDetailOut,
     VideoListItemOut,
@@ -106,7 +108,48 @@ def _video_out(row: TrainingVideo) -> TrainingVideoOut:
         orientation=row.orientation,
         size_bytes=row.size_bytes,
         precheck=_parse_precheck(row),
+        baseline_video_id=row.baseline_video_id,
         created_at=row.created_at,
+    )
+
+
+def _baseline_summary(db: Session, baseline: TrainingVideo) -> BaselineVideoSummaryOut:
+    pose = _pose_for_video(db, baseline.id)
+    return BaselineVideoSummaryOut(
+        id=baseline.id,
+        skill_id=baseline.skill_id,
+        skill_name=_skill_name(db, baseline.skill_id),
+        filename=baseline.filename,
+        duration_ms=baseline.duration_ms,
+        orientation=baseline.orientation,
+        created_at=baseline.created_at,
+        pose_extracted=pose is not None,
+        pose_frame_count=pose.frame_count if pose else None,
+    )
+
+
+def _validate_baseline(
+    db: Session, *, user: User, skill_id: int, baseline_video_id: int
+) -> TrainingVideo:
+    """Baseline must exist, belong to same user, and share skill_id."""
+    baseline = db.get(TrainingVideo, baseline_video_id)
+    if baseline is None or baseline.user_id != user.id:
+        raise HTTPException(status_code=400, detail="baseline_video_id 无效或不属于当前用户")
+    if baseline.skill_id != skill_id:
+        raise HTTPException(
+            status_code=400,
+            detail="baseline_video_id 与当前 skill_id 不一致",
+        )
+    return baseline
+
+
+def _preview_for_pose(video: TrainingVideo, pose: PoseAnalysis, frame: int) -> dict:
+    return build_preview_json(
+        video_id=video.id,
+        keypoint_path=pose.keypoint_path,
+        frame=frame,
+        landmark_count=pose.landmark_count,
+        extractor=pose.extractor,
     )
 
 
@@ -246,6 +289,7 @@ async def precheck_video(
 async def upload_video(
     file: UploadFile = File(...),
     skill_id: int = Form(...),
+    baseline_video_id: Optional[int] = Form(None),
     client_checklist_json: Optional[str] = Form(None),
     frame_coverage_hints_json: Optional[str] = Form(None),
     db: Session = Depends(get_db),
@@ -253,12 +297,19 @@ async def upload_video(
 ):
     """
     Precheck → store file + training_video + analysis_job(status=queued).
+    Optional baseline_video_id links a visual retest (same user + skill).
     Default: leave queued for background worker (POSE_EXTRACT_INLINE=false).
     Scoring always blocked (ANALYSIS_NOT_IMPLEMENTED).
     """
     skill = db.get(BadmintonSkill, skill_id)
     if not skill:
         raise HTTPException(status_code=404, detail="技能不存在")
+    resolved_baseline_id: Optional[int] = None
+    if baseline_video_id is not None:
+        _validate_baseline(
+            db, user=user, skill_id=skill_id, baseline_video_id=baseline_video_id
+        )
+        resolved_baseline_id = baseline_video_id
     guide = _guide_for_skill(db, skill_id)
     checklist = _parse_json_form(client_checklist_json, "client_checklist_json")
     hints = _parse_json_form(frame_coverage_hints_json, "frame_coverage_hints_json")
@@ -295,6 +346,7 @@ async def upload_video(
         video = TrainingVideo(
             user_id=user.id,
             skill_id=skill_id,
+            baseline_video_id=resolved_baseline_id,
             storage_path=str(final_path),
             filename=original_name,
             duration_ms=probe.get("duration_ms"),
@@ -354,17 +406,19 @@ async def upload_video(
 
 @router.get("/videos", response_model=list[VideoListItemOut])
 def list_videos(
+    skill_id: Optional[int] = Query(None, description="Filter history by skill"),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     """List current user's uploaded videos (newest first) with latest job summary."""
-    rows = (
+    q = (
         db.query(TrainingVideo)
         .options(joinedload(TrainingVideo.analysis_jobs))
         .filter(TrainingVideo.user_id == user.id)
-        .order_by(TrainingVideo.created_at.desc(), TrainingVideo.id.desc())
-        .all()
     )
+    if skill_id is not None:
+        q = q.filter(TrainingVideo.skill_id == skill_id)
+    rows = q.order_by(TrainingVideo.created_at.desc(), TrainingVideo.id.desc()).all()
     items: list[VideoListItemOut] = []
     for row in rows:
         latest = _latest_job(list(row.analysis_jobs or []))
@@ -375,6 +429,7 @@ def list_videos(
                 skill_name=_skill_name(db, row.skill_id),
                 duration_ms=row.duration_ms,
                 orientation=row.orientation,
+                baseline_video_id=row.baseline_video_id,
                 created_at=row.created_at,
                 latest_job=_job_summary(latest) if latest else None,
             )
@@ -396,6 +451,11 @@ def get_video(
         reverse=True,
     )
     pose = _pose_for_video(db, row.id)
+    baseline_out: Optional[BaselineVideoSummaryOut] = None
+    if row.baseline_video_id:
+        baseline = db.get(TrainingVideo, row.baseline_video_id)
+        if baseline is not None and baseline.user_id == user.id:
+            baseline_out = _baseline_summary(db, baseline)
     return VideoDetailOut(
         id=row.id,
         user_id=row.user_id,
@@ -408,6 +468,8 @@ def get_video(
         orientation=row.orientation,
         size_bytes=row.size_bytes,
         precheck=_parse_precheck(row),
+        baseline_video_id=row.baseline_video_id,
+        baseline=baseline_out,
         created_at=row.created_at,
         jobs=[_job_out(j) for j in jobs],
         pose_extracted=pose is not None,
@@ -527,3 +589,43 @@ def get_video_pose_preview(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PosePreviewError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+@router.get("/videos/{video_id}/retest-compare", response_model=RetestCompareOut)
+def retest_compare(
+    video_id: int,
+    frame: int = Query(0, ge=0, description="Scrub index into stored frames (0-based)"),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Side-by-side skeleton preview for baseline vs current retest video.
+    Visualization only — no scores / correctness / angle judgment.
+    """
+    current = _owned_video(db, video_id, user)
+    if not current.baseline_video_id:
+        raise HTTPException(status_code=400, detail="该视频未关联复测基准（baseline_video_id）")
+    baseline = db.get(TrainingVideo, current.baseline_video_id)
+    if baseline is None or baseline.user_id != user.id:
+        raise HTTPException(status_code=404, detail="基准视频不存在")
+
+    current_pose = _pose_for_video(db, current.id)
+    baseline_pose = _pose_for_video(db, baseline.id)
+    if current_pose is None or not current_pose.keypoint_path:
+        raise HTTPException(status_code=404, detail="当前视频关键点尚未提取")
+    if baseline_pose is None or not baseline_pose.keypoint_path:
+        raise HTTPException(status_code=404, detail="基准视频关键点尚未提取")
+
+    try:
+        baseline_preview = _preview_for_pose(baseline, baseline_pose, frame)
+        current_preview = _preview_for_pose(current, current_pose, frame)
+        return RetestCompareOut(
+            baseline=PosePreviewOut(**baseline_preview),
+            current=PosePreviewOut(**current_preview),
+        )
+    except FrameOutOfRange as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PoseNotExtracted as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PosePreviewError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+

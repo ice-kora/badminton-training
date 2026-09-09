@@ -48,13 +48,24 @@ def ensure_schema() -> None:
         return
     with engine.begin() as conn:
         rows = conn.execute(text("PRAGMA table_info(analysis_jobs)")).fetchall()
-        if not rows:
-            return
-        names = {r[1] for r in rows}
-        if "scoring_status" not in names:
-            conn.execute(
-                text("ALTER TABLE analysis_jobs ADD COLUMN scoring_status VARCHAR(64)")
-            )
+        if rows:
+            names = {r[1] for r in rows}
+            if "scoring_status" not in names:
+                conn.execute(
+                    text(
+                        "ALTER TABLE analysis_jobs ADD COLUMN scoring_status VARCHAR(64)"
+                    )
+                )
+        tv_rows = conn.execute(text("PRAGMA table_info(training_videos)")).fetchall()
+        if tv_rows:
+            tv_names = {r[1] for r in tv_rows}
+            if "baseline_video_id" not in tv_names:
+                conn.execute(
+                    text(
+                        "ALTER TABLE training_videos "
+                        "ADD COLUMN baseline_video_id INTEGER"
+                    )
+                )
 
 
 def init_db() -> None:

@@ -9,6 +9,9 @@
       <view>文件：{{video.filename}}</view>
       <view class="muted">时长 {{durationText}} · {{video.orientation || '-'}} · {{createdText}}</view>
       <view class="muted">分辨率 {{video.width || '-'}}×{{video.height || '-'}}</view>
+      <view class="muted" wx:if="{{hasBaseline}}">复测关联基准 #{{video.baseline_video_id}}（{{baselineSummary.filename}}）</view>
+      <view class="btn-primary" style="margin-top:20rpx;" bindtap="goRetest">针对此视频复测</view>
+      <view class="muted" style="margin-top:8rpx;">复测仅骨架对比，不评分</view>
     </view>
 
     <view class="section-title">关键点 / 评分</view>
@@ -53,6 +56,55 @@
       </block>
       <view class="muted" wx:else>需先完成关键点提取后可预览骨架</view>
     </view>
+
+    <block wx:if="{{hasBaseline}}">
+      <view class="section-title">复测对比（仅骨架，非评分）</view>
+      <view class="card">
+        <view class="banner-note preview-disclaimer">左右并排骨架，无分数、无正确性判断</view>
+        <block wx:if="{{canCompare}}">
+          <view class="compare-row">
+            <view class="compare-col">
+              <view class="muted compare-label">基准 #{{video.baseline_video_id}}</view>
+              <canvas
+                type="2d"
+                id="compareBaselineCanvas"
+                class="compare-canvas"
+                style="width: {{compareCanvasCssW}}px; height: {{compareCanvasCssH}}px;"
+              ></canvas>
+            </view>
+            <view class="compare-col">
+              <view class="muted compare-label">当前复测</view>
+              <canvas
+                type="2d"
+                id="compareCurrentCanvas"
+                class="compare-canvas"
+                style="width: {{compareCanvasCssW}}px; height: {{compareCanvasCssH}}px;"
+              ></canvas>
+            </view>
+          </view>
+          <view class="row scrub-row">
+            <text class="muted">帧 {{compareFrame}} / {{compareMax}}</text>
+            <text class="muted" wx:if="{{compareLoading}}">加载中…</text>
+            <text class="muted" wx:elif="{{compareError}}">{{compareError}}</text>
+          </view>
+          <slider
+            min="0"
+            max="{{compareMax}}"
+            value="{{compareFrame}}"
+            step="1"
+            show-value
+            disabled="{{compareMax <= 0}}"
+            bindchange="onCompareScrub"
+            bindchanging="onCompareScrub"
+          />
+        </block>
+        <view class="muted" wx:else>
+          需基准与当前视频均完成关键点提取后可对比
+          <text wx:if="{{baselineSummary && !baselineSummary.pose_extracted}}">（基准尚未提取）</text>
+          <text wx:elif="{{!poseExtracted}}">（当前尚未提取）</text>
+        </view>
+      </view>
+    </block>
 
     <view class="section-title">预检结果</view>
     <view class="card">

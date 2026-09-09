@@ -48,10 +48,24 @@ Page({
     previewError: '',
     canvasCssW: 360,
     canvasCssH: 480,
+    hasBaseline: false,
+    baselineSummary: null,
+    canCompare: false,
+    compareFrame: 0,
+    compareMax: 0,
+    compareLoading: false,
+    compareError: '',
+    compareCanvasCssW: 160,
+    compareCanvasCssH: 240,
   },
   _canvas: null,
   _ctx: null,
   _previewSeq: 0,
+  _compareSeq: 0,
+  _baseCanvas: null,
+  _baseCtx: null,
+  _curCanvas: null,
+  _curCtx: null,
   onLoad(q) {
     const id = q.id
     if (!id) {
@@ -72,6 +86,10 @@ Page({
         }))
         const poseExtracted = !!video.pose_extracted
         const frameCount = video.pose_frame_count || 0
+        const baseline = video.baseline || null
+        const hasBaseline = !!(video.baseline_video_id && baseline)
+        const baselinePoseOk = !!(baseline && baseline.pose_extracted)
+        const canCompare = hasBaseline && poseExtracted && baselinePoseOk
         this.setData({
           loading: false,
           video,
@@ -85,9 +103,17 @@ Page({
           scoringBlocked: true,
           previewFrame: 0,
           previewMax: Math.max(0, frameCount - 1),
+          hasBaseline,
+          baselineSummary: baseline,
+          canCompare,
+          compareFrame: 0,
+          compareMax: 0,
         })
         if (poseExtracted) {
           wx.nextTick(() => this.initCanvasAndLoad(0))
+        }
+        if (canCompare) {
+          wx.nextTick(() => this.initCompareCanvasesAndLoad(0))
         }
       })
       .catch((e) => {
@@ -96,6 +122,13 @@ Page({
           error: (e && (e.message || e.detail)) || '加载失败',
         })
       })
+  },
+  goRetest() {
+    const video = this.data.video
+    if (!video) return
+    wx.navigateTo({
+      url: `/pages/filming/record?skill_id=${video.skill_id}&baseline_video_id=${video.id}`,
+    })
   },
   initCanvasAndLoad(frame) {
     const query = wx.createSelectorQuery()
@@ -145,7 +178,7 @@ Page({
           previewMax: Math.max(0, (body.frame_count || 1) - 1),
           previewFrame: body.frame != null ? body.frame : frame,
         })
-        this.drawSkeleton(body)
+        this.drawSkeleton(this._ctx, this._cssW || 360, this._cssH || 480, body, '仅关键点可视化，非评分')
       })
       .catch((e) => {
         if (seq !== this._previewSeq) return
@@ -155,17 +188,103 @@ Page({
         })
       })
   },
-  drawSkeleton(body) {
-    const ctx = this._ctx
+  initCompareCanvasesAndLoad(frame) {
+    const query = wx.createSelectorQuery()
+    query
+      .select('#compareBaselineCanvas')
+      .fields({ node: true, size: true })
+      .select('#compareCurrentCanvas')
+      .fields({ node: true, size: true })
+      .exec((res) => {
+        if (!res || !res[0] || !res[0].node || !res[1] || !res[1].node) {
+          this.setData({ compareError: '对比画布不可用' })
+          return
+        }
+        const dpr = wx.getSystemInfoSync().pixelRatio || 1
+        const setup = (nodeRes) => {
+          const canvas = nodeRes.node
+          const ctx = canvas.getContext('2d')
+          const cssW = nodeRes.width || 160
+          const cssH = nodeRes.height || 240
+          canvas.width = cssW * dpr
+          canvas.height = cssH * dpr
+          ctx.scale(dpr, dpr)
+          return { canvas, ctx, cssW, cssH }
+        }
+        const base = setup(res[0])
+        const cur = setup(res[1])
+        this._baseCanvas = base.canvas
+        this._baseCtx = base.ctx
+        this._baseCssW = base.cssW
+        this._baseCssH = base.cssH
+        this._curCanvas = cur.canvas
+        this._curCtx = cur.ctx
+        this._curCssW = cur.cssW
+        this._curCssH = cur.cssH
+        this.setData({
+          compareCanvasCssW: base.cssW,
+          compareCanvasCssH: base.cssH,
+        })
+        this.loadCompareFrame(frame)
+      })
+  },
+  onCompareScrub(e) {
+    const frame = Number(e.detail.value) || 0
+    this.setData({ compareFrame: frame })
+    this.loadCompareFrame(frame)
+  },
+  loadCompareFrame(frame) {
+    const videoId = this.data.videoId
+    if (!videoId || !this.data.canCompare) return
+    const seq = ++this._compareSeq
+    this.setData({ compareLoading: true, compareError: '' })
+    request({
+      url: `/videos/${videoId}/retest-compare`,
+      auth: true,
+      data: { frame },
+    })
+      .then((body) => {
+        if (seq !== this._compareSeq) return
+        const base = body.baseline || {}
+        const cur = body.current || {}
+        const maxB = Math.max(0, (base.frame_count || 1) - 1)
+        const maxC = Math.max(0, (cur.frame_count || 1) - 1)
+        this.setData({
+          compareLoading: false,
+          compareMax: Math.min(maxB, maxC),
+          compareFrame: frame,
+        })
+        this.drawSkeleton(
+          this._baseCtx,
+          this._baseCssW || 160,
+          this._baseCssH || 240,
+          base,
+          '基准'
+        )
+        this.drawSkeleton(
+          this._curCtx,
+          this._curCssW || 160,
+          this._curCssH || 240,
+          cur,
+          '复测'
+        )
+      })
+      .catch((e) => {
+        if (seq !== this._compareSeq) return
+        this.setData({
+          compareLoading: false,
+          compareError: (e && (e.message || e.detail)) || '对比加载失败',
+        })
+      })
+  },
+  drawSkeleton(ctx, w, h, body, label) {
     if (!ctx) return
-    const w = this._cssW || 360
-    const h = this._cssH || 480
     ctx.clearRect(0, 0, w, h)
     ctx.fillStyle = '#181820'
     ctx.fillRect(0, 0, w, h)
 
-    const landmarks = body.landmarks || []
-    const bones = body.bones || []
+    const landmarks = (body && body.landmarks) || []
+    const bones = (body && body.bones) || []
     const pts = landmarks.map((lm) => {
       if (!lm || lm.x == null || lm.y == null) return null
       if (lm.visibility != null && lm.visibility < 0.1) return null
@@ -194,6 +313,6 @@ Page({
 
     ctx.fillStyle = '#b4b4c8'
     ctx.font = '12px sans-serif'
-    ctx.fillText('仅关键点可视化，非评分', 8, 18)
+    ctx.fillText(label || '仅关键点可视化，非评分', 8, 18)
   },
 })

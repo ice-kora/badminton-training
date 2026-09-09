@@ -238,6 +238,7 @@ class TrainingVideoOut(OrmModel):
     orientation: Optional[str] = None
     size_bytes: Optional[int] = None
     precheck: Optional[dict[str, Any]] = None
+    baseline_video_id: Optional[int] = None
     created_at: datetime
 
 
@@ -285,8 +286,23 @@ class VideoListItemOut(BaseModel):
     skill_name: str
     duration_ms: Optional[int] = None
     orientation: Optional[str] = None
+    baseline_video_id: Optional[int] = None
     created_at: datetime
     latest_job: Optional[AnalysisJobSummaryOut] = None
+
+
+class BaselineVideoSummaryOut(BaseModel):
+    """Linked baseline clip for visual retest — no scores."""
+
+    id: int
+    skill_id: int
+    skill_name: str
+    filename: str
+    duration_ms: Optional[int] = None
+    orientation: Optional[str] = None
+    created_at: datetime
+    pose_extracted: bool = False
+    pose_frame_count: Optional[int] = None
 
 
 class VideoDetailOut(BaseModel):
@@ -301,6 +317,8 @@ class VideoDetailOut(BaseModel):
     orientation: Optional[str] = None
     size_bytes: Optional[int] = None
     precheck: Optional[dict[str, Any]] = None
+    baseline_video_id: Optional[int] = None
+    baseline: Optional[BaselineVideoSummaryOut] = None
     created_at: datetime
     jobs: list[AnalysisJobOut] = Field(default_factory=list)
     pose_extracted: bool = False
@@ -371,6 +389,14 @@ class PosePreviewOut(BaseModel):
         "MediaPipe landmarks 1:1; bone list is full POSE_CONNECTIONS."
     )
     notice: str = "仅关键点可视化，非评分"
+
+
+class RetestCompareOut(BaseModel):
+    """Side-by-side skeleton frames for baseline vs retest — visualization only."""
+
+    baseline: PosePreviewOut
+    current: PosePreviewOut
+    notice: str = "复测对比（仅骨架，非评分）"
 
 
 # ---- Motion Benchmark (read-only) ----
