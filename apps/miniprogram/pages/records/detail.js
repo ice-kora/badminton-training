@@ -1,4 +1,4 @@
-const { request, ensureLogin, getToken, baseUrl } = require('../../utils/request')
+const { request, ensureLogin, getToken, fetchVideoFileUrl, baseUrl } = require('../../utils/request')
 
 const STATUS_LABEL = {
   pending: '等待中',
@@ -133,11 +133,9 @@ Page({
     }
     this.setData({ videoId: id })
     ensureLogin()
-      .then(() => {
-        const token = getToken()
-        this.setData({
-          videoUrl: `${baseUrl}/videos/${id}/file?token=${encodeURIComponent(token || '')}`,
-        })
+      .then(() => fetchVideoFileUrl(id))
+      .then((videoUrl) => {
+        this.setData({ videoUrl })
         return request({ url: `/videos/${id}`, auth: true })
       })
       .then((video) => {

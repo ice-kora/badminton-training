@@ -7,11 +7,16 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session, joinedload
 
-from app.auth import decode_token, get_current_user, get_optional_user
+from app.auth import (
+    create_video_file_token,
+    decode_video_file_token,
+    get_current_user,
+    get_optional_user,
+)
 from app.config import get_settings
 from app.database import get_db
 from app.models import (
@@ -309,15 +314,63 @@ def _pose_meta(
     )
 
 
-def _save_upload_temp(file: UploadFile, suffix: str = ".mp4") -> Path:
+class UploadTooLarge(Exception):
+    """Raised when streamed upload exceeds upload_max_bytes."""
+
+
+def _content_length_over_limit(request: Request, max_bytes: int) -> bool:
+    raw = request.headers.get("content-length")
+    if raw is None:
+        return False
+    try:
+        return int(raw) > int(max_bytes)
+    except ValueError:
+        return False
+
+
+def _save_upload_temp(
+    file: UploadFile,
+    suffix: str = ".mp4",
+    *,
+    max_bytes: int,
+) -> Path:
+    """Stream to disk with hard truncate — never fill disk unboundedly."""
     uploads = _uploads_root()
     tmp_dir = uploads / "_tmp"
     tmp_dir.mkdir(parents=True, exist_ok=True)
     name = f"{uuid.uuid4().hex}{suffix}"
     dest = tmp_dir / name
-    with dest.open("wb") as out:
-        shutil.copyfileobj(file.file, out)
+    written = 0
+    chunk_size = 1024 * 1024
+    try:
+        with dest.open("wb") as out:
+            while True:
+                chunk = file.file.read(chunk_size)
+                if not chunk:
+                    break
+                written += len(chunk)
+                if written > max_bytes:
+                    raise UploadTooLarge(max_bytes)
+                out.write(chunk)
+    except UploadTooLarge:
+        dest.unlink(missing_ok=True)
+        raise
+    except Exception:
+        dest.unlink(missing_ok=True)
+        raise
     return dest
+
+
+def _reject_if_too_large(request: Request, max_bytes: int) -> None:
+    if _content_length_over_limit(request, max_bytes):
+        raise HTTPException(
+            status_code=413,
+            detail={
+                "code": "UPLOAD_TOO_LARGE",
+                "message": f"上传超过大小限制（{max_bytes} bytes）",
+                "max_bytes": max_bytes,
+            },
+        )
 
 
 def _owned_video(db: Session, video_id: int, user: User) -> TrainingVideo:
@@ -334,6 +387,7 @@ def _owned_video(db: Session, video_id: int, user: User) -> TrainingVideo:
 
 @router.post("/videos/precheck", response_model=PrecheckReportOut)
 async def precheck_video(
+    request: Request,
     file: UploadFile = File(...),
     skill_id: int = Form(...),
     client_checklist_json: Optional[str] = Form(None),
@@ -346,6 +400,8 @@ async def precheck_video(
 ):
     """Run server precheck without persisting (auth required)."""
     _ = user
+    settings = get_settings()
+    _reject_if_too_large(request, settings.upload_max_bytes)
     skill = db.get(BadmintonSkill, skill_id)
     if not skill:
         raise HTTPException(status_code=404, detail="技能不存在")
@@ -359,7 +415,19 @@ async def precheck_video(
     )
 
     suffix = Path(file.filename or "clip.mp4").suffix or ".mp4"
-    tmp = _save_upload_temp(file, suffix=suffix)
+    try:
+        tmp = _save_upload_temp(
+            file, suffix=suffix, max_bytes=settings.upload_max_bytes
+        )
+    except UploadTooLarge:
+        raise HTTPException(
+            status_code=413,
+            detail={
+                "code": "UPLOAD_TOO_LARGE",
+                "message": f"上传超过大小限制（{settings.upload_max_bytes} bytes）",
+                "max_bytes": settings.upload_max_bytes,
+            },
+        ) from None
     try:
         settings = get_settings()
         report = run_precheck(
@@ -378,6 +446,7 @@ async def precheck_video(
 
 @router.post("/videos/upload", response_model=VideoUploadOut)
 async def upload_video(
+    request: Request,
     file: UploadFile = File(...),
     skill_id: int = Form(...),
     baseline_video_id: Optional[int] = Form(None),
@@ -418,11 +487,24 @@ async def upload_video(
         accept_quality_risk=accept_quality_risk,
     )
 
+    settings = get_settings()
+    _reject_if_too_large(request, settings.upload_max_bytes)
     original_name = file.filename or "clip.mp4"
     suffix = Path(original_name).suffix or ".mp4"
-    tmp = _save_upload_temp(file, suffix=suffix)
     try:
-        settings = get_settings()
+        tmp = _save_upload_temp(
+            file, suffix=suffix, max_bytes=settings.upload_max_bytes
+        )
+    except UploadTooLarge:
+        raise HTTPException(
+            status_code=413,
+            detail={
+                "code": "UPLOAD_TOO_LARGE",
+                "message": f"上传超过大小限制（{settings.upload_max_bytes} bytes）",
+                "max_bytes": settings.upload_max_bytes,
+            },
+        ) from None
+    try:
         report = run_precheck(
             tmp,
             guide=guide,
@@ -886,21 +968,43 @@ def get_pose_overlay(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.get("/videos/{video_id}/file-token")
+def mint_video_file_token(
+    video_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Mint a short-lived dedicated token for <video src>?token= (not session JWT)."""
+    row = _owned_video(db, video_id, user)
+    settings = get_settings()
+    token = create_video_file_token(user.id, row.id)
+    expires_in = max(1, int(settings.video_file_token_expire_minutes)) * 60
+    return {
+        "video_id": row.id,
+        "token": token,
+        "expires_in": expires_in,
+        "url": f"/videos/{row.id}/file?token={token}",
+    }
+
+
 @router.get("/videos/{video_id}/file")
 def get_video_file(
     video_id: int,
     token: Optional[str] = Query(
-        None, description="JWT for <video> tag when Bearer header unavailable"
+        None,
+        description="Short-lived video_file token (from /file-token); not session JWT",
     ),
     db: Session = Depends(get_db),
     user: Optional[User] = Depends(get_optional_user),
 ):
-    """Stream owned training video for player UX (Bearer or ?token=)."""
+    """Stream owned training video (Bearer auth or short-lived ?token=)."""
     owner = user
     if owner is None and token:
         try:
-            payload = decode_token(token)
+            payload = decode_video_file_token(token, video_id=video_id)
             owner = db.get(User, int(payload.get("sub", 0)))
+        except HTTPException:
+            raise
         except Exception:
             owner = None
     if owner is None:

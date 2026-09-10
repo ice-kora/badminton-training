@@ -1,4 +1,4 @@
-const { request, ensureLogin, getToken, baseUrl } = require('../../utils/request')
+const { request, ensureLogin, getToken, fetchVideoFileUrl, baseUrl } = require('../../utils/request')
 const {
   SYNTHETIC_BANNER,
   LITERATURE_BANNER,
@@ -127,10 +127,8 @@ Page({
     } catch (e) { /* older base lib */ }
     if (q.skill_id) this.loadSkillName(q.skill_id)
     if (q.video_id) {
-      const token = getToken()
-      this.setData({
-        videoUrl: `${baseUrl}/videos/${q.video_id}/file?token=${encodeURIComponent(token || '')}`,
-      })
+      // Temporary placeholder; replaced after login with short-lived file token
+      this.setData({ videoUrl: '' })
     }
     this.loadWaitTips()
     this.startTipRotation()
@@ -139,11 +137,12 @@ Page({
     ensureLogin()
       .then(() => {
         if (q.video_id) {
-          const token = getToken()
-          this.setData({
-            videoUrl: `${baseUrl}/videos/${q.video_id}/file?token=${encodeURIComponent(token || '')}`,
-          })
+          return fetchVideoFileUrl(q.video_id).then((videoUrl) => {
+            this.setData({ videoUrl })
+          }).catch(() => {})
         }
+      })
+      .then(() => {
         this.pollOnce()
         this._pollTimer = setInterval(() => this.pollOnce(), 2000)
       })

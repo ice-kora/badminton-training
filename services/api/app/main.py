@@ -80,10 +80,27 @@ def create_app() -> FastAPI:
         ),
         lifespan=lifespan,
     )
+    # CORS whitelist via CORS_ORIGINS (comma-separated). Never * + credentials.
+    origins = settings.cors_origin_list()
+    if not origins:
+        # Dev convenience: local tools only; production should set CORS_ORIGINS.
+        if settings.is_production:
+            origins = []
+        else:
+            origins = [
+                "http://127.0.0.1:8000",
+                "http://localhost:8000",
+                "http://127.0.0.1:5173",
+                "http://localhost:5173",
+            ]
+    allow_credentials = True
+    if "*" in origins:
+        origins = ["*"]
+        allow_credentials = False
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
+        allow_origins=origins,
+        allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )

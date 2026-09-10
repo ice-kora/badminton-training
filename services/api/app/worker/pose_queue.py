@@ -2,7 +2,8 @@
 
 Claim path: status queued → extracting via optimistic UPDATE ... WHERE status='queued'.
 Process path: extracting → pose_extracted|scored | failed.
-Stale reclaim: extracting older than POSE_EXTRACT_STALE_SECONDS → queued again.
+Stale reclaim: extracting older than POSE_EXTRACT_STALE_SECONDS → queued again,
+or failed after pose_extract_max_attempts reclaims.
 """
 from __future__ import annotations
 
@@ -44,11 +45,13 @@ def reclaim_stale_extracting_jobs(
     db: Session,
     *,
     stale_seconds: Optional[int] = None,
+    max_attempts: Optional[int] = None,
 ) -> int:
     """
     Requeue jobs stuck in `extracting` longer than stale_seconds.
-    Simple policy: extracting → queued (log only; no failed escalation).
-    Returns number of rows reclaimed.
+    Increments attempt_count; after max_attempts marks failed instead of
+    infinite requeue.
+    Returns number of rows touched (requeued or failed).
     """
     settings = get_settings()
     seconds = (
@@ -56,33 +59,57 @@ def reclaim_stale_extracting_jobs(
         if stale_seconds is not None
         else int(settings.pose_extract_stale_seconds)
     )
+    attempts_limit = (
+        int(max_attempts)
+        if max_attempts is not None
+        else int(settings.pose_extract_max_attempts)
+    )
     if seconds <= 0:
         return 0
 
     cutoff = _utcnow_naive() - timedelta(seconds=seconds)
     now = _utcnow_naive()
-    result = db.execute(
-        update(AnalysisJob)
-        .where(
+    stale_jobs = (
+        db.query(AnalysisJob)
+        .filter(
             AnalysisJob.status == "extracting",
             AnalysisJob.updated_at < cutoff,
         )
-        .values(
-            status="queued",
-            scoring_status="blocked",
-            error_code=SCORING_CODE,
-            message=(
-                f"卡死 extracting 已超过 {seconds}s，已回收为 queued；"
-                "评分未开放（ANALYSIS_NOT_IMPLEMENTED）。"
-            ),
-            updated_at=now,
-        )
+        .all()
     )
-    db.commit()
-    n = int(result.rowcount or 0)
+    n = 0
+    for job in stale_jobs:
+        prev = int(job.attempt_count or 0)
+        new_count = prev + 1
+        job.attempt_count = new_count
+        job.updated_at = now
+        if attempts_limit > 0 and new_count >= attempts_limit:
+            job.status = "failed"
+            job.scoring_status = "blocked"
+            job.error_code = SCORING_CODE
+            job.message = (
+                f"卡死 extracting 已超过 {seconds}s，回收次数 {new_count}/"
+                f"{attempts_limit}，已标记 failed；评分未开放（ANALYSIS_NOT_IMPLEMENTED）。"
+            )
+            logger.warning(
+                "stale job %s failed after %s reclaim attempts",
+                job.id,
+                new_count,
+            )
+        else:
+            job.status = "queued"
+            job.scoring_status = "blocked"
+            job.error_code = SCORING_CODE
+            job.message = (
+                f"卡死 extracting 已超过 {seconds}s，已回收为 queued "
+                f"(attempt {new_count}/{attempts_limit})；"
+                "评分未开放（ANALYSIS_NOT_IMPLEMENTED）。"
+            )
+        n += 1
     if n:
+        db.commit()
         logger.warning(
-            "reclaimed %s stale extracting job(s) older than %ss (cutoff=%s)",
+            "reclaimed/failed %s stale extracting job(s) older than %ss (cutoff=%s)",
             n,
             seconds,
             cutoff.isoformat(sep=" ", timespec="seconds"),
@@ -257,10 +284,11 @@ def run_loop(
         else float(settings.pose_extract_poll_interval)
     )
     logger.info(
-        "pose queue loop started poll=%.2fs limit=%s stale=%ss",
+        "pose queue loop started poll=%.2fs limit=%s stale=%ss max_attempts=%s",
         interval,
         limit,
         settings.pose_extract_stale_seconds,
+        settings.pose_extract_max_attempts,
     )
     while True:
         if stop_event is not None and stop_event.is_set():

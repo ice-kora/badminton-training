@@ -24,6 +24,8 @@ if settings.database_url.startswith("sqlite"):
     def _set_sqlite_pragma(dbapi_conn, _connection_record):  # noqa: ANN001
         cursor = dbapi_conn.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
         cursor.close()
 
 
@@ -54,6 +56,12 @@ def ensure_schema() -> None:
                 conn.execute(
                     text(
                         "ALTER TABLE analysis_jobs ADD COLUMN scoring_status VARCHAR(64)"
+                    )
+                )
+            if "attempt_count" not in names:
+                conn.execute(
+                    text(
+                        "ALTER TABLE analysis_jobs ADD COLUMN attempt_count INTEGER DEFAULT 0"
                     )
                 )
         tv_rows = conn.execute(text("PRAGMA table_info(training_videos)")).fetchall()
@@ -114,7 +122,7 @@ def ensure_schema() -> None:
 
 
 def init_db() -> None:
-    """Create all tables (MVP: create_all; Alembic optional later)."""
+    """Create all tables (MVP: create_all; Alembic required before Postgres cutover)."""
     # Import models so metadata is populated
     from app import models  # noqa: F401
 

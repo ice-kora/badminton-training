@@ -63,7 +63,9 @@ docker compose -f infra/docker-compose.yml up -d
 
 ## 数据库策略
 
-MVP 使用 SQLAlchemy `create_all` + `python -m app.seed`。未强制 Alembic；后续切 Postgres 生产库时再补迁移。
+MVP 使用 SQLAlchemy `create_all` + `python -m app.seed`。**本轮仍跳过完整 Alembic。**
+
+> **切 Postgres 生产库前必须先接入 Alembic 迁移**（`create_all` 不足以作为生产 schema 管理）。在 cutover 前补齐迁移与评审，勿直接对生产 Postgres 依赖 `create_all`。
 
 ## 拍摄预检 + 上传（V1）
 
@@ -120,7 +122,7 @@ python ../../scripts/run_pose_extract.py --loop
 curl -X POST -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/extract-pose
 ```
 
-状态：`queued` → `extracting` → `pose_extracted` | `failed`（stale `extracting` → `queued`）。
+状态：`queued` → `extracting` → `pose_extracted` | `failed`（stale `extracting` → `queued`，`attempt_count` 累加；达到 `POSE_EXTRACT_MAX_ATTEMPTS`（默认 3）→ `failed`）。
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/pose
@@ -164,3 +166,42 @@ python ../../scripts/purge_videos.py --once
 ```
 
 选择条件：`file_purged_at IS NULL` 且 `created_at < now - VIDEO_TTL_DAYS`。
+
+## 安全与运维要点
+
+### 生产启动 fail-fast
+
+当 `APP_ENV` / `ENV` / `ENVIRONMENT` 为 `production`（或 `prod`）时，启动会拒绝不安全默认值并直接报错：
+
+- `JWT_SECRET` 不得为默认 / 弱口令
+- `ALLOW_DEV_LOGIN` 必须为 `false`
+- `DEBUG` 必须为 `false`
+
+本地开发可继续使用便捷默认值。
+
+### 上传大小
+
+- `UPLOAD_MAX_BYTES` 默认 **200MB**
+- 先检查 `Content-Length`，再流式写入并截断；超限返回 **HTTP 413**
+
+### CORS
+
+- 通过 `CORS_ORIGINS`（逗号分隔白名单）配置
+- **禁止** `allow_origins=*` 且 `allow_credentials=True`（若配置了 `*`，凭证自动关闭）
+
+### 视频文件 URL 令牌
+
+`<video>` 标签无法方便带 Bearer 头时，先：
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8000/videos/1/file-token
+```
+
+返回的短时专用 token（默认约 10 分钟，`VIDEO_FILE_TOKEN_EXPIRE_MINUTES`）用于 `GET /videos/{id}/file?token=...`。**不要**把 7 天会话 JWT 放进 query。
+
+### 小程序登录（共享开发账号）
+
+`apps/miniprogram/utils/request.js` 在 **401** 时会清 token → `ensureLogin` → **仅重试一次**。
+
+开发登录固定 openid：`mp-dev-user`（昵称「小程序体验用户」）。本地多台设备 / 开发者工具会话会**共享同一用户数据**；正式微信登录上线后应替换。
+

@@ -14,3 +14,18 @@ services/api/tests/_test_uploads/
 node_modules/
 services/api/data/models/*
 !services/api/data/models/.gitkeep
+
+# Private / local ops hygiene (do not wipe user Windows untracked outside repo)
+*.log
+logs/
+_incoming/
+precheck_out/
+**/precheck_out/
+services/api/data/_incoming/
+services/api/data/precheck_out/
+*.private.json
+*.private.yaml
+*.private.yml
+.env.*
+!.env.example
+services/api/data/private/
