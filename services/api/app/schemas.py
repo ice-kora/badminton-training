@@ -426,6 +426,8 @@ class TrainingScoreOut(BaseModel):
     dimension_scores: dict[str, float] = Field(default_factory=dict)
     metrics: list[dict[str, Any]] = Field(default_factory=list)
     problems: list[PoseProblemOut] = Field(default_factory=list)
+    primary_issue: Optional[PoseProblemOut] = None
+    cta_drill: Optional[dict[str, Any]] = None
     benchmark_kind: str = "synthetic_demo"
     verification_status: Optional[str] = None
     source: Optional[str] = None
@@ -433,6 +435,46 @@ class TrainingScoreOut(BaseModel):
     benchmark_version_id: Optional[int] = None
     benchmark_version_label: Optional[str] = None
     explainable: list[dict[str, Any]] = Field(default_factory=list)
+
+
+# ---- Me / UX comfort ----
+class NextFocusSkillOut(BaseModel):
+    id: int
+    code: str
+    name: str
+
+
+class NextFocusOut(BaseModel):
+    """Homepage next-focus: real score issues or beginner filming CTA (no fake scores)."""
+
+    empty: bool = False
+    title: str = "今天优先改 1 件事"
+    primary_issue: Optional[PoseProblemOut] = None
+    issues: list[PoseProblemOut] = Field(default_factory=list)
+    cta_drill: Optional[dict[str, Any]] = None
+    skill: Optional[NextFocusSkillOut] = None
+    last_score: Optional[float] = None
+    video_id: Optional[int] = None
+    job_id: Optional[int] = None
+    benchmark_kind: Optional[str] = None
+    banner: Optional[str] = None
+    cta_label: str = "去拍摄"
+    cta_path: str = "/pages/filming/guide"
+    message: Optional[str] = None
+
+
+class ScoreHistoryItemOut(BaseModel):
+    video_id: int
+    job_id: Optional[int] = None
+    skill_id: int
+    skill_code: Optional[str] = None
+    skill_name: str
+    overall_score: float
+    primary_issue_title: Optional[str] = None
+    cta_drill: Optional[dict[str, Any]] = None
+    benchmark_kind: Optional[str] = None
+    banner: Optional[str] = None
+    created_at: datetime
 
 
 # ---- V2 stage timeline + overlay ----

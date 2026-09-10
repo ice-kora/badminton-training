@@ -97,3 +97,11 @@
   margin-bottom: 16rpx;
   border-radius: 8rpx;
 }
+
+.player-controls { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; }
+.rate-btn {
+  padding: 10rpx 18rpx; border-radius: 10rpx; background: #f1f5f9;
+  border: 1rpx solid #e2e8f0; font-size: 24rpx;
+}
+.rate-btn.on { background: #0f172a; color: #fff; border-color: #0f172a; }
+.tiny { padding: 12rpx 18rpx; font-size: 24rpx; }

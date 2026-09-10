@@ -1,6 +1,21 @@
 const { request, ensureLogin, getToken, baseUrl } = require('../../utils/request')
 
+const FRIENDLY_FAIL = {
+  duration: '时长不合适：请重拍 5–60 秒的完整击球短视频。',
+  resolution: '画面不够清晰：请提高拍摄分辨率（短边建议 ≥ 720）。',
+  brightness: '光线偏暗：请到更亮的场地，避免逆光重拍。',
+  orientation: '请竖屏拍摄：把手机竖过来再录一段。',
+  probe: '视频打不开：请换一个常见格式（如 mp4）再试。',
+}
+
+function friendlyFailMessage(check) {
+  const id = (check && check.id) || ''
+  if (FRIENDLY_FAIL[id]) return FRIENDLY_FAIL[id]
+  return (check && check.message) || '预检未通过，请按提示重拍'
+}
+
 Page({
+
   data: {
     skillId: '',
     baselineVideoId: '',
@@ -160,10 +175,12 @@ Page({
         this.setData({ uploading: false })
         const detail = (err.body && err.body.detail) || err.body || err
         if (detail && detail.precheck && detail.precheck.checks) {
-          const fails = detail.precheck.checks.filter((c) => c.status === 'fail')
+          const fails = detail.precheck.checks
+            .filter((c) => c.status === 'fail')
+            .map((c) => ({ ...c, friendly: friendlyFailMessage(c) }))
           this.setData({
             failChecks: fails,
-            error: detail.message || '预检未通过，请重拍',
+            error: detail.message || '预检未通过，请按下方提示重拍',
           })
         } else {
           const msg =

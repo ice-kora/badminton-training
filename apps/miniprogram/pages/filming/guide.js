@@ -1,5 +1,22 @@
 const { request } = require('../../utils/request')
 
+const DEFAULT_KEYS = ['全身入画', '球拍可见', '竖屏且光线充足']
+
+function pickKeyChecks(guide) {
+  const list = guide.checklist || []
+  if (list.length >= 3) return list.slice(0, 3)
+  const keys = []
+  if (guide.full_body_required) keys.push('全身入画')
+  if (guide.racket_visible) keys.push('球拍可见')
+  keys.push(guide.orientation === 'portrait' ? '竖屏拍摄' : '按引导方向拍摄')
+  while (keys.length < 3 && list.length) {
+    const n = list[keys.length]
+    if (n && keys.indexOf(n) === -1) keys.push(n)
+    else break
+  }
+  return (keys.length ? keys : DEFAULT_KEYS).slice(0, 3)
+}
+
 Page({
   data: { guides: [], error: '', skillId: '' },
   onLoad(q) {
@@ -10,8 +27,22 @@ Page({
     }
     this.setData({ skillId })
     request({ url: `/filming-guides/${skillId}` })
-      .then((guides) => this.setData({ guides, error: '' }))
+      .then((guides) => {
+        const mapped = (guides || []).map((g) => ({
+          ...g,
+          keyChecks: pickKeyChecks(g),
+          checklistOpen: false,
+        }))
+        this.setData({ guides: mapped, error: '' })
+      })
       .catch((e) => this.setData({ error: e.message || '加载失败' }))
+  },
+  toggleChecklist(e) {
+    const id = e.currentTarget.dataset.id
+    const guides = this.data.guides.map((g) =>
+      g.id === id ? { ...g, checklistOpen: !g.checklistOpen } : g
+    )
+    this.setData({ guides })
   },
   startRecord() {
     wx.navigateTo({

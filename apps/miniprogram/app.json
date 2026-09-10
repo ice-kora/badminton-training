@@ -30,13 +30,13 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页",
+        "text": "今日",
         "iconPath": "images/tab-home.png",
         "selectedIconPath": "images/tab-home-active.png"
       },
       {
         "pagePath": "pages/skills/tree",
-        "text": "技术库",
+        "text": "学动作",
         "iconPath": "images/tab-skills.png",
         "selectedIconPath": "images/tab-skills-active.png"
       },
@@ -48,7 +48,7 @@
       },
       {
         "pagePath": "pages/records/index",
-        "text": "我的",
+        "text": "成长",
         "iconPath": "images/tab-me.png",
         "selectedIconPath": "images/tab-me-active.png"
       }

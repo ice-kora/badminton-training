@@ -1,26 +1,36 @@
 <view class="container">
-  <view class="banner-note">本阶段不含姿态评分与实时纠错。分析能力未上线，推荐来自规则计划。</view>
+  <view class="banner-note" wx:if="{{banner}}">{{banner}}</view>
+  <view class="banner-note" wx:else>评分来自已发布标准库的真实结果；无记录时不会生成模拟分数。禁止实时纠错。</view>
 
   <view class="hero card">
-    <view class="card-title">羽毛球训练助手</view>
-    <view class="muted">学技术 · 跟计划 · 打卡进步</view>
+    <view class="hero-kicker">今天优先改 1 件事</view>
+    <view class="card-title" wx:if="{{focus && !focus.empty && focus.primary_issue}}">{{focus.primary_issue.title}}</view>
+    <view class="card-title" wx:elif="{{focus && focus.message}}">{{focus.message}}</view>
+    <view class="card-title" wx:else>先拍一段，拿到真实问题</view>
+
+    <view class="score-row" wx:if="{{focus && focus.last_score != null}}">
+      <text class="big-score">{{focus.last_score}}</text>
+      <text class="muted">最近评分 · {{focus.skill.name}}</text>
+    </view>
+    <view class="muted" wx:elif="{{focus && focus.skill}}">推荐技能：{{focus.skill.name}}</view>
+
+    <view class="issue-mini" wx:for="{{focus.issues}}" wx:key="error_code" wx:if="{{focus && !focus.empty}}">
+      <text class="sev {{item.severity}}">{{item.severity}}</text>
+      <text>{{item.title}}</text>
+    </view>
+
     <view class="hero-actions">
-      <view class="btn-primary" bindtap="goPlan">开始训练</view>
-      <view class="btn-ghost" bindtap="goRecommend">现在练什么</view>
+      <view class="btn-primary" bindtap="goCta">{{ctaLabel}}</view>
+      <view class="btn-ghost" bindtap="goGuide">拍摄引导</view>
     </view>
   </view>
 
   <view class="section-title">快捷入口</view>
   <view class="grid">
-    <view class="grid-item card" bindtap="goSkills">技术库</view>
-    <view class="grid-item card" bindtap="goTest">水平测试</view>
+    <view class="grid-item card" bindtap="goSkills">学动作</view>
+    <view class="grid-item card" bindtap="goPlan">训练计划</view>
+    <view class="grid-item card" bindtap="goGrowth">成长记录</view>
     <view class="grid-item card" bindtap="goTips">训练贴士</view>
-    <view class="grid-item card" bindtap="goErrors">常见错误</view>
   </view>
-
-  <view class="card" wx:if="{{rec}}">
-    <view class="card-title">今日建议</view>
-    <view>{{rec.title}}</view>
-    <view class="muted" style="margin-top:8rpx;">{{rec.reason}}</view>
-  </view>
+  <view class="muted" wx:if="{{error}}">{{error}}</view>
 </view>

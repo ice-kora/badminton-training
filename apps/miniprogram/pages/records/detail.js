@@ -1,4 +1,4 @@
-const { request, ensureLogin } = require('../../utils/request')
+const { request, ensureLogin, getToken, baseUrl } = require('../../utils/request')
 
 const STATUS_LABEL = {
   pending: '等待中',
@@ -83,6 +83,11 @@ Page({
     overlayStageName: '',
     overlayCssW: 360,
     overlayCssH: 480,
+    videoUrl: '',
+    playbackRate: 1,
+    playerTime: 0,
+    showSkeleton: true,
+    showOverlayPanel: true,
   },
   _canvas: null,
   _ctx: null,
@@ -103,7 +108,13 @@ Page({
     }
     this.setData({ videoId: id })
     ensureLogin()
-      .then(() => request({ url: `/videos/${id}`, auth: true }))
+      .then(() => {
+        const token = getToken()
+        this.setData({
+          videoUrl: `${baseUrl}/videos/${id}/file?token=${encodeURIComponent(token || '')}`,
+        })
+        return request({ url: `/videos/${id}`, auth: true })
+      })
       .then((video) => {
         const checks = ((video.precheck && video.precheck.checks) || []).map((c) => ({
           ...c,
@@ -539,5 +550,29 @@ Page({
     ctx.fillStyle = '#b4b4c8'
     ctx.font = '12px sans-serif'
     ctx.fillText(label || '仅关键点可视化，非评分', 8, 18)
+  },
+  setPlayerRate(e) {
+    const rate = Number(e.currentTarget.dataset.rate)
+    this.setData({ playbackRate: rate })
+    try {
+      const ctx = wx.createVideoContext('detailPlayer', this)
+      if (ctx.playbackRate) ctx.playbackRate(rate)
+    } catch (err) {}
+  },
+  seekPlayer(e) {
+    const delta = Number(e.currentTarget.dataset.delta) || 0
+    const t = Math.max(0, (this.data.playerTime || 0) + delta)
+    try {
+      wx.createVideoContext('detailPlayer', this).seek(t)
+    } catch (err) {}
+  },
+  onPlayerTime(e) {
+    this.setData({ playerTime: e.detail.currentTime || 0 })
+  },
+  toggleSkeletonMode() {
+    this.setData({ showSkeleton: !this.data.showSkeleton })
+  },
+  toggleOverlayMode() {
+    this.setData({ showOverlayPanel: !this.data.showOverlayPanel })
   },
 })

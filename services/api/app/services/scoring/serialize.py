@@ -10,6 +10,8 @@ from app.models import PoseProblem, TrainingScore
 from app.schemas import PoseProblemOut, TrainingScoreOut
 from app.services.benchmark_pkg import LITERATURE_BANNER, SYNTHETIC_BANNER
 
+_SEVERITY_RANK = {"P0": 0, "P1": 1, "P2": 2}
+
 
 def _loads(raw: Optional[str], default: Any):
     if not raw:
@@ -40,6 +42,48 @@ def problem_out(row: PoseProblem) -> PoseProblemOut:
     )
 
 
+def _sort_problems(problems: list[PoseProblemOut]) -> list[PoseProblemOut]:
+    return sorted(
+        problems,
+        key=lambda p: (_SEVERITY_RANK.get(p.severity or "P2", 9), p.error_code or ""),
+    )
+
+
+def derive_primary_issue(
+    problems: list[PoseProblemOut],
+) -> Optional[PoseProblemOut]:
+    ordered = _sort_problems(problems)
+    return ordered[0] if ordered else None
+
+
+def derive_cta_drill(
+    problems: list[PoseProblemOut],
+    primary: Optional[PoseProblemOut] = None,
+) -> Optional[dict[str, Any]]:
+    """Pick first real drill from primary issue, else any problem drills_json."""
+    candidates: list[PoseProblemOut] = []
+    if primary is not None:
+        candidates.append(primary)
+    for p in _sort_problems(problems):
+        if primary is None or p.error_code != primary.error_code:
+            candidates.append(p)
+    for p in candidates:
+        drills = p.drills or []
+        if drills:
+            d0 = drills[0]
+            if isinstance(d0, dict):
+                return {
+                    "id": d0.get("id"),
+                    "code": d0.get("code"),
+                    "name": d0.get("name") or d0.get("code") or "推荐练习",
+                }
+        codes = p.drill_codes or []
+        if codes:
+            code = codes[0]
+            return {"id": None, "code": code, "name": code}
+    return None
+
+
 def score_out(row: TrainingScore) -> TrainingScoreOut:
     result = _loads(row.result_json, {})
     problems = [problem_out(p) for p in (row.problems or [])][:3]
@@ -51,11 +95,14 @@ def score_out(row: TrainingScore) -> TrainingScoreOut:
                 severity=p.get("severity") or "P1",
                 metric_id=p.get("metric_id"),
                 evidence=p.get("evidence") or {},
-                drills=[],
+                drills=p.get("drills") or [],
                 drill_codes=p.get("drill_codes") or [],
             )
             for p in result["problems"][:3]
         ]
+    problems = _sort_problems(problems)[:3]
+    primary = derive_primary_issue(problems)
+    cta = derive_cta_drill(problems, primary)
     banner = row.banner
     if row.benchmark_kind == "synthetic_demo" and not banner:
         banner = SYNTHETIC_BANNER
@@ -68,6 +115,8 @@ def score_out(row: TrainingScore) -> TrainingScoreOut:
         or {},
         metrics=result.get("metrics") or _loads(row.evidence_json, []),
         problems=problems,
+        primary_issue=primary,
+        cta_drill=cta,
         benchmark_kind=row.benchmark_kind or "synthetic_demo",
         verification_status=row.verification_status,
         source=row.source,

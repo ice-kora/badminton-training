@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session, joinedload
 
-from app.auth import get_current_user
+from app.auth import decode_token, get_current_user, get_optional_user
 from app.config import get_settings
 from app.database import get_db
 from app.models import (
@@ -824,3 +824,49 @@ def get_pose_overlay(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PosePreviewError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/videos/{video_id}/file")
+def get_video_file(
+    video_id: int,
+    token: Optional[str] = Query(
+        None, description="JWT for <video> tag when Bearer header unavailable"
+    ),
+    db: Session = Depends(get_db),
+    user: Optional[User] = Depends(get_optional_user),
+):
+    """Stream owned training video for player UX (Bearer or ?token=)."""
+    owner = user
+    if owner is None and token:
+        try:
+            payload = decode_token(token)
+            owner = db.get(User, int(payload.get("sub", 0)))
+        except Exception:
+            owner = None
+    if owner is None:
+        raise HTTPException(status_code=401, detail="需要登录")
+    row = _owned_video(db, video_id, owner)
+    path = Path(row.storage_path)
+    if not path.is_file():
+        alt = _uploads_root() / row.storage_path
+        if alt.is_file():
+            path = alt
+    if not path.is_file():
+        # relative filename under uploads
+        alt2 = _uploads_root() / Path(row.storage_path).name
+        if alt2.is_file():
+            path = alt2
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="视频文件不存在")
+    media = "video/mp4"
+    suffix = path.suffix.lower()
+    if suffix in {".mov", ".qt"}:
+        media = "video/quicktime"
+    elif suffix == ".webm":
+        media = "video/webm"
+    return FileResponse(
+        path,
+        media_type=media,
+        filename=row.filename or path.name,
+        content_disposition_type="inline",
+    )

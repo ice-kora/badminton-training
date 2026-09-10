@@ -1,27 +1,45 @@
 <view class="container">
   <view class="card">
-    <view class="card-title">{{nickname || '球员'}}</view>
-    <view class="muted">本地开发登录账号</view>
+    <view class="card-title">成长 · {{nickname || '球员'}}</view>
+    <view class="muted">真实评分历史（无模拟分）。点一条可看详情与复测对比。</view>
   </view>
 
-  <view class="section-title">入口</view>
-  <view class="card row" bindtap="goRecommend">
-    <text>现在练什么</text>
-    <text class="muted">规则推荐</text>
-  </view>
-  <view class="card row" bindtap="goTips">
-    <text>训练贴士</text>
-    <text class="muted">></text>
-  </view>
-  <view class="card row" bindtap="goErrors">
-    <text>常见错误</text>
-    <text class="muted">></text>
-  </view>
-
-  <view class="section-title">上传视频记录</view>
-  <view class="banner-note">姿态分析尚未开放，不返回分数。此处仅展示上传与任务状态。</view>
+  <view class="section-title">近期评分</view>
+  <view class="banner-note" wx:if="{{historyBanner}}">{{historyBanner}}</view>
   <view class="muted" wx:if="{{loading}}">加载中…</view>
   <view class="muted" wx:elif="{{error}}">{{error}}</view>
+
+  <view class="trend card" wx:if="{{history.length}}">
+    <view class="trend-bars">
+      <view class="bar-wrap" wx:for="{{historyAsc}}" wx:key="video_id">
+        <view class="bar" style="height: {{item.barHeight}}rpx;"></view>
+        <text class="bar-label">{{item.overall_score}}</text>
+      </view>
+    </view>
+    <view class="muted">简单趋势（左旧右新，纵轴为总分）</view>
+  </view>
+
+  <view
+    class="card"
+    wx:for="{{history}}"
+    wx:key="video_id"
+    bindtap="goVideoDetail"
+    data-id="{{item.video_id}}"
+  >
+    <view class="row">
+      <text class="card-title" style="margin-bottom:0;">{{item.skill_name}}</text>
+      <text class="big-mini">{{item.overall_score}}</text>
+    </view>
+    <view class="muted" style="margin-top:8rpx;">
+      {{item.primary_issue_title || '无明显问题'}} · {{item.createdText}}
+    </view>
+    <view class="muted" wx:if="{{item.benchmark_kind}}">{{item.benchmark_kind}}</view>
+  </view>
+  <view class="muted" wx:if="{{!loading && !error && !history.length}}">
+    暂无评分。去「学动作」→ 拍摄引导 → 上传，完成真实评分后再看成长。
+  </view>
+
+  <view class="section-title">上传记录</view>
   <view
     class="card"
     wx:for="{{videos}}"
@@ -30,25 +48,9 @@
     data-id="{{item.id}}"
   >
     <view class="row">
-      <text class="card-title" style="margin-bottom:0;">{{item.skill_name}}</text>
+      <text>{{item.skill_name}}</text>
       <text class="tag warn">{{item.jobStatusLabel}}</text>
     </view>
-    <view class="muted" style="margin-top:8rpx;">
-      时长 {{item.durationText}} · {{item.orientation || '-'}} · {{item.createdText}}
-    </view>
-    <view class="muted" wx:if="{{item.jobErrorCode}}">{{item.jobErrorCode}}</view>
+    <view class="muted">{{item.createdText}}</view>
   </view>
-  <view class="muted" wx:if="{{!loading && !error && !videos.length}}">
-    暂无上传视频。去「技术库」→ 拍摄引导 → 上传。
-  </view>
-
-  <view class="section-title">打卡记录</view>
-  <view class="card" wx:for="{{sessions}}" wx:key="id">
-    <view class="row">
-      <text>{{item.session_date}}</text>
-      <text class="tag" wx:if="{{item.rating}}">自评 {{item.rating}}</text>
-    </view>
-    <view class="muted">{{item.notes || '已完成训练打卡'}}</view>
-  </view>
-  <view class="muted" wx:if="{{!sessions.length}}">暂无打卡，去「训练」页完成一日计划吧。</view>
 </view>

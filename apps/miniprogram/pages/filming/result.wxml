@@ -1,19 +1,76 @@
-<view class="container">
-  <view class="banner-note">关键点可异步提取；评分未开放，不返回分数。</view>
-  <view class="card">
-    <view class="card-title">上传成功</view>
-    <view>视频 ID：{{videoId}}</view>
-    <view>任务 ID：{{jobId}}</view>
-    <view class="row" style="margin-top:12rpx;">
-      <text class="tag ok">{{poseLabel}}</text>
-      <text class="tag warn">{{scoringLabel}}</text>
+<view class="container result-page">
+  <view class="banner-synthetic" wx:if="{{isSyntheticDemo}}">⚠️ {{banner}}</view>
+  <view class="banner-literature" wx:elif="{{isLiteratureCited}}">📚 {{banner}}</view>
+  <view class="banner-note" wx:else>分析过程可查看；分数仅在已发布标准库评分后出现，无模拟分。</view>
+
+  <!-- U4 stepper -->
+  <view class="card stepper-card">
+    <view class="card-title">分析进度</view>
+    <view class="stepper">
+      <view class="step {{stepClass.uploaded}}">上传</view>
+      <view class="step-line"></view>
+      <view class="step {{stepClass.queued}}">预检/排队</view>
+      <view class="step-line"></view>
+      <view class="step {{stepClass.extracting}}">提取</view>
+      <view class="step-line"></view>
+      <view class="step {{stepClass.pose}}">关键点</view>
+      <view class="step-line"></view>
+      <view class="step {{stepClass.final}}">{{finalStepLabel}}</view>
     </view>
-    <view class="tag warn" style="margin-top:12rpx;">{{jobStatus}}</view>
-    <view class="muted" style="margin-top:12rpx;">{{jobMessage}}</view>
-    <view class="muted" wx:if="{{errorCode}}">error_code: {{errorCode}}</view>
+    <view class="muted" style="margin-top:12rpx;">状态 {{jobStatus || '…'}} · {{jobMessage}}</view>
+    <view class="muted" wx:if="{{errorCode}}">{{errorCode}}</view>
   </view>
-  <view class="btn-primary" bindtap="goDetail" style="margin-bottom:16rpx;">查看视频详情</view>
-  <view class="btn-ghost" bindtap="goHistory" style="margin-bottom:16rpx;">查看上传历史</view>
-  <view class="btn-ghost" bindtap="backSkill">返回</view>
+
+  <!-- U2 scored comfort -->
+  <block wx:if="{{scored && score}}">
+    <view class="card score-hero">
+      <view class="hero-kicker">本次评分</view>
+      <view class="big-score">{{score.overall_score}}</view>
+      <view class="primary-sentence">{{primarySentence}}</view>
+    </view>
+
+    <view class="section-title">主要问题（最多 3 条）</view>
+    <view class="card issue-card" wx:for="{{issues}}" wx:key="error_code">
+      <view class="row">
+        <text class="sev {{item.severity}}">{{item.severity}}</text>
+        <text class="issue-title">{{item.title}}</text>
+      </view>
+      <view class="muted" wx:if="{{item.metric_id}}">指标 {{item.metric_id}}</view>
+      <view class="muted" wx:if="{{item.drills && item.drills.length}}">推荐：{{item.drills[0].name || item.drills[0].code}}</view>
+    </view>
+    <view class="muted" wx:if="{{!issues.length}}">未检出显著问题，可再录一段巩固。</view>
+  </block>
+
+  <!-- U5 player -->
+  <view class="card" wx:if="{{videoId}}">
+    <view class="card-title">回放</view>
+    <video
+      id="resultPlayer"
+      src="{{videoUrl}}"
+      controls
+      playback-rate="{{playbackRate}}"
+      style="width:100%;"
+      bindtimeupdate="onTimeUpdate"
+    ></video>
+    <view class="player-controls">
+      <view class="rate-btn {{playbackRate===1?'on':''}}" data-rate="1" bindtap="setRate">1x</view>
+      <view class="rate-btn {{playbackRate===0.5?'on':''}}" data-rate="0.5" bindtap="setRate">0.5x</view>
+      <view class="rate-btn {{playbackRate===0.25?'on':''}}" data-rate="0.25" bindtap="setRate">0.25x</view>
+      <view class="rate-btn" data-delta="-2" bindtap="seekBy">-2s</view>
+      <view class="rate-btn" data-delta="2" bindtap="seekBy">+2s</view>
+    </view>
+    <view class="row" style="margin-top:12rpx;" wx:if="{{overlayAvailable || poseExtracted}}">
+      <view class="btn-ghost tiny" bindtap="toggleOverlay">{{showOverlay ? '隐藏骨架/叠加' : '显示骨架/叠加'}}</view>
+      <view class="btn-ghost tiny" bindtap="goDetail">详情对比</view>
+    </view>
+    <view class="muted" wx:if="{{showOverlay}}">骨架/叠加在详情页更完整；此处链到现有预览与复测。</view>
+  </view>
+
   <view class="muted" wx:if="{{error}}">{{error}}</view>
+
+  <!-- sticky CTAs -->
+  <view class="sticky-cta">
+    <view class="btn-primary" bindtap="goDrill">{{drillLabel}}</view>
+    <view class="btn-ghost" bindtap="goRetest">再录对比</view>
+  </view>
 </view>

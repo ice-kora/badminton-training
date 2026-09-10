@@ -21,6 +21,7 @@ from app.routers import (
     content,
     filming,
     health,
+    me,
     plans,
     recommendations,
     sessions,
@@ -88,6 +89,7 @@ def create_app() -> FastAPI:
     app.include_router(recommendations.router)
     app.include_router(analysis.router)
     app.include_router(videos.router)
+    app.include_router(me.router)
 
     static_dir = _ensure_viewer3d_assets()
     app.mount(

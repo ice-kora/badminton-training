@@ -50,7 +50,7 @@
   <view class="card" wx:if="{{failChecks.length}}">
     <view class="card-title" style="color:#b91c1c;">预检未通过 — 请重拍</view>
     <view wx:for="{{failChecks}}" wx:key="id" class="fail-item">
-      · [{{item.id}}] {{item.message}}
+      · {{item.friendly || item.message}}
     </view>
   </view>
 

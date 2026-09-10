@@ -14,6 +14,24 @@
       <view class="muted">分辨率 {{video.width || '-'}}×{{video.height || '-'}}</view>
       <view class="muted" wx:if="{{hasBaseline}}">复测关联基准 #{{video.baseline_video_id}}（{{baselineSummary.filename}}）</view>
       <view class="btn-primary" style="margin-top:20rpx;" bindtap="goRetest">针对此视频复测</view>
+
+    <view class="card" wx:if="{{videoUrl}}">
+      <view class="card-title">回放播放器</view>
+      <video id="detailPlayer" src="{{videoUrl}}" controls playback-rate="{{playbackRate}}" style="width:100%;" bindtimeupdate="onPlayerTime"></video>
+      <view class="player-controls">
+        <view class="rate-btn {{playbackRate===1?'on':''}}" data-rate="1" bindtap="setPlayerRate">1x</view>
+        <view class="rate-btn {{playbackRate===0.5?'on':''}}" data-rate="0.5" bindtap="setPlayerRate">0.5x</view>
+        <view class="rate-btn {{playbackRate===0.25?'on':''}}" data-rate="0.25" bindtap="setPlayerRate">0.25x</view>
+        <view class="rate-btn" data-delta="-2" bindtap="seekPlayer">-2s</view>
+        <view class="rate-btn" data-delta="2" bindtap="seekPlayer">+2s</view>
+      </view>
+      <view class="row" style="margin-top:12rpx;">
+        <view class="btn-ghost tiny" bindtap="toggleSkeletonMode">{{showSkeleton ? '骨架开' : '骨架关'}}</view>
+        <view class="btn-ghost tiny" bindtap="toggleOverlayMode">{{showOverlayPanel ? '叠加开' : '叠加关'}}</view>
+      </view>
+      <view class="muted">骨架/叠加使用下方既有预览；复测请点「针对此视频复测」。</view>
+    </view>
+
       <view class="muted" style="margin-top:8rpx;">复测可对比骨架；双方均已评分时显示分数差</view>
     </view>
 
@@ -76,7 +94,7 @@
       </view>
     </block>
 
-    <block wx:if="{{overlayAvailable}}">
+    <block wx:if="{{overlayAvailable && showOverlayPanel}}">
       <view class="section-title">标准 vs 用户骨架叠加</view>
       <view class="card">
         <view class="banner-synthetic" wx:if="{{isSyntheticDemo || overlaySynthetic}}">⚠️ {{scoringBanner}}</view>
@@ -107,8 +125,8 @@
       </view>
     </block>
 
-    <view class="section-title">骨架预览</view>
-    <view class="card">
+    <view class="section-title" wx:if="{{showSkeleton}}">骨架预览</view>
+    <view class="card" wx:if="{{showSkeleton}}">
       <view class="banner-note preview-disclaimer">仅关键点可视化</view>
       <block wx:if="{{poseExtracted}}">
         <canvas

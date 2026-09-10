@@ -1,1 +1,4 @@
-{ "navigationBarTitleText": "首页", "usingComponents": {} }
+{
+  "navigationBarTitleText": "今日",
+  "usingComponents": {}
+}

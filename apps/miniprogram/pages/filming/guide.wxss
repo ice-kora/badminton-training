@@ -1,1 +1,30 @@
-/* filming guide */
+.ref-frame {
+  height: 360rpx;
+  margin: 16rpx 0 20rpx;
+  border: 2rpx dashed #94a3b8;
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #f8fafc, #e2e8f0);
+  position: relative;
+}
+.sil-head {
+  width: 64rpx; height: 64rpx; border-radius: 50%; background: #cbd5e1;
+}
+.sil-body {
+  width: 100rpx; height: 140rpx; margin-top: 8rpx; border-radius: 16rpx; background: #94a3b8;
+}
+.sil-legs {
+  width: 80rpx; height: 100rpx; margin-top: 8rpx; border-radius: 8rpx; background: #64748b;
+}
+.ref-caption {
+  position: absolute; bottom: 16rpx; font-size: 22rpx; color: #475569;
+}
+.key-check {
+  padding: 12rpx 0;
+  font-size: 28rpx;
+  font-weight: 500;
+  border-bottom: 1rpx solid #f1f5f9;
+}

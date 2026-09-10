@@ -1,4 +1,16 @@
+.hero-kicker {
+  font-size: 24rpx;
+  color: #64748b;
+  margin-bottom: 8rpx;
+}
 .hero-actions { display: flex; gap: 16rpx; margin-top: 24rpx; }
 .hero-actions .btn-primary, .hero-actions .btn-ghost { flex: 1; }
 .grid { display: flex; flex-wrap: wrap; gap: 16rpx; margin-bottom: 12rpx; }
 .grid-item { width: calc(50% - 8rpx); box-sizing: border-box; text-align: center; font-weight: 500; margin-bottom: 0; }
+.score-row { display: flex; align-items: baseline; gap: 16rpx; margin: 16rpx 0; }
+.big-score { font-size: 72rpx; font-weight: 700; color: #0f172a; line-height: 1; }
+.issue-mini { display: flex; gap: 12rpx; align-items: center; margin-top: 10rpx; font-size: 26rpx; }
+.sev { font-size: 22rpx; padding: 2rpx 10rpx; border-radius: 8rpx; background: #e2e8f0; }
+.sev.P0 { background: #fee2e2; color: #991b1b; }
+.sev.P1 { background: #ffedd5; color: #9a3412; }
+.sev.P2 { background: #e0f2fe; color: #075985; }

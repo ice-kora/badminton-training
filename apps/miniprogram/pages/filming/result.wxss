@@ -1,1 +1,52 @@
-/* result */
+.result-page { padding-bottom: 180rpx; }
+.score-hero { text-align: center; }
+.hero-kicker { font-size: 24rpx; color: #64748b; }
+.big-score { font-size: 96rpx; font-weight: 700; line-height: 1.1; margin: 12rpx 0; }
+.primary-sentence { font-size: 30rpx; font-weight: 600; margin-top: 8rpx; }
+.issue-card .issue-title { flex: 1; margin-left: 12rpx; font-weight: 500; }
+.sev { font-size: 22rpx; padding: 2rpx 10rpx; border-radius: 8rpx; background: #e2e8f0; }
+.sev.P0 { background: #fee2e2; color: #991b1b; }
+.sev.P1 { background: #ffedd5; color: #9a3412; }
+.sev.P2 { background: #e0f2fe; color: #075985; }
+.stepper { display: flex; align-items: center; flex-wrap: nowrap; overflow-x: auto; }
+.step {
+  flex-shrink: 0;
+  font-size: 20rpx;
+  padding: 8rpx 12rpx;
+  border-radius: 999rpx;
+  background: #e2e8f0;
+  color: #64748b;
+}
+.step.done { background: #dcfce7; color: #166534; }
+.step.current { background: #0f172a; color: #fff; }
+.step.fail { background: #fee2e2; color: #991b1b; }
+.step-line { width: 16rpx; height: 4rpx; background: #cbd5e1; flex-shrink: 0; }
+.player-controls { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; }
+.rate-btn {
+  padding: 10rpx 18rpx;
+  border-radius: 10rpx;
+  background: #f1f5f9;
+  border: 1rpx solid #e2e8f0;
+  font-size: 24rpx;
+}
+.rate-btn.on { background: #0f172a; color: #fff; border-color: #0f172a; }
+.tiny { padding: 12rpx 18rpx; font-size: 24rpx; }
+.sticky-cta {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  gap: 16rpx;
+  padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,0.96);
+  border-top: 1rpx solid #e2e8f0;
+  z-index: 20;
+}
+.sticky-cta .btn-primary, .sticky-cta .btn-ghost { flex: 1; }
+.banner-synthetic {
+  background: #fff7ed; border: 1rpx solid #fed7aa; color: #9a3412;
+  border-radius: 12rpx; padding: 16rpx 20rpx; font-size: 24rpx; margin-bottom: 20rpx;
+}
+.banner-literature {
+  background: #eff6ff; border: 1rpx solid #bfdbfe; color: #1e40af;
+  border-radius: 12rpx; padding: 16rpx 20rpx; font-size: 24rpx; margin-bottom: 20rpx;
+}
