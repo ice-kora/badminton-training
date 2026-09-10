@@ -148,18 +148,24 @@ curl http://127.0.0.1:8000/benchmarks
 默认 **7 天**后删除（unlink）**原始视频文件**，并写入 `training_videos.file_purged_at`。  
 **保留** `pose_analyses` 关键点 JSON、`analysis_jobs`、`training_scores` / 问题行。回放原片接口在清理后返回 **410**。
 
+**自动执行（默认）**：`extract` worker 循环内嵌 TTL 清理，启动时先清一轮积压，之后每
+`VIDEO_PURGE_INTERVAL_SECONDS`（默认 **3600** 秒，`0` 关闭）执行一次。隐私承诺
+「原片约 N 天删除」由 `make worker` 这一个常驻进程兑现，无需另起调度器。
+小程序隐私徽章的 TTL 取自 `GET /health` 的 `video_ttl_days`（服务端单一事实源）。
+
 ```bash
 # 环境变量（可选）
 export VIDEO_TTL_DAYS=7
+export VIDEO_PURGE_INTERVAL_SECONDS=3600
 
-# 执行一批清理
+# 手动执行一批清理（对账 / dry-run 用）
 make purge-videos
 # 或
 cd services/api && source .venv/bin/activate
 python -m app.worker purge-videos --once
 python -m app.worker purge-videos --once --dry-run          # 只统计
 python -m app.worker purge-videos --once --ttl-days 3       # 临时覆盖
-# 周期性：
+# 周期性（独立进程；与 worker 内嵌清理互为冗余）：
 python -m app.worker purge-videos --loop --poll-interval 3600
 # 仓库脚本：
 python ../../scripts/purge_videos.py --once

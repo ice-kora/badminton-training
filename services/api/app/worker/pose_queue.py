@@ -4,6 +4,7 @@ Claim path: status queued → extracting via optimistic UPDATE ... WHERE status=
 Process path: extracting → pose_extracted|scored | failed.
 Stale reclaim: extracting older than POSE_EXTRACT_STALE_SECONDS → queued again,
 or failed after pose_extract_max_attempts reclaims.
+TTL purge: run_worker_purge_tick piggybacks on the loop (VIDEO_PURGE_INTERVAL_SECONDS).
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ from app.models import AnalysisJob, TrainingVideo
 from app.services.pose.base import PoseExtractor
 from app.services.pose.null_extractor import PoseExtractorUnavailable
 from app.services.pose.runner import SCORING_CODE, extract_for_video
+from app.services.video_purge import run_purge
 
 logger = logging.getLogger(__name__)
 
@@ -269,12 +271,64 @@ def run_once(
     return process_batch(limit=limit, extractor=extractor)
 
 
+def run_worker_purge_tick(
+    *,
+    last_run_mono: float = float("-inf"),
+    interval_seconds: Optional[float] = None,
+    force: bool = False,
+) -> float:
+    """
+    TTL purge piggybacked on the extract loop (runs in its own session).
+
+    The 7d privacy promise ("原片约 N 天删除") must be enforced by the same
+    worker process operators already run — a separate scheduler nobody starts
+    would silently void it. Errors are contained: purge must never kill
+    extraction. Returns the new last-run monotonic timestamp; returns the
+    input unchanged when disabled (interval <= 0) or not yet due.
+    """
+    settings = get_settings()
+    interval = (
+        float(interval_seconds)
+        if interval_seconds is not None
+        else float(settings.video_purge_interval_seconds)
+    )
+    if interval <= 0:
+        return last_run_mono
+    now_mono = time.monotonic()
+    if not force and (now_mono - last_run_mono) < interval:
+        return last_run_mono
+    session = SessionLocal()
+    try:
+        stats = run_purge(session, settings=settings)
+        session.commit()
+        if stats.selected:
+            logger.info(
+                "ttl purge selected=%s unlinked=%s already_missing=%s "
+                "marked=%s errors=%s",
+                stats.selected,
+                stats.unlinked,
+                stats.already_missing,
+                stats.marked,
+                stats.errors,
+            )
+    except Exception:
+        logger.exception("ttl purge tick error")
+        try:
+            session.rollback()
+        except Exception:  # noqa: BLE001 — close() must proceed regardless
+            pass
+    finally:
+        session.close()
+    return now_mono
+
+
 def run_loop(
     *,
     poll_interval: Optional[float] = None,
     limit: int = 1,
     extractor: Optional[PoseExtractor] = None,
     stop_event: Optional[threading.Event] = None,
+    purge_interval: Optional[float] = None,
 ) -> None:
     """Poll forever (or until stop_event). Default interval from settings (2s)."""
     settings = get_settings()
@@ -284,12 +338,16 @@ def run_loop(
         else float(settings.pose_extract_poll_interval)
     )
     logger.info(
-        "pose queue loop started poll=%.2fs limit=%s stale=%ss max_attempts=%s",
+        "pose queue loop started poll=%.2fs limit=%s stale=%ss max_attempts=%s "
+        "purge_interval=%ss",
         interval,
         limit,
         settings.pose_extract_stale_seconds,
         settings.pose_extract_max_attempts,
+        settings.video_purge_interval_seconds,
     )
+    # Purge once up front so a freshly started worker drains the TTL backlog.
+    last_purge = run_worker_purge_tick(force=True, interval_seconds=purge_interval)
     while True:
         if stop_event is not None and stop_event.is_set():
             logger.info("pose queue loop stop requested")
@@ -307,6 +365,9 @@ def run_loop(
                 )
         except Exception:
             logger.exception("pose queue tick error")
+        last_purge = run_worker_purge_tick(
+            last_run_mono=last_purge, interval_seconds=purge_interval
+        )
         if stop_event is not None:
             if stop_event.wait(timeout=interval):
                 break

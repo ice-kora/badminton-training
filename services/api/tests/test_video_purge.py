@@ -1,7 +1,7 @@
 """VIDEO_TTL_DAYS purge: selection logic + unlink originals, keep pose/scores."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from app.config import get_settings
@@ -234,5 +234,53 @@ def test_select_respects_custom_ttl(client):
         db.refresh(mid)
         assert mid.id not in {v.id for v in select_videos_for_purge(db, now=now, ttl_days=7)}
         assert mid.id in {v.id for v in select_videos_for_purge(db, now=now, ttl_days=2)}
+    finally:
+        db.close()
+
+
+def test_worker_purge_tick_force_runs_and_zero_disables(client):
+    """The extract-loop purge hook unlinks overdue originals; interval=0 opts out."""
+    from app.worker.pose_queue import run_worker_purge_tick
+
+    get_settings.cache_clear()
+    settings = get_settings()
+    upload = Path(settings.upload_dir)
+    upload.mkdir(parents=True, exist_ok=True)
+    skill_id = _skill_id(client)
+
+    # run_worker_purge_tick runs against real wall-clock now — seed a 10d-old row.
+    created = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=10)
+    media = upload / "loop_purge.mp4"
+    media.write_bytes(b"overdue-bytes")
+    db = SessionLocal()
+    try:
+        user = _ensure_user(db)
+        video = TrainingVideo(
+            user_id=user.id,
+            skill_id=skill_id,
+            storage_path=str(media),
+            filename="loop_purge.mp4",
+            created_at=created,
+        )
+        db.add(video)
+        db.commit()
+        db.refresh(video)
+        vid = video.id
+    finally:
+        db.close()
+
+    # Disabled: interval_seconds=0 returns the last-run marker untouched.
+    assert run_worker_purge_tick(last_run_mono=123.0, interval_seconds=0) == 123.0
+    assert media.exists()
+
+    # Forced tick (worker startup / due): unlink + stamp, pose rows unaffected.
+    new_last = run_worker_purge_tick(force=True, interval_seconds=3600)
+    assert new_last != 123.0
+    assert not media.exists()
+    db = SessionLocal()
+    try:
+        row = db.get(TrainingVideo, vid)
+        assert row is not None
+        assert row.file_purged_at is not None
     finally:
         db.close()

@@ -75,6 +75,10 @@ class Settings(BaseSettings):
     pose_extract_max_attempts: int = 3
     # Original video file TTL (days). Keypoints/scores kept; originals purged.
     video_ttl_days: int = 7
+    # TTL purge cadence (seconds) embedded in the extract worker loop; 0 disables.
+    # Piggybacks on the worker operators already run — the 7d privacy promise
+    # must not depend on remembering to start a separate purge scheduler.
+    video_purge_interval_seconds: int = 3600
     pose_model_path: str = str(_API_ROOT / "data" / "models" / "pose_landmarker_lite.task")
 
     @property

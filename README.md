@@ -16,6 +16,7 @@ infra/docker-compose.yml   可选 postgres/redis/minio
 docs/                 设计、RUN、内容政策、benchmark 模板
 scripts/              seed / pose extract / benchmark_validate|import|publish / dev.sh
                        DB 队列：python -m app.worker extract --once|--loop（无需 Redis）
+                       worker 循环内嵌 TTL 原片清理（VIDEO_PURGE_INTERVAL_SECONDS，默认每小时）
 ```
 
 ## 快速开始
@@ -23,7 +24,7 @@ scripts/              seed / pose extract / benchmark_validate|import|publish / 
 ```bash
 make install
 make run          # 终端 1：API http://127.0.0.1:8000
-make worker       # 终端 2：pose 提取队列（DB，无需 Redis）
+make worker       # 终端 2：pose 提取队列（DB，无需 Redis；内含 7 天 TTL 原片清理）
 make test         # pytest 须全绿
 ```
 
