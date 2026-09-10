@@ -261,6 +261,7 @@ class TrainingVideoOut(OrmModel):
     precheck: Optional[dict[str, Any]] = None
     baseline_video_id: Optional[int] = None
     created_at: datetime
+    file_purged_at: Optional[datetime] = None
 
 
 class AnalysisJobOut(OrmModel):
@@ -310,6 +311,7 @@ class VideoListItemOut(BaseModel):
     orientation: Optional[str] = None
     baseline_video_id: Optional[int] = None
     created_at: datetime
+    file_purged_at: Optional[datetime] = None
     latest_job: Optional[AnalysisJobSummaryOut] = None
 
 

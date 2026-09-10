@@ -66,6 +66,13 @@ def ensure_schema() -> None:
                         "ADD COLUMN baseline_video_id INTEGER"
                     )
                 )
+            if "file_purged_at" not in tv_names:
+                conn.execute(
+                    text(
+                        "ALTER TABLE training_videos "
+                        "ADD COLUMN file_purged_at DATETIME"
+                    )
+                )
         pose_rows = conn.execute(text("PRAGMA table_info(pose_analyses)")).fetchall()
         if pose_rows:
             pose_names = {r[1] for r in pose_rows}

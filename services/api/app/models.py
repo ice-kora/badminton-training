@@ -388,6 +388,8 @@ class TrainingVideo(Base):
     size_bytes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     precheck_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    # When original media file was unlinked (TTL purge). Pose/score rows kept.
+    file_purged_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     analysis_jobs: Mapped[list["AnalysisJob"]] = relationship(back_populates="video")
     pose_analyses: Mapped[list["PoseAnalysis"]] = relationship(

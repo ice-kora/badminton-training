@@ -1,4 +1,4 @@
-.PHONY: venv install seed run worker test api
+.PHONY: venv install seed run worker purge-videos test api
 
 API=services/api
 
@@ -30,3 +30,9 @@ test:
 	cd $(API) && . .venv/bin/activate && pytest -q
 
 api: run
+
+# Periodic: unlink originals older than VIDEO_TTL_DAYS (default 7); keep pose/scores
+purge-videos:
+	cd $(API) && . .venv/bin/activate && \
+	  DATABASE_URL=$${DATABASE_URL:-sqlite:///./data/app.db} \
+	  python -m app.worker purge-videos --once

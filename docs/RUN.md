@@ -140,3 +140,27 @@ python scripts/benchmark_import.py docs/benchmark/templates/forehand_clear.v0.js
 python scripts/benchmark_publish.py forehand_clear --version 0.1.0   # draft 默认失败
 curl http://127.0.0.1:8000/benchmarks
 ```
+
+## 原视频 TTL 清理（VIDEO_TTL_DAYS）
+
+默认 **7 天**后删除（unlink）**原始视频文件**，并写入 `training_videos.file_purged_at`。  
+**保留** `pose_analyses` 关键点 JSON、`analysis_jobs`、`training_scores` / 问题行。回放原片接口在清理后返回 **410**。
+
+```bash
+# 环境变量（可选）
+export VIDEO_TTL_DAYS=7
+
+# 执行一批清理
+make purge-videos
+# 或
+cd services/api && source .venv/bin/activate
+python -m app.worker purge-videos --once
+python -m app.worker purge-videos --once --dry-run          # 只统计
+python -m app.worker purge-videos --once --ttl-days 3       # 临时覆盖
+# 周期性：
+python -m app.worker purge-videos --loop --poll-interval 3600
+# 仓库脚本：
+python ../../scripts/purge_videos.py --once
+```
+
+选择条件：`file_purged_at IS NULL` 且 `created_at < now - VIDEO_TTL_DAYS`。

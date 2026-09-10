@@ -93,6 +93,26 @@
     </view>
   </view>
 
+
+  <!-- B1 watermarked share card (Moments image) -->
+  <view class="card share-card-block" wx:if="{{scored && score}}">
+    <view class="card-title">分享装逼卡</view>
+    <view class="muted">生成带水印的成绩图，可保存相册或转发朋友圈。</view>
+    <view class="share-actions">
+      <view class="btn-primary" bindtap="onShareCard">分享装逼卡</view>
+      <view class="btn-ghost soft-cta" bindtap="onRemoveWatermarkHook">去水印高清导出 · 即将开放</view>
+    </view>
+  </view>
+
+  <!-- off-screen canvas for share image (legacy canvas-id) -->
+  <canvas
+    canvas-id="shareCard"
+    class="share-canvas"
+    style="width: {{shareCanvasW}}px; height: {{shareCanvasH}}px;"
+    width="{{shareCanvasW}}"
+    height="{{shareCanvasH}}"
+  ></canvas>
+
   <!-- sticky CTAs -->
   <view class="sticky-cta">
     <view class="btn-primary" bindtap="goDrill">{{drillLabel}}</view>

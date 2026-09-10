@@ -147,6 +147,7 @@ def _video_out(row: TrainingVideo) -> TrainingVideoOut:
         precheck=_parse_precheck(row),
         baseline_video_id=row.baseline_video_id,
         created_at=row.created_at,
+        file_purged_at=row.file_purged_at,
     )
 
 
@@ -543,6 +544,7 @@ def list_videos(
                 orientation=row.orientation,
                 baseline_video_id=row.baseline_video_id,
                 created_at=row.created_at,
+                file_purged_at=row.file_purged_at,
                 latest_job=_job_summary(latest) if latest else None,
             )
         )
@@ -904,6 +906,11 @@ def get_video_file(
     if owner is None:
         raise HTTPException(status_code=401, detail="需要登录")
     row = _owned_video(db, video_id, owner)
+    if row.file_purged_at is not None:
+        raise HTTPException(
+            status_code=410,
+            detail="原视频已按保留策略清理（关键点与评分仍保留）",
+        )
     path = Path(row.storage_path)
     if not path.is_file():
         alt = _uploads_root() / row.storage_path

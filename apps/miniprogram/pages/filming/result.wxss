@@ -110,3 +110,23 @@
   align-items: center;
 }
 .honesty { font-size: 22rpx; margin-top: 8rpx; }
+
+/* B1 share card */
+.share-card-block .share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+.soft-cta {
+  font-size: 24rpx;
+  color: #64748b;
+  border-style: dashed;
+}
+.share-canvas {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  pointer-events: none;
+  opacity: 0;
+}

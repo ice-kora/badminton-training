@@ -100,6 +100,10 @@ Page({
     waitTipIndex: 0,
     waitTip: FALLBACK_TIPS[0],
     subscribeSoftHint: '',
+    skillName: '',
+    shareCanvasW: 600,
+    shareCanvasH: 900,
+    sharingCard: false,
   },
   _pollTimer: null,
   _tipTimer: null,
@@ -110,6 +114,7 @@ Page({
       videoId: q.video_id || '',
       skillId: q.skill_id || '',
     })
+    if (q.skill_id) this.loadSkillName(q.skill_id)
     if (q.video_id) {
       const token = getToken()
       this.setData({
@@ -282,4 +287,230 @@ Page({
     if (videoId) url += `&baseline_video_id=${videoId}`
     wx.navigateTo({ url })
   },
+  _resolveDemoUrl(cta) {
+    if (!cta) return ''
+    return cta.demo_gif_url || cta.demo_media_url || ''
+  },
+  loadSkillName(skillId) {
+    request({ url: `/skills/${skillId}` })
+      .then((sk) => {
+        if (sk && sk.name) this.setData({ skillName: sk.name })
+      })
+      .catch(() => {})
+  },
+  onRemoveWatermarkHook() {
+    wx.showToast({
+      title: '去水印高清导出 · 即将开放',
+      icon: 'none',
+      duration: 2500,
+    })
+  },
+  onShareCard() {
+    if (!this.data.scored || !this.data.score) {
+      wx.showToast({ title: '评分完成后可分享', icon: 'none' })
+      return
+    }
+    if (this.data.sharingCard) return
+    this.setData({ sharingCard: true })
+    wx.showLoading({ title: '生成中', mask: true })
+    this._drawShareCard()
+      .then((filePath) => this._exportShareImage(filePath))
+      .catch((err) => {
+        const msg = (err && err.message) || '生成失败'
+        wx.showToast({ title: msg, icon: 'none' })
+      })
+      .finally(() => {
+        wx.hideLoading()
+        this.setData({ sharingCard: false })
+      })
+  },
+  _drawShareCard() {
+    const W = this.data.shareCanvasW
+    const H = this.data.shareCanvasH
+    const score = this.data.score || {}
+    const overall = score.overall_score != null ? String(score.overall_score) : '—'
+    const skill = this.data.skillName || '羽毛球技术'
+    const primary =
+      this.data.primarySentence ||
+      (score.primary_issue && score.primary_issue.title
+        ? `优先改：${score.primary_issue.title}`
+        : '本次未检出显著问题')
+    const watermark = '羽毛球AI教练 · 体验版'
+    const ctx = wx.createCanvasContext('shareCard', this)
+
+    // background
+    ctx.setFillStyle('#0f172a')
+    ctx.fillRect(0, 0, W, H)
+    // accent panel
+    ctx.setFillStyle('#1e293b')
+    roundRect(ctx, 36, 80, W - 72, H - 200, 24)
+    ctx.fill()
+
+    // kicker
+    ctx.setFillStyle('#94a3b8')
+    ctx.setFontSize(22)
+    ctx.setTextAlign('left')
+    ctx.fillText('训练成绩卡', 64, 130)
+
+    // skill name
+    ctx.setFillStyle('#f8fafc')
+    ctx.setFontSize(28)
+    ctx.fillText(truncate(skill, 16), 64, 175)
+
+    // score badge circle
+    const cx = W / 2
+    const cy = 340
+    ctx.beginPath()
+    ctx.arc(cx, cy, 110, 0, Math.PI * 2)
+    ctx.setFillStyle('#22c55e')
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(cx, cy, 96, 0, Math.PI * 2)
+    ctx.setFillStyle('#0f172a')
+    ctx.fill()
+    ctx.setFillStyle('#4ade80')
+    ctx.setTextAlign('center')
+    ctx.setFontSize(64)
+    ctx.fillText(overall, cx, cy + 22)
+    ctx.setFillStyle('#94a3b8')
+    ctx.setFontSize(18)
+    ctx.fillText('综合分', cx, cy + 52)
+
+    // tiny skeleton stick figure (decorative, not pose data)
+    drawTinySkeleton(ctx, W - 120, 300)
+
+    // primary issue
+    ctx.setTextAlign('left')
+    ctx.setFillStyle('#e2e8f0')
+    ctx.setFontSize(22)
+    wrapText(ctx, primary, 64, 520, W - 128, 32, 3)
+
+    // watermark
+    ctx.setFillStyle('rgba(148,163,184,0.85)')
+    ctx.setFontSize(18)
+    ctx.setTextAlign('center')
+    ctx.fillText(watermark, W / 2, H - 48)
+
+    return new Promise((resolve, reject) => {
+      ctx.draw(false, () => {
+        setTimeout(() => {
+          wx.canvasToTempFilePath(
+            {
+              canvasId: 'shareCard',
+              width: W,
+              height: H,
+              destWidth: W,
+              destHeight: H,
+              fileType: 'png',
+              success: (res) => resolve(res.tempFilePath),
+              fail: (e) => reject(new Error((e && e.errMsg) || 'canvasToTempFilePath failed')),
+            },
+            this
+          )
+        }, 80)
+      })
+    })
+  },
+  _exportShareImage(filePath) {
+    // Prefer Moments share menu when available; else save to album
+    return new Promise((resolve, reject) => {
+      if (typeof wx.showShareImageMenu === 'function') {
+        wx.showShareImageMenu({
+          path: filePath,
+          success: () => resolve(filePath),
+          fail: () => {
+            this._saveShareToAlbum(filePath).then(resolve).catch(reject)
+          },
+        })
+      } else {
+        this._saveShareToAlbum(filePath).then(resolve).catch(reject)
+      }
+    })
+  },
+  _saveShareToAlbum(filePath) {
+    return new Promise((resolve, reject) => {
+      const save = () => {
+        wx.saveImageToPhotosAlbum({
+          filePath,
+          success: () => {
+            wx.showToast({ title: '已保存到相册', icon: 'success' })
+            resolve(filePath)
+          },
+          fail: (e) => reject(new Error((e && e.errMsg) || '保存失败')),
+        })
+      }
+      wx.getSetting({
+        success: (st) => {
+          if (st.authSetting && st.authSetting['scope.writePhotosAlbum'] === false) {
+            wx.showModal({
+              title: '需要相册权限',
+              content: '请允许保存图片到相册以便分享装逼卡',
+              success: (r) => {
+                if (r.confirm) wx.openSetting({})
+                reject(new Error('无相册权限'))
+              },
+            })
+            return
+          }
+          save()
+        },
+        fail: () => save(),
+      })
+    })
+  },
 })
+
+function truncate(s, n) {
+  const t = String(s || '')
+  return t.length > n ? t.slice(0, n - 1) + '…' : t
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + rr, y)
+  ctx.arcTo(x + w, y, x + w, y + h, rr)
+  ctx.arcTo(x + w, y + h, x, y + h, rr)
+  ctx.arcTo(x, y + h, x, y, rr)
+  ctx.arcTo(x, y, x + w, y, rr)
+  ctx.closePath()
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+  const chars = String(text || '').split('')
+  let line = ''
+  let lineCount = 0
+  for (let i = 0; i < chars.length; i++) {
+    const test = line + chars[i]
+    const m = ctx.measureText(test)
+    if (m.width > maxWidth && line) {
+      ctx.fillText(line, x, y + lineCount * lineHeight)
+      lineCount += 1
+      line = chars[i]
+      if (lineCount >= maxLines) return
+    } else {
+      line = test
+    }
+  }
+  if (line && lineCount < maxLines) ctx.fillText(line, x, y + lineCount * lineHeight)
+}
+
+function drawTinySkeleton(ctx, x, y) {
+  ctx.setStrokeStyle('#64748b')
+  ctx.setLineWidth(3)
+  ctx.beginPath()
+  ctx.arc(x, y - 40, 10, 0, Math.PI * 2) // head
+  ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(x, y - 28)
+  ctx.lineTo(x, y + 10) // torso
+  ctx.moveTo(x, y - 10)
+  ctx.lineTo(x - 22, y + 5) // L arm
+  ctx.moveTo(x, y - 10)
+  ctx.lineTo(x + 28, y - 25) // R arm raised (racket side hint)
+  ctx.moveTo(x, y + 10)
+  ctx.lineTo(x - 16, y + 40)
+  ctx.moveTo(x, y + 10)
+  ctx.lineTo(x + 16, y + 40)
+  ctx.stroke()
+}
