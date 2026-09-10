@@ -18,6 +18,18 @@
       <view class="step {{stepClass.final}}">{{finalStepLabel}}</view>
     </view>
     <view class="muted" style="margin-top:12rpx;">{{jobMessage || ('进度：' + (jobStatus || '…'))}}</view>
+
+    <!-- P2.2 wait-state enrichment (no fake scores) -->
+    <block wx:if="{{waiting}}">
+      <view class="wait-breathe" aria-hidden="true">
+        <view class="breathe-bar"></view>
+      </view>
+      <view class="wait-tip-card">
+        <view class="wait-tip-label">等待时小贴士</view>
+        <view class="wait-tip-text">{{waitTip}}</view>
+      </view>
+      <view class="subscribe-soft" wx:if="{{subscribeSoftHint}}">{{subscribeSoftHint}}</view>
+    </block>
   </view>
 
   <!-- U2 scored comfort -->

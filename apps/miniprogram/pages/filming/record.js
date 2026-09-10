@@ -1,5 +1,6 @@
 const { request, ensureLogin, getToken, baseUrl } = require('../../utils/request')
 const handednessUtil = require('../../utils/handedness')
+const subscribeUtil = require('../../utils/subscribe')
 
 /** WeChat chooseMedia camera maxDuration: prefer 60 when supported. */
 const LIVE_MAX_SEC = 60
@@ -219,9 +220,16 @@ Page({
         this.setData({ uploading: false })
         const jobId = body.analysis_job && body.analysis_job.id
         const videoId = body.video && body.video.id
-        wx.redirectTo({
-          url: `/pages/filming/result?job_id=${jobId}&video_id=${videoId}&skill_id=${this.data.skillId}`,
-        })
+        const goResult = () => {
+          wx.redirectTo({
+            url: `/pages/filming/result?job_id=${jobId}&video_id=${videoId}&skill_id=${this.data.skillId}`,
+          })
+        }
+        // P2.3: request subscribe while still in upload flow; empty tmpl → soft skip.
+        subscribeUtil
+          .requestAnalysisSubscribe()
+          .catch(() => null)
+          .then(goResult)
       })
       .catch((err) => {
         this.setData({ uploading: false })

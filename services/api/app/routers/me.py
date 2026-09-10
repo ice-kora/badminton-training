@@ -204,6 +204,10 @@ def _normalize_handedness(value: str | None) -> str:
     return "left" if value == "left" else "right"
 
 
+def _subscribe_opt_in(user: User) -> bool:
+    return bool(getattr(user, "subscribe_opt_in", 0) or 0)
+
+
 @router.get("/profile", response_model=UserProfileOut)
 def get_profile(
     db: Session = Depends(get_db),
@@ -215,6 +219,7 @@ def get_profile(
         nickname=user.nickname,
         handedness=_normalize_handedness(hand),
         level=user.level,
+        subscribe_opt_in=_subscribe_opt_in(user),
     )
 
 
@@ -230,6 +235,9 @@ def patch_profile(
         user.nickname = body.nickname
     if body.level is not None:
         user.level = body.level
+    if body.subscribe_opt_in is not None:
+        # Preference scaffold only — does not claim WeChat push works.
+        user.subscribe_opt_in = 1 if body.subscribe_opt_in else 0
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -238,4 +246,5 @@ def patch_profile(
         nickname=user.nickname,
         handedness=_normalize_handedness(getattr(user, "handedness", None)),
         level=user.level,
+        subscribe_opt_in=_subscribe_opt_in(user),
     )

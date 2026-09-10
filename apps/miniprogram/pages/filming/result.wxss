@@ -50,3 +50,46 @@
   background: #eff6ff; border: 1rpx solid #bfdbfe; color: #1e40af;
   border-radius: 12rpx; padding: 16rpx 20rpx; font-size: 24rpx; margin-bottom: 20rpx;
 }
+
+/* P2.2 wait-state: lightweight breathe + tip rotate */
+.wait-breathe {
+  margin-top: 20rpx;
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.breathe-bar {
+  height: 100%;
+  width: 40%;
+  border-radius: 999rpx;
+  background: #94a3b8;
+  animation: wait-breathe 1.8s ease-in-out infinite;
+}
+@keyframes wait-breathe {
+  0% { transform: translateX(0); opacity: 0.45; }
+  50% { transform: translateX(150%); opacity: 1; }
+  100% { transform: translateX(0); opacity: 0.45; }
+}
+.wait-tip-card {
+  margin-top: 20rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 12rpx;
+  background: #f8fafc;
+  border: 1rpx solid #e2e8f0;
+}
+.wait-tip-label {
+  font-size: 22rpx;
+  color: #64748b;
+  margin-bottom: 8rpx;
+}
+.wait-tip-text {
+  font-size: 26rpx;
+  color: #334155;
+  line-height: 1.55;
+}
+.subscribe-soft {
+  margin-top: 14rpx;
+  font-size: 22rpx;
+  color: #64748b;
+}

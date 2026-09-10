@@ -30,6 +30,7 @@
       <view wx:else>· 左手持拍：请镜像放置——机位在球员左后方。</view>
       <view class="muted" style="margin-top:8rpx;">2D 评分为图像平面近似（image-plane proxy），机位越好越可信；本示意不是真 3D 重建。</view>
     </view>
+    <view class="reality-tip">没带三脚架？可把手机架在羽毛球筒或球包上，尽量避免贴地超大仰拍（会压扁肩胸、干扰转体测量）。</view>
   </view>
 
   <block wx:for="{{guides}}" wx:key="id">

@@ -44,3 +44,15 @@
 | R1 | 暗球馆亮度：仅 brightness 失败时可「仍要上传（可能影响分析精度）」；form `force_upload` / `precheck_override=brightness` / `accept_quality_risk`；时长/分辨率/朝向仍硬拦；override 写入 `precheck_json` 与 job.message。阈值可调 `PRECHECK_MIN_BRIGHTNESS`（默认 40）。 |
 | R2 | 拍摄引导页半透明机位俯视示意：后侧约 45°、腰高、全身入画；左手镜像提示；文案标明 2D 为 image-plane proxy，非真 3D。 |
 
+
+## Phase-2 P1（体验舒适度）
+
+| ID | 要点 |
+|----|------|
+| P2.1 | 拍摄引导 45° 机位旁：三脚架替代提示（球筒/球包架高；避免贴地超大仰拍压扁肩胸） |
+| P2.2 | 分析结果轮询等待：轮换短羽毛球微贴士（`/tips/wait` + 小程序静态兜底）+ 轻量 CSS 呼吸条；禁止假分 |
+| P2.3 | 上传成功/等待态：`wx.requestSubscribeMessage` 脚手架；模板 ID 来自 `app.js` globalData / `utils/config.js`；空模板则软提示「分析完成后可在成长页查看」并跳过调用；本地持久化 opted-in；可选 `PATCH /me/profile` 存 `subscribe_opt_in`。**不宣称** touristappid 可真实推送（需正式 AppID + 已审模板） |
+
+### 明确不做（本阶段）
+
+音频峰值、3s 自动高光、假分、实时纠错、完整 metrics 看板实现。North Star 见 `docs/PRODUCT_METRICS.md`（双周复测率）。

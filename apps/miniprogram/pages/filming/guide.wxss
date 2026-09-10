@@ -137,3 +137,14 @@
 .angle-copy strong {
   font-weight: 600;
 }
+
+.reality-tip {
+  margin-top: 16rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 12rpx;
+  background: #fefce8;
+  border: 1rpx solid #fde68a;
+  color: #854d0e;
+  font-size: 24rpx;
+  line-height: 1.55;
+}

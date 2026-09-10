@@ -29,6 +29,8 @@ class User(Base):
     level: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)  # beginner/intermediate/advanced
     # Dominant racket hand for geometry/scoring (left|right). Default right.
     handedness: Mapped[str] = mapped_column(String(16), default="right")
+    # Local/WeChat subscribe preference scaffold only — does NOT imply push delivery.
+    subscribe_opt_in: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     plans: Mapped[list[TrainingPlan]] = relationship(back_populates="user")

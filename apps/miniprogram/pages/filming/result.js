@@ -6,6 +6,8 @@ const {
   humanizeJobMessage,
   AWAITING_SCORE_MSG,
 } = require('../../utils/honesty')
+const { FALLBACK_TIPS, normalizeTips } = require('../../utils/waitTips')
+const subscribeUtil = require('../../utils/subscribe')
 
 const TERMINAL = { scored: 1, failed: 1, pose_failed: 1, not_implemented: 1, rejected_precheck: 1 }
 
@@ -59,6 +61,13 @@ function stepState(status) {
   return { cls, finalLabel }
 }
 
+function isWaitingStatus(status, scored) {
+  // Show tips while not yet scored (incl. pose_extracted / not_implemented).
+  if (scored) return false
+  if (status === 'failed' || status === 'pose_failed' || status === 'rejected_precheck') return false
+  return true
+}
+
 Page({
   data: {
     jobId: '',
@@ -69,6 +78,7 @@ Page({
     errorCode: '',
     error: '',
     scored: false,
+    waiting: true,
     score: null,
     issues: [],
     primarySentence: '',
@@ -85,8 +95,14 @@ Page({
     poseExtracted: false,
     overlayAvailable: false,
     showOverlay: false,
+    waitTips: FALLBACK_TIPS.slice(),
+    waitTipIndex: 0,
+    waitTip: FALLBACK_TIPS[0],
+    subscribeSoftHint: '',
   },
   _pollTimer: null,
+  _tipTimer: null,
+  _subscribeRequested: false,
   onLoad(q) {
     this.setData({
       jobId: q.job_id || '',
@@ -99,6 +115,9 @@ Page({
         videoUrl: `${baseUrl}/videos/${q.video_id}/file?token=${encodeURIComponent(token || '')}`,
       })
     }
+    this.loadWaitTips()
+    this.startTipRotation()
+    this.maybeRequestSubscribe()
     if (!q.job_id) return
     ensureLogin()
       .then(() => {
@@ -115,6 +134,48 @@ Page({
   },
   onUnload() {
     if (this._pollTimer) clearInterval(this._pollTimer)
+    if (this._tipTimer) clearInterval(this._tipTimer)
+  },
+  loadWaitTips() {
+    request({ url: '/tips/wait' })
+      .then((raw) => {
+        const tips = normalizeTips(raw && (raw.tips || raw))
+        this.setData({
+          waitTips: tips,
+          waitTipIndex: 0,
+          waitTip: tips[0] || FALLBACK_TIPS[0],
+        })
+      })
+      .catch(() => {
+        /* keep FALLBACK_TIPS */
+      })
+  },
+  startTipRotation() {
+    if (this._tipTimer) clearInterval(this._tipTimer)
+    this._tipTimer = setInterval(() => {
+      if (!this.data.waiting) return
+      const tips = this.data.waitTips || FALLBACK_TIPS
+      if (!tips.length) return
+      const next = (this.data.waitTipIndex + 1) % tips.length
+      this.setData({ waitTipIndex: next, waitTip: tips[next] })
+    }, 4500)
+  },
+  maybeRequestSubscribe() {
+    if (this._subscribeRequested) return
+    this._subscribeRequested = true
+    subscribeUtil
+      .requestAnalysisSubscribe()
+      .then((res) => {
+        const hint =
+          (res && res.softHint) ||
+          (res && res.skipped && res.reason === 'empty_template'
+            ? '分析完成后可在成长页查看'
+            : '')
+        if (hint) this.setData({ subscribeSoftHint: hint })
+      })
+      .catch(() => {
+        this.setData({ subscribeSoftHint: '分析完成后可在成长页查看' })
+      })
   },
   pollOnce() {
     const jobId = this.data.jobId
@@ -132,6 +193,7 @@ Page({
           ''
         const steps = stepState(job.status)
         const scored = job.status === 'scored' && !!score
+        const waiting = isWaitingStatus(job.status, scored)
         const friendlyMsg = humanizeJobMessage(job.status, job.error_code, job.message)
         const primarySentence = primary
           ? `优先改：${primary.title}`
@@ -147,6 +209,7 @@ Page({
           errorCode: '',
           score,
           scored,
+          waiting,
           issues,
           primarySentence,
           ctaDrill: cta,
@@ -159,6 +222,10 @@ Page({
           poseExtracted: job.status === 'pose_extracted' || job.status === 'scored',
           overlayAvailable: job.status === 'pose_extracted' || job.status === 'scored',
         })
+        if (!waiting && this._tipTimer) {
+          clearInterval(this._tipTimer)
+          this._tipTimer = null
+        }
         if (TERMINAL[job.status] && this._pollTimer) {
           clearInterval(this._pollTimer)
           this._pollTimer = null

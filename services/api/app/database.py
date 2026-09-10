@@ -86,6 +86,12 @@ def ensure_schema() -> None:
                         "ALTER TABLE users ADD COLUMN handedness VARCHAR(16) DEFAULT 'right'"
                     )
                 )
+            if "subscribe_opt_in" not in user_names:
+                conn.execute(
+                    text(
+                        "ALTER TABLE users ADD COLUMN subscribe_opt_in INTEGER DEFAULT 0"
+                    )
+                )
 
 
 def init_db() -> None:

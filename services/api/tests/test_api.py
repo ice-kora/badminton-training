@@ -121,3 +121,16 @@ def test_check_in_and_sessions(client, auth_headers):
     sessions = client.get("/sessions", headers=auth_headers)
     assert sessions.status_code == 200
     assert len(sessions.json()) >= 1
+
+
+def test_tips_wait_endpoint(client):
+    r = client.get("/tips/wait")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert "tips" in body
+    assert len(body["tips"]) >= 3
+    for tip in body["tips"]:
+        assert tip.get("text") or tip.get("id")
+        text = tip.get("text") or ""
+        assert "模拟分" not in text
+        assert "假分" not in text

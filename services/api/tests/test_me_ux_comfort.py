@@ -187,3 +187,31 @@ def test_next_focus_and_history_after_score(client: TestClient, unique_auth_head
 def test_me_requires_auth(client: TestClient):
     assert client.get("/me/next-focus").status_code == 401
     assert client.get("/me/score-history").status_code == 401
+
+
+def test_profile_subscribe_opt_in_scaffold(client: TestClient, unique_auth_headers):
+    """Preference only — does not claim push delivery works."""
+    r = client.get("/me/profile", headers=unique_auth_headers)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert "subscribe_opt_in" in body
+    assert body["subscribe_opt_in"] is False
+
+    patched = client.patch(
+        "/me/profile",
+        headers=unique_auth_headers,
+        json={"subscribe_opt_in": True},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["subscribe_opt_in"] is True
+
+    again = client.get("/me/profile", headers=unique_auth_headers)
+    assert again.json()["subscribe_opt_in"] is True
+
+    off = client.patch(
+        "/me/profile",
+        headers=unique_auth_headers,
+        json={"subscribe_opt_in": False},
+    )
+    assert off.status_code == 200
+    assert off.json()["subscribe_opt_in"] is False

@@ -30,12 +30,15 @@ class UserProfileOut(BaseModel):
     nickname: str
     handedness: str = "right"
     level: Optional[str] = None
+    # Preference only; touristappid cannot real-push without formal AppID + template.
+    subscribe_opt_in: bool = False
 
 
 class UserProfileUpdate(BaseModel):
     handedness: Optional[str] = Field(default=None, pattern="^(left|right)$")
     nickname: Optional[str] = Field(default=None, min_length=1, max_length=64)
     level: Optional[str] = None
+    subscribe_opt_in: Optional[bool] = None
 
 
 # ---- Content provenance ----
