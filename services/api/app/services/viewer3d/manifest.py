@@ -8,7 +8,7 @@ from app.services.pose.landmarks import POSE_CONNECTIONS, POSE_LANDMARK_NAMES, b
 from app.services.scoring.overlay import generate_synthetic_template_sequence
 
 PLAYBACK_SPEEDS = [0.25, 0.5, 1.0]
-VIEWER3D_NOTICE = "3D 标准动作（演示）· 非实时 · 非专家验证"
+VIEWER3D_NOTICE = "3D 标准动作（演示）· 非实时 · 工程演示基准（非教练标定）"
 HUD_NA = "N/A"
 
 
@@ -231,7 +231,7 @@ def build_viewer3d_manifest(
         "source": package.get("source") or "engineering_synthetic_demo",
         "banner": banner or (LITERATURE_BANNER if kind == "literature_cited" else SYNTHETIC_BANNER),
         "notice": (
-            "3D 标准动作 · 文献抽取区间 · 非实时 · 非教练现场标定"
+            "3D 标准动作 · 文献科研参考标准 · 非实时 · 非教练现场标定"
             if kind == "literature_cited"
             else VIEWER3D_NOTICE
         ),

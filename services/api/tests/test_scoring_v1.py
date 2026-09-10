@@ -114,7 +114,7 @@ def test_synthetic_demo_packages_validate_with_flag():
         data = load_package(path)
         assert data["verification_status"] == "synthetic_demo"
         assert data["source"] == "engineering_synthetic_demo"
-        assert "非专家验证，仅供流水线演示" in (data.get("banner") or "")
+        assert "工程演示基准（非教练标定）" in (data.get("banner") or "")
         with pytest.raises(BenchmarkValidationError):
             validate_package(data)
         warnings = validate_package(data, allow_synthetic_demo=True)
@@ -178,7 +178,7 @@ def test_demo_publish_extract_score_problems(client: TestClient, auth_headers, t
         )
         assert score is not None
         assert score.benchmark_kind == "synthetic_demo"
-        assert "非专家验证" in (score.banner or "")
+        assert "工程演示基准" in (score.banner or "")
         problems = db.query(PoseProblem).filter(PoseProblem.score_id == score.id).all()
         assert len(problems) <= 3
     finally:
@@ -188,7 +188,7 @@ def test_demo_publish_extract_score_problems(client: TestClient, auth_headers, t
     assert detail.status_code == 200
     d = detail.json()
     assert d["benchmark_kind"] == "synthetic_demo"
-    assert d["scoring_banner"] and "非专家验证" in d["scoring_banner"]
+    assert d["scoring_banner"] and "工程演示基准" in d["scoring_banner"]
     assert d["score"] is not None
     assert "overall_score" in d["score"]
     assert len(d["problems"]) <= 3

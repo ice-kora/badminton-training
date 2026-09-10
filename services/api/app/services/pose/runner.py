@@ -20,7 +20,7 @@ SCORING_CODE = "ANALYSIS_NOT_IMPLEMENTED"
 SCORING_MSG = (
     "关键点已提取（或排队中）；评分需已发布 Motion Benchmark。"
     "无 published 版本时保持 ANALYSIS_NOT_IMPLEMENTED；"
-    "synthetic_demo 须展示「非专家验证，仅供流水线演示」。"
+    "synthetic_demo 须展示「工程演示基准（非教练标定）」。"
 )
 
 

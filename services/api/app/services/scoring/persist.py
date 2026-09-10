@@ -16,6 +16,7 @@ from app.models import (
     ProblemToDrill,
     TrainingScore,
     TrainingVideo,
+    User,
 )
 from app.services.benchmark_pkg import (
     LITERATURE_BANNER,
@@ -132,6 +133,9 @@ def maybe_score_after_pose(
     # Stage timeline can land even if scoring later fails
     persist_stage_timeline(db, video=video, pose=pose, package=pkg)
 
+    user = db.get(User, video.user_id) if video.user_id else None
+    handedness = getattr(user, "handedness", None) if user is not None else None
+
     try:
         scorer = PoseScorer()
         result = scorer.score(
@@ -140,6 +144,7 @@ def maybe_score_after_pose(
             error_catalog=_error_catalog(db),
             problem_to_drills=_problem_to_drills(db),
             max_problems=3,
+            handedness=handedness,
         )
     except Exception as exc:
         logger.exception("scoring failed video=%s job=%s", video.id, job.id)

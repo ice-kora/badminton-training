@@ -1,4 +1,8 @@
 const { request, ensureLogin, getToken, baseUrl } = require('../../utils/request')
+const handednessUtil = require('../../utils/handedness')
+
+/** WeChat chooseMedia camera maxDuration: prefer 60 when supported. */
+const LIVE_MAX_SEC = 60
 
 const FRIENDLY_FAIL = {
   duration: '时长不合适：请重拍 5–60 秒的完整击球短视频。',
@@ -8,6 +12,14 @@ const FRIENDLY_FAIL = {
   probe: '视频打不开：请换一个常见格式（如 mp4）再试。',
 }
 
+const SOFT_TIPS = [
+  '全身入镜（对照剪影）',
+  '距离约 3–5 米，不太近/不太远',
+  '球拍可见',
+  '竖屏拍摄',
+  '光线充足、背景干净',
+]
+
 function friendlyFailMessage(check) {
   const id = (check && check.id) || ''
   if (FRIENDLY_FAIL[id]) return FRIENDLY_FAIL[id]
@@ -15,20 +27,14 @@ function friendlyFailMessage(check) {
 }
 
 Page({
-
   data: {
     skillId: '',
     baselineVideoId: '',
     isRetest: false,
     guide: null,
-    checklist: [
-      { key: 'full_body', label: '全身已入镜（对照剪影）', checked: false },
-      { key: 'distance_ok', label: '距离合适（不太近/不太远）', checked: false },
-      { key: 'racket_visible', label: '球拍可见', checked: false },
-      { key: 'portrait', label: '竖屏拍摄', checked: false },
-      { key: 'lighting_ok', label: '光线充足、背景干净', checked: false },
-    ],
-    checkedCount: 0,
+    softTips: SOFT_TIPS,
+    handedness: 'right',
+    liveMaxSec: LIVE_MAX_SEC,
     showCamera: false,
     videoPath: '',
     videoInfo: '',
@@ -47,6 +53,10 @@ Page({
       skillId,
       baselineVideoId,
       isRetest: !!baselineVideoId,
+      handedness: handednessUtil.getLocal(),
+    })
+    handednessUtil.syncFromServer().then((h) => {
+      if (h) this.setData({ handedness: h })
     })
     request({ url: `/filming-guides/${skillId}` })
       .then((guides) => {
@@ -54,33 +64,19 @@ Page({
       })
       .catch(() => {})
   },
-  onChecklistChange(e) {
-    const selected = e.detail.value || []
-    const checklist = this.data.checklist.map((c) => ({
-      ...c,
-      checked: selected.indexOf(c.key) !== -1,
-    }))
-    this.setData({
-      checklist,
-      checkedCount: selected.length,
-    })
+  setHandedness(e) {
+    const hand = e.currentTarget.dataset.hand
+    handednessUtil.save(hand).then((h) => this.setData({ handedness: h }))
   },
   toggleCamera() {
     this.setData({ showCamera: !this.data.showCamera })
   },
-  allChecked() {
-    return this.data.checklist.every((c) => c.checked)
-  },
   chooseMedia() {
-    if (!this.allChecked()) {
-      wx.showToast({ title: '请先勾选全部清单', icon: 'none' })
-      return
-    }
     wx.chooseMedia({
       count: 1,
       mediaType: ['video'],
       sourceType: ['album', 'camera'],
-      maxDuration: 15,
+      maxDuration: LIVE_MAX_SEC,
       camera: 'back',
       success: (res) => {
         const f = res.tempFiles[0]
@@ -104,23 +100,43 @@ Page({
         })
       },
       fail: (err) => {
-        this.setData({ error: err.errMsg || '选择视频失败' })
+        const msg = (err && err.errMsg) || ''
+        // Some bases reject maxDuration>15 — retry with 15 and keep copy honest.
+        if (LIVE_MAX_SEC > 15 && /maxDuration|duration/i.test(msg)) {
+          wx.chooseMedia({
+            count: 1,
+            mediaType: ['video'],
+            sourceType: ['album', 'camera'],
+            maxDuration: 15,
+            camera: 'back',
+            success: (res) => {
+              this.setData({ liveMaxSec: 15 })
+              const f = res.tempFiles[0]
+              const dur = Number(f.duration || 0)
+              this.setData({
+                videoPath: f.tempFilePath,
+                videoInfo: `约 ${dur}s · ${f.width || '?'}x${f.height || '?'}`,
+                failChecks: [],
+                error: '',
+              })
+            },
+            fail: (e2) => this.setData({ error: e2.errMsg || '选择视频失败' }),
+          })
+          return
+        }
+        this.setData({ error: msg || '选择视频失败' })
       },
     })
   },
   doUpload() {
-    if (!this.allChecked()) {
-      wx.showToast({ title: '请先勾选全部清单', icon: 'none' })
-      return
-    }
     if (!this.data.videoPath) {
       wx.showToast({ title: '请先选择视频', icon: 'none' })
       return
     }
     this.setData({ uploading: true, failChecks: [], error: '' })
-    const checklistObj = {}
-    this.data.checklist.forEach((c) => {
-      checklistObj[c.key] = !!c.checked
+    const tipsAck = {}
+    SOFT_TIPS.forEach((_, i) => {
+      tipsAck[`tip_${i}`] = true
     })
     ensureLogin()
       .then(() => {
@@ -132,11 +148,16 @@ Page({
             formData: (() => {
               const fd = {
                 skill_id: String(this.data.skillId),
-                client_checklist_json: JSON.stringify(checklistObj),
+                client_checklist_json: JSON.stringify({
+                  soft_tips_only: true,
+                  silhouette_guide: true,
+                  ...tipsAck,
+                }),
                 frame_coverage_hints_json: JSON.stringify({
                   silhouette_guide: true,
-                  note: 'client silhouette + checklist only; not pose',
+                  note: 'client silhouette + soft tips only; not pose; not mandatory checklist',
                 }),
+                handedness: this.data.handedness || 'right',
               }
               if (this.data.baselineVideoId) {
                 fd.baseline_video_id = String(this.data.baselineVideoId)

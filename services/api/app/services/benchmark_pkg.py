@@ -39,10 +39,10 @@ ALLOWED_STATUS = frozenset(
 ALLOWED_HANDEDNESS = frozenset({"left", "right", "either", None})
 
 SYNTHETIC_SOURCE = "engineering_synthetic_demo"
-SYNTHETIC_BANNER = "非专家验证，仅供流水线演示"
+SYNTHETIC_BANNER = "工程演示基准（非教练标定）"
 
 LITERATURE_SOURCE = "peer_reviewed_literature"
-LITERATURE_BANNER = "文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示"
+LITERATURE_BANNER = "文献科研参考标准（非教练现场标定）"
 LITERATURE_RANGE_KINDS = frozenset(
     {
         "literature_mean_sd",

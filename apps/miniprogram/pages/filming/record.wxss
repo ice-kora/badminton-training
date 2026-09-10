@@ -1,13 +1,31 @@
+.silhouette-card .silhouette-wrap {
+  position: relative;
+  margin: 16rpx 0;
+}
 .silhouette-card .silhouette {
   height: 360rpx;
-  margin: 16rpx 0;
-  border: 2rpx dashed #94a3b8;
+  border: 2rpx dashed rgba(148, 163, 184, 0.7);
   border-radius: 16rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
+  background: rgba(248, 250, 252, 0.55);
+}
+.silhouette.translucent .sil-head,
+.silhouette.translucent .sil-body,
+.silhouette.translucent .sil-legs {
+  opacity: 0.45;
+}
+.ref-frame-overlay {
+  pointer-events: none;
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 6%;
+  bottom: 6%;
+  border: 2rpx solid rgba(59, 130, 246, 0.35);
+  border-radius: 24rpx;
 }
 .sil-head {
   width: 64rpx;
@@ -29,12 +47,31 @@
   border-radius: 8rpx;
   background: #64748b;
 }
-.check-row {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 12rpx 0;
+.soft-tips {
+  margin-top: 8rpx;
+}
+.tip-line {
   font-size: 26rpx;
+  color: #475569;
+  padding: 4rpx 0;
+}
+.hand-toggle {
+  display: flex;
+  gap: 16rpx;
+  margin: 12rpx 0;
+}
+.hand-btn {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  border-radius: 12rpx;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 28rpx;
+}
+.hand-btn.on {
+  background: #2563eb;
+  color: #fff;
 }
 .fail-item {
   color: #b91c1c;

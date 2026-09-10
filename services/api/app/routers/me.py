@@ -13,6 +13,8 @@ from app.schemas import (
     NextFocusOut,
     NextFocusSkillOut,
     ScoreHistoryItemOut,
+    UserProfileOut,
+    UserProfileUpdate,
 )
 from app.services.scoring.serialize import score_out
 
@@ -196,3 +198,44 @@ def score_history(
             )
         )
     return out
+
+
+def _normalize_handedness(value: str | None) -> str:
+    return "left" if value == "left" else "right"
+
+
+@router.get("/profile", response_model=UserProfileOut)
+def get_profile(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    hand = getattr(user, "handedness", None) or "right"
+    return UserProfileOut(
+        user_id=user.id,
+        nickname=user.nickname,
+        handedness=_normalize_handedness(hand),
+        level=user.level,
+    )
+
+
+@router.patch("/profile", response_model=UserProfileOut)
+def patch_profile(
+    body: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if body.handedness is not None:
+        user.handedness = _normalize_handedness(body.handedness)
+    if body.nickname is not None:
+        user.nickname = body.nickname
+    if body.level is not None:
+        user.level = body.level
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return UserProfileOut(
+        user_id=user.id,
+        nickname=user.nickname,
+        handedness=_normalize_handedness(getattr(user, "handedness", None)),
+        level=user.level,
+    )

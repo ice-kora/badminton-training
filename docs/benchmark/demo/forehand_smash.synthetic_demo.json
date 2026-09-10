@@ -93,7 +93,7 @@
   ],
   "verification_status": "synthetic_demo",
   "source": "engineering_synthetic_demo",
-  "banner": "非专家验证，仅供流水线演示",
+  "banner": "工程演示基准（非教练标定）",
   "notes": "工程合成演示包：数值区间为 synthetic_demo，禁止当作教练标准。",
   "synthetic_keypoint_template": {
     "note": "SYNTHETIC_DEMO keypoint template — not coach-verified",

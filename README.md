@@ -4,7 +4,7 @@
 目标仓库：https://github.com/ice-kora/badminton-training.git
 
 > **硬约束**：**禁止**实时摄像头纠错；**禁止**把 LLM/工程合成关节区间当作专家标准。  
-> 评分仅在存在 **published** Motion Benchmark 时开放。生产评分优先使用 `literature_cited`（`--allow-literature-cited`，横幅：**文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示**）。`synthetic_demo` 仍须 `--allow-synthetic-demo` 并展示合成横幅。无 published 时仍为 `ANALYSIS_NOT_IMPLEMENTED` / `awaiting_published_benchmark`。
+> 评分仅在存在 **published** Motion Benchmark 时开放。生产评分优先使用 `literature_cited`（`--allow-literature-cited`，横幅：**文献科研参考标准（非教练现场标定）**）。`synthetic_demo` 仍须 `--allow-synthetic-demo` 并展示合成横幅。无 published 时仍为 `ANALYSIS_NOT_IMPLEMENTED` / `awaiting_published_benchmark`。
 
 ## 结构
 

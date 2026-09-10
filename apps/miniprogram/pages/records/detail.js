@@ -9,11 +9,15 @@ const STATUS_LABEL = {
   scored: '已评分',
   pose_failed: '关键点提取失败',
   failed: '关键点提取失败',
-  not_implemented: '分析未开放',
+  not_implemented: '该动作标准标定中，暂时无法评分',
 }
 
-const SYNTHETIC_BANNER = '非专家验证，仅供流水线演示'
-const LITERATURE_BANNER = '文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示'
+const {
+  SYNTHETIC_BANNER,
+  LITERATURE_BANNER,
+  bannerForKind,
+  humanizeJobMessage,
+} = require('../../utils/honesty')
 
 function formatTime(iso) {
   if (!iso) return ''
@@ -144,7 +148,7 @@ Page({
         const scoringBanner =
           video.scoring_banner ||
           (score && score.banner) ||
-          (isLiteratureCited ? LITERATURE_BANNER : isSyntheticDemo ? SYNTHETIC_BANNER : '')
+          bannerForKind(isLiteratureCited ? 'literature_cited' : isSyntheticDemo ? 'synthetic_demo' : '', '')
         const stageTimeline = video.stage_timeline || null
         const stageSegments = ((stageTimeline && stageTimeline.segments) || []).map((s) => {
           const d = s.delta_ms

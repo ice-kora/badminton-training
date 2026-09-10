@@ -4,7 +4,7 @@ Status: `verification_status=literature_cited` · `source=peer_reviewed_literatu
 
 Banner (API / mini-program):
 
-> 文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示
+> 文献科研参考标准（非教练现场标定）
 
 These packages **replace reliance on `synthetic_demo` numeric ranges for production scoring** when published with `--allow-literature-cited`. They are **not** coach field calibration and **not** `verified` expert sign-off.
 

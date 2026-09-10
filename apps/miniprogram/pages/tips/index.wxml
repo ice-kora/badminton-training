@@ -1,10 +1,11 @@
 <view class="container">
+  <view class="banner-note">拍摄提示：现场最长约 60 秒；相册选择最长 60 秒；服务端验收 5–60 秒。</view>
   <view class="card" wx:for="{{tips}}" wx:key="id">
     <view class="card-title">{{item.title}}</view>
     <view class="muted">{{item.summary}}</view>
     <view style="margin-top:12rpx;">{{item.body}}</view>
     <view style="margin-top:8rpx;">
-      <text class="tag warn">{{item.verification_status}}</text>
+      <text class="tag warn" wx:if="{{item.statusLabel}}">{{item.statusLabel}}</text>
       <text class="tag">{{item.tags}}</text>
     </view>
   </view>

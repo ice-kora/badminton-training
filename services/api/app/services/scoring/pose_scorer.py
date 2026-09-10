@@ -156,6 +156,7 @@ class PoseScorer:
         error_catalog: Optional[dict[str, dict[str, Any]]] = None,
         problem_to_drills: Optional[dict[str, list[str]]] = None,
         max_problems: int = 3,
+        handedness: Optional[str] = None,
     ) -> ScoreResult:
         pose = _load_pose(pose_json)
         frames = list(pose.get("frames") or [])
@@ -186,7 +187,7 @@ class PoseScorer:
             if not isinstance(m, dict) or not m.get("id"):
                 continue
             mid = str(m["id"])
-            measured = measure_metric(mid, frames)
+            measured = measure_metric(mid, frames, handedness=handedness)
             rmin = m.get("range_min")
             rmax = m.get("range_max")
             if rmin is not None:
@@ -195,6 +196,14 @@ class PoseScorer:
                 rmax = float(rmax)
             in_range, score, over = _score_against_range(measured, rmin, rmax)
             linked = _parse_linked_error(m)
+            notes = m.get("notes")
+            if mid in (
+                "trunk_x_factor_prep",
+                "trunk_rotation_backswing",
+                "trunk_coil_backswing",
+            ):
+                honesty = "2D 画面平面近似，非真三维 X-factor"
+                notes = f"{notes}；{honesty}" if notes else honesty
             ev = MetricEvidence(
                 metric_id=mid,
                 name=str(m.get("name") or mid),
@@ -205,7 +214,7 @@ class PoseScorer:
                 score=score,
                 unit=m.get("unit"),
                 linked_error_id=linked,
-                notes=m.get("notes"),
+                notes=notes,
             )
             metrics_out.append(ev)
             dim_scores[mid] = score

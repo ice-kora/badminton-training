@@ -52,7 +52,7 @@
       "range_max": 155.0,
       "range_kind": "synthetic_demo",
       "linked_error_id": "clear_contact_too_low",
-      "notes": "SYNTHETIC_DEMO numeric range — 非专家验证，仅供流水线演示"
+      "notes": "SYNTHETIC_DEMO numeric range — 工程演示基准（非教练标定）"
     },
     {
       "id": "contact_height_rel_shoulder",
@@ -94,7 +94,7 @@
   ],
   "verification_status": "synthetic_demo",
   "source": "engineering_synthetic_demo",
-  "banner": "非专家验证，仅供流水线演示",
+  "banner": "工程演示基准（非教练标定）",
   "notes": "工程合成演示包：数值区间为 synthetic_demo，禁止当作教练标准。",
   "synthetic_keypoint_template": {
     "note": "SYNTHETIC_DEMO keypoint template — not coach-verified",

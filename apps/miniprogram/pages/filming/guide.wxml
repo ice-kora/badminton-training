@@ -1,5 +1,15 @@
 <view class="container">
   <view class="banner-note">拍摄引导为产品 UX 指引，不是关节角度数值标准。上传仅做质量预检。</view>
+
+  <view class="card">
+    <view class="card-title">持拍手</view>
+    <view class="hand-toggle">
+      <view class="hand-btn {{handedness==='right'?'on':''}}" data-hand="right" bindtap="setHandedness">右手</view>
+      <view class="hand-btn {{handedness==='left'?'on':''}}" data-hand="left" bindtap="setHandedness">左手</view>
+    </view>
+    <view class="muted">默认右手；可随时切换，录制页同步。</view>
+  </view>
+
   <block wx:for="{{guides}}" wx:key="id">
     <view class="card">
       <view class="card-title">参考画面</view>
@@ -12,11 +22,12 @@
       <view class="muted">机位：{{item.camera_angle}}</view>
       <view class="muted">{{item.distance_hint}} · {{item.height_hint}} · {{item.orientation}}</view>
 
-      <view class="section-title">3 条关键检查</view>
-      <view class="key-check" wx:for="{{item.keyChecks}}" wx:for-item="k" wx:key="*this">✓ {{k}}</view>
+      <view class="section-title">拍摄提示（非强制勾选）</view>
+      <view class="key-check" wx:for="{{item.keyChecks}}" wx:for-item="k" wx:key="*this">· {{k}}</view>
+      <view class="muted" style="margin-top:8rpx;">现场拍摄最长 60 秒；相册选择最长 60 秒；服务端 5–60 秒。</view>
 
       <view class="section-title row" bindtap="toggleChecklist" data-id="{{item.id}}">
-        <text>完整清单</text>
+        <text>更多说明</text>
         <text class="muted">{{item.checklistOpen ? '收起' : '展开'}}</text>
       </view>
       <block wx:if="{{item.checklistOpen}}">
@@ -24,7 +35,7 @@
         <view class="muted" style="margin-top:12rpx;">{{item.lighting_notes}}</view>
         <view class="muted">时长 {{item.duration_range_sec[0]}}–{{item.duration_range_sec[1]}} 秒 · 短边 ≥ {{item.min_resolution.min_short_side}}</view>
       </block>
-      <view class="tag warn" style="margin-top:8rpx;">{{item.verification_status}}</view>
+      <view class="tag warn" style="margin-top:8rpx;" wx:if="{{item.statusLabel}}">{{item.statusLabel}}</view>
     </view>
   </block>
   <view class="btn-primary" wx:if="{{skillId}}" bindtap="startRecord">开始录制 / 选择视频</view>

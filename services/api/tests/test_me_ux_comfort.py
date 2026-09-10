@@ -89,8 +89,8 @@ def _upload(client: TestClient, headers: dict, skill_id: int, path: Path):
     return r.json()
 
 
-def test_next_focus_empty_beginner_cta(client: TestClient, auth_headers):
-    r = client.get("/me/next-focus", headers=auth_headers)
+def test_next_focus_empty_beginner_cta(client: TestClient, unique_auth_headers):
+    r = client.get("/me/next-focus", headers=unique_auth_headers)
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["empty"] is True
@@ -105,13 +105,13 @@ def test_next_focus_empty_beginner_cta(client: TestClient, auth_headers):
     assert str(body["skill"]["id"]) in body["cta_path"]
 
 
-def test_score_history_empty(client: TestClient, auth_headers):
-    r = client.get("/me/score-history", headers=auth_headers)
+def test_score_history_empty(client: TestClient, unique_auth_headers):
+    r = client.get("/me/score-history", headers=unique_auth_headers)
     assert r.status_code == 200
     assert r.json() == []
 
 
-def test_next_focus_and_history_after_score(client: TestClient, auth_headers, tmp_path):
+def test_next_focus_and_history_after_score(client: TestClient, unique_auth_headers, tmp_path):
     data = load_package(CLEAR_DEMO)
     db = SessionLocal()
     try:
@@ -126,7 +126,7 @@ def test_next_focus_and_history_after_score(client: TestClient, auth_headers, tm
     mp4 = write_solid_video(
         tmp_path / "ux.mp4", width=720, height=1280, duration_sec=6.0, fps=10.0
     )
-    body = _upload(client, auth_headers, clear_id, mp4)
+    body = _upload(client, unique_auth_headers, clear_id, mp4)
     video_id = body["video"]["id"]
     job_id = body["analysis_job"]["id"]
 
@@ -144,7 +144,7 @@ def test_next_focus_and_history_after_score(client: TestClient, auth_headers, tm
     finally:
         db.close()
 
-    focus = client.get("/me/next-focus", headers=auth_headers)
+    focus = client.get("/me/next-focus", headers=unique_auth_headers)
     assert focus.status_code == 200, focus.text
     f = focus.json()
     assert f["empty"] is False
@@ -156,12 +156,12 @@ def test_next_focus_and_history_after_score(client: TestClient, auth_headers, tm
         assert f["primary_issue"]["title"]
         assert f["message"] and "优先改" in f["message"]
     # score serialize fields on analysis job
-    job = client.get(f"/analysis/jobs/{job_id}", headers=auth_headers).json()
+    job = client.get(f"/analysis/jobs/{job_id}", headers=unique_auth_headers).json()
     assert job["score"] is not None
     assert "primary_issue" in job["score"]
     assert "cta_drill" in job["score"]
 
-    hist = client.get("/me/score-history", headers=auth_headers, params={"limit": 10})
+    hist = client.get("/me/score-history", headers=unique_auth_headers, params={"limit": 10})
     assert hist.status_code == 200
     items = hist.json()
     assert len(items) >= 1
@@ -171,14 +171,14 @@ def test_next_focus_and_history_after_score(client: TestClient, auth_headers, tm
 
     filtered = client.get(
         "/me/score-history",
-        headers=auth_headers,
+        headers=unique_auth_headers,
         params={"skill": clear_id, "limit": 5},
     )
     assert filtered.status_code == 200
     assert all(i["skill_id"] == clear_id for i in filtered.json())
 
     # video file stream
-    file_r = client.get(f"/videos/{video_id}/file", headers=auth_headers)
+    file_r = client.get(f"/videos/{video_id}/file", headers=unique_auth_headers)
     assert file_r.status_code == 200
     assert file_r.headers["content-type"].startswith("video/")
     assert len(file_r.content) > 100

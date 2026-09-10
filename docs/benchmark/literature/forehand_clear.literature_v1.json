@@ -149,6 +149,6 @@
   ],
   "verification_status": "literature_cited",
   "source": "peer_reviewed_literature",
-  "banner": "文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示",
+  "banner": "文献科研参考标准（非教练现场标定）",
   "notes": "Honest clear package: mostly null numeric metrics; 1–2 related_overhead_proxy ranges from Shan 2016 X-factor plus KJSS 2020 qualitative coordination citation. NOT clear-specific fabricated angles."
 }

@@ -1,4 +1,6 @@
 const { request } = require('../../utils/request')
+const { primaryStatusLabel } = require('../../utils/honesty')
+const handednessUtil = require('../../utils/handedness')
 
 const DEFAULT_KEYS = ['全身入画', '球拍可见', '竖屏且光线充足']
 
@@ -18,24 +20,32 @@ function pickKeyChecks(guide) {
 }
 
 Page({
-  data: { guides: [], error: '', skillId: '' },
+  data: { guides: [], error: '', skillId: '', handedness: 'right' },
   onLoad(q) {
     const skillId = q.skill_id
     if (!skillId) {
       this.setData({ error: '缺少 skill_id' })
       return
     }
-    this.setData({ skillId })
+    this.setData({ skillId, handedness: handednessUtil.getLocal() })
+    handednessUtil.syncFromServer().then((h) => {
+      if (h) this.setData({ handedness: h })
+    })
     request({ url: `/filming-guides/${skillId}` })
       .then((guides) => {
         const mapped = (guides || []).map((g) => ({
           ...g,
           keyChecks: pickKeyChecks(g),
           checklistOpen: false,
+          statusLabel: primaryStatusLabel(g.verification_status),
         }))
         this.setData({ guides: mapped, error: '' })
       })
       .catch((e) => this.setData({ error: e.message || '加载失败' }))
+  },
+  setHandedness(e) {
+    const hand = e.currentTarget.dataset.hand
+    handednessUtil.save(hand).then((h) => this.setData({ handedness: h }))
   },
   toggleChecklist(e) {
     const id = e.currentTarget.dataset.id

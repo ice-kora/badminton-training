@@ -82,7 +82,7 @@ def build_stick_figure_glb() -> bytes:
             "generator": "badminton-ai-coach-v3-synthetic_demo",
             "extras": {
                 "synthetic_demo": True,
-                "banner": "非专家验证，仅供流水线演示",
+                "banner": "工程演示基准（非教练标定）",
                 "note": "static stick-figure GLB — not mocap / not coach-verified",
             },
         },

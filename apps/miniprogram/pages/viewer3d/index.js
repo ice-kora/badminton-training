@@ -1,3 +1,4 @@
+const { SYNTHETIC_BANNER, LITERATURE_BANNER, bannerForKind, statusLabel } = require('../../utils/honesty')
 const { request } = require('../../utils/request')
 
 function project(j, yaw, pitch, dist, cx, cy, scale) {
@@ -97,7 +98,7 @@ Page({
         this.frameIdx = 0
         this.setData({
           skillName: m.skill_name || skillCode,
-          banner: m.banner || '非专家验证，仅供流水线演示',
+          banner: bannerForKind(m.benchmark_kind || m.verification_status, m.banner) || SYNTHETIC_BANNER,
           benchmarkKind: m.benchmark_kind || '',
           stages: m.stages || [],
           hudAngles: (m.hud_angles || []).slice(0, 4),

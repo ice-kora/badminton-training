@@ -128,6 +128,6 @@
   ],
   "verification_status": "literature_cited",
   "source": "peer_reviewed_literature",
-  "banner": "文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示",
+  "banner": "文献科研参考标准（非教练现场标定）",
   "notes": "Literature-cited from Hsueh et al. ISB 2009 tumble net shot. NOT coach field calibration. Absolute contact height left null for phone video."
 }

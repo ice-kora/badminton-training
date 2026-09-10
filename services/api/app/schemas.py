@@ -24,6 +24,20 @@ class TokenResponse(BaseModel):
     nickname: str
 
 
+
+class UserProfileOut(BaseModel):
+    user_id: int
+    nickname: str
+    handedness: str = "right"
+    level: Optional[str] = None
+
+
+class UserProfileUpdate(BaseModel):
+    handedness: Optional[str] = Field(default=None, pattern="^(left|right)$")
+    nickname: Optional[str] = Field(default=None, min_length=1, max_length=64)
+    level: Optional[str] = None
+
+
 # ---- Content provenance ----
 class ProvenanceMixin(BaseModel):
     source: str

@@ -27,6 +27,8 @@ class User(Base):
     openid: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     nickname: Mapped[str] = mapped_column(String(64), default="球员")
     level: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)  # beginner/intermediate/advanced
+    # Dominant racket hand for geometry/scoring (left|right). Default right.
+    handedness: Mapped[str] = mapped_column(String(16), default="right")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     plans: Mapped[list[TrainingPlan]] = relationship(back_populates="user")

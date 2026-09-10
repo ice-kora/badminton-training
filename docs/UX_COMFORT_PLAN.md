@@ -26,3 +26,13 @@
 ## 诚实横幅
 
 `synthetic_demo` / `literature_cited` 必须展示既有 LITERATURE/SYNTHETIC banner，不得伪装为教练标定。
+
+
+## P0 体验修复（peer review）
+
+| ID | 要点 |
+|----|------|
+| P0.1 | 取消强制 5 勾选；剪影/参考框 + 软提示；服务端 OpenCV 预检仍为硬门 |
+| P0.2 | 用户文案：`literature_cited`→文献科研参考标准；`synthetic_demo`→工程演示基准；`ANALYSIS_NOT_IMPLEMENTED`→「该动作标准标定中，暂时无法评分」 |
+| P0.3 | 现场拍摄最长 60s（微信上限，不支持则回退 15）；相册/服务端 5–60s |
+| P0.4 | 持拍手 left\|right（本地 + `/me/profile`）；评分几何用优势侧关键点 |

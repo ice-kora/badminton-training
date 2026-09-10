@@ -181,7 +181,7 @@ def test_overlay_prefers_package_template_and_labels():
     assert out["standard"]["source"] == "package_template"
     assert out["standard"]["synthetic_demo"] is True
     assert out["benchmark_kind"] == "synthetic_demo"
-    assert "非专家验证" in (out["banner"] or "")
+    assert "工程演示基准" in (out["banner"] or "")
     assert out["stage_timeline"] is not None
     assert out["stage_timeline"]["segments"]
     assert out["frame"] == 3
@@ -265,7 +265,7 @@ def test_api_stage_timeline_and_overlay(client: TestClient, auth_headers, tmp_pa
     assert oj["standard"]["color"] == STANDARD_COLOR
     assert oj["user"]["color"] == USER_COLOR
     assert oj["benchmark_kind"] == "synthetic_demo"
-    assert "非专家验证" in (oj["banner"] or "")
+    assert "工程演示基准" in (oj["banner"] or "")
     assert oj["standard"]["synthetic_demo"] is True
     assert oj["stage_timeline"] is not None
     assert len(oj["user"]["landmarks"]) > 0

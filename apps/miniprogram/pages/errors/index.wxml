@@ -4,6 +4,6 @@
     <view class="card-title">{{item.title}}</view>
     <view>{{item.description}}</view>
     <view class="muted" style="margin-top:8rpx;">纠正：{{item.how_to_fix}}</view>
-    <view class="tag warn" style="margin-top:8rpx;">{{item.verification_status}}</view>
+    <view class="tag warn" style="margin-top:8rpx;" wx:if="{{item.statusLabel}}">{{item.statusLabel}}</view>
   </view>
 </view>

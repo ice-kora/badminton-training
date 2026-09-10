@@ -252,7 +252,7 @@ def test_literature_publish_and_score(client, auth_headers, tmp_path):
     assert detail.status_code == 200
     d = detail.json()
     assert d["benchmark_kind"] == "literature_cited"
-    assert d["scoring_banner"] and "文献抽取" in d["scoring_banner"]
+    assert d["scoring_banner"] and "文献科研参考标准" in d["scoring_banner"]
     assert d["score"] is not None
 
 

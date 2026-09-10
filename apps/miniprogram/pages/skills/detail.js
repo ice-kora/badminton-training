@@ -1,12 +1,26 @@
 const { request } = require('../../utils/request')
+const { primaryStatusLabel, AWAITING_SCORE_MSG } = require('../../utils/honesty')
 
 Page({
-  data: { skill: null, analyzeMsg: '' },
+  data: {
+    skill: null,
+    skillStatusLabel: null,
+    contentBlocks: [],
+    awaitingHint: AWAITING_SCORE_MSG,
+  },
   onLoad(q) {
     const id = q.id
     request({ url: `/skills/${id}` })
       .then((skill) => {
-        this.setData({ skill })
+        const contentBlocks = (skill.content_blocks || []).map((b) => ({
+          ...b,
+          statusLabel: primaryStatusLabel(b.verification_status),
+        }))
+        this.setData({
+          skill,
+          skillStatusLabel: primaryStatusLabel(skill.verification_status),
+          contentBlocks,
+        })
         wx.setNavigationBarTitle({ title: skill.name })
       })
       .catch((e) => wx.showToast({ title: e.message || '加载失败', icon: 'none' }))
@@ -19,19 +33,5 @@ Page({
   },
   goFilming() {
     wx.navigateTo({ url: `/pages/filming/guide?skill_id=${this.data.skill.id}` })
-  },
-  tryAnalyze() {
-    request({
-      url: '/analysis/jobs',
-      method: 'POST',
-      data: { skill_id: this.data.skill.id },
-    })
-      .then(() => this.setData({ analyzeMsg: '意外成功' }))
-      .catch((e) => {
-        const msg = e.code
-          ? `${e.code}: ${e.message}`
-          : (e.message || '分析未实现')
-        this.setData({ analyzeMsg: msg })
-      })
   },
 })

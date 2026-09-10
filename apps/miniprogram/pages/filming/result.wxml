@@ -17,8 +17,7 @@
       <view class="step-line"></view>
       <view class="step {{stepClass.final}}">{{finalStepLabel}}</view>
     </view>
-    <view class="muted" style="margin-top:12rpx;">状态 {{jobStatus || '…'}} · {{jobMessage}}</view>
-    <view class="muted" wx:if="{{errorCode}}">{{errorCode}}</view>
+    <view class="muted" style="margin-top:12rpx;">{{jobMessage || ('进度：' + (jobStatus || '…'))}}</view>
   </view>
 
   <!-- U2 scored comfort -->

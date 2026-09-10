@@ -8,7 +8,7 @@
         <text class="tag">{{skill.difficulty}}</text>
       </view>
       <view class="muted">{{skill.summary}}</view>
-      <view class="tag warn" style="margin-top:8rpx;">{{skill.verification_status}}</view>
+      <view class="tag warn" style="margin-top:8rpx;" wx:if="{{skill.statusLabel}}">{{skill.statusLabel}}</view>
     </view>
   </block>
   <view class="muted" wx:if="{{error}}">{{error}}</view>

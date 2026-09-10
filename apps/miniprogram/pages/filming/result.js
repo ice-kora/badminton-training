@@ -1,7 +1,11 @@
 const { request, ensureLogin, getToken, baseUrl } = require('../../utils/request')
-
-const SYNTHETIC_BANNER = '非专家验证，仅供流水线演示'
-const LITERATURE_BANNER = '文献抽取区间（非教练现场标定）；用于替代 synthetic_demo 演示'
+const {
+  SYNTHETIC_BANNER,
+  LITERATURE_BANNER,
+  bannerForKind,
+  humanizeJobMessage,
+  AWAITING_SCORE_MSG,
+} = require('../../utils/honesty')
 
 const TERMINAL = { scored: 1, failed: 1, pose_failed: 1, not_implemented: 1, rejected_precheck: 1 }
 
@@ -123,20 +127,24 @@ Page({
         const cta = (score && score.cta_drill) || null
         const kind = job.benchmark_kind || (score && score.benchmark_kind) || ''
         const banner =
+          bannerForKind(kind, (score && score.banner) || '') ||
           (score && score.banner) ||
-          (kind === 'literature_cited' ? LITERATURE_BANNER : kind === 'synthetic_demo' ? SYNTHETIC_BANNER : '')
+          ''
         const steps = stepState(job.status)
         const scored = job.status === 'scored' && !!score
+        const friendlyMsg = humanizeJobMessage(job.status, job.error_code, job.message)
         const primarySentence = primary
           ? `优先改：${primary.title}`
           : scored
             ? '本次未检出显著问题'
-            : '分析完成后会展示优先改进点'
+            : job.status === 'not_implemented' || job.error_code === 'ANALYSIS_NOT_IMPLEMENTED'
+              ? AWAITING_SCORE_MSG
+              : '分析完成后会展示优先改进点'
         const drillLabel = cta && cta.name ? `去练：${cta.name}` : '去练推荐练习'
         this.setData({
           jobStatus: job.status,
-          jobMessage: job.message || '',
-          errorCode: job.error_code || '',
+          jobMessage: friendlyMsg,
+          errorCode: '',
           score,
           scored,
           issues,

@@ -77,6 +77,16 @@ def ensure_schema() -> None:
                     )
                 )
 
+        user_rows = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+        if user_rows:
+            user_names = {r[1] for r in user_rows}
+            if "handedness" not in user_names:
+                conn.execute(
+                    text(
+                        "ALTER TABLE users ADD COLUMN handedness VARCHAR(16) DEFAULT 'right'"
+                    )
+                )
+
 
 def init_db() -> None:
     """Create all tables (MVP: create_all; Alembic optional later)."""

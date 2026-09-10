@@ -1,8 +1,20 @@
-"""Heuristic geometry helpers from MediaPipe-normalized landmarks (no coach standards)."""
+"""Heuristic geometry helpers from MediaPipe-normalized landmarks (no coach standards).
+
+Dominant-side landmarks follow user handedness (left|right). Default right.
+Trunk / X-factor style metrics are 2D image-plane proxies, not true 3D.
+"""
 from __future__ import annotations
 
 import math
 from typing import Any, Optional
+
+
+def _normalize_handedness(handedness: Optional[str]) -> str:
+    return "left" if str(handedness or "").lower() == "left" else "right"
+
+
+def _side_prefix(handedness: Optional[str]) -> str:
+    return "LEFT" if _normalize_handedness(handedness) == "left" else "RIGHT"
 
 
 def _lm_map(frame: dict[str, Any]) -> dict[str, dict[str, float]]:
@@ -47,15 +59,18 @@ def _vec_angle_from_vertical(ax: float, ay: float, bx: float, by: float) -> floa
     return math.degrees(math.acos(cos_v))
 
 
-def pick_contact_frame(frames: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+def pick_contact_frame(
+    frames: list[dict[str, Any]], *, handedness: Optional[str] = None
+) -> Optional[dict[str, Any]]:
     if not frames:
         return None
-    # Heuristic: frame where right wrist is highest (min y)
+    wrist_name = f"{_side_prefix(handedness)}_WRIST"
+    # Heuristic: frame where dominant wrist is highest (min y)
     best = frames[0]
     best_y = 1e9
     for fr in frames:
         m = _lm_map(fr)
-        rw = m.get("RIGHT_WRIST")
+        rw = m.get(wrist_name)
         if not rw:
             continue
         if rw["y"] < best_y:
@@ -74,29 +89,40 @@ def pick_backswing_frame(frames: list[dict[str, Any]]) -> Optional[dict[str, Any
     return frames[idx]
 
 
-def measure_metric(metric_id: str, frames: list[dict[str, Any]]) -> Optional[float]:
-    """Return heuristic measured value for known metric ids, else None."""
+def measure_metric(
+    metric_id: str,
+    frames: list[dict[str, Any]],
+    *,
+    handedness: Optional[str] = None,
+) -> Optional[float]:
+    """Return heuristic measured value for known metric ids, else None.
+
+    Uses dominant-side landmarks for smash/clear arm metrics when handedness=left|right.
+    """
     if not frames:
         return None
-    contact = pick_contact_frame(frames)
+    hand = _normalize_handedness(handedness)
+    side = _side_prefix(hand)
+    contact = pick_contact_frame(frames, handedness=hand)
     back = pick_backswing_frame(frames)
     cm = _lm_map(contact) if contact else {}
     bm = _lm_map(back) if back else {}
 
     def elbow_flexion(m: dict[str, dict[str, float]]) -> Optional[float]:
-        s, e, w = m.get("RIGHT_SHOULDER"), m.get("RIGHT_ELBOW"), m.get("RIGHT_WRIST")
+        s, e, w = m.get(f"{side}_SHOULDER"), m.get(f"{side}_ELBOW"), m.get(f"{side}_WRIST")
         if not (s and e and w):
             return None
         return _angle_deg(s, e, w)
 
     def contact_height_rel_shoulder(m: dict[str, dict[str, float]]) -> Optional[float]:
-        s, w = m.get("RIGHT_SHOULDER"), m.get("RIGHT_WRIST")
+        s, w = m.get(f"{side}_SHOULDER"), m.get(f"{side}_WRIST")
         if not (s and w):
             return None
         # image y down: positive => wrist above shoulder
         return s["y"] - w["y"]
 
     def trunk_rotation(m: dict[str, dict[str, float]]) -> Optional[float]:
+        """2D image-plane shoulder–hip line difference — proxy, not true 3D X-factor."""
         ls, rs = m.get("LEFT_SHOULDER"), m.get("RIGHT_SHOULDER")
         lh, rh = m.get("LEFT_HIP"), m.get("RIGHT_HIP")
         if not (ls and rs and lh and rh):
@@ -106,21 +132,22 @@ def measure_metric(metric_id: str, frames: list[dict[str, Any]]) -> Optional[flo
         return abs(shoulder_ang - hip_ang)
 
     def contact_forward(m: dict[str, dict[str, float]]) -> Optional[float]:
-        w = m.get("RIGHT_WRIST")
+        w = m.get(f"{side}_WRIST")
         lh, rh = m.get("LEFT_HIP"), m.get("RIGHT_HIP")
         if not (w and lh and rh):
             return None
         mid_x = (lh["x"] + rh["x"]) / 2.0
-        return w["x"] - mid_x
+        # Dominant wrist ahead of body midline (image x); left keeps same geometric sense
+        return w["x"] - mid_x if hand == "right" else mid_x - w["x"]
 
     def racket_depression(m: dict[str, dict[str, float]]) -> Optional[float]:
-        e, w = m.get("RIGHT_ELBOW"), m.get("RIGHT_WRIST")
+        e, w = m.get(f"{side}_ELBOW"), m.get(f"{side}_WRIST")
         if not (e and w):
             return None
         return _vec_angle_from_vertical(e["x"], e["y"], w["x"], w["y"])
 
     def wrist_vs_shoulder_y(m: dict[str, dict[str, float]]) -> Optional[float]:
-        s, w = m.get("RIGHT_SHOULDER"), m.get("RIGHT_WRIST")
+        s, w = m.get(f"{side}_SHOULDER"), m.get(f"{side}_WRIST")
         if not (s and w):
             return None
         return w["y"] - s["y"]
@@ -129,7 +156,7 @@ def measure_metric(metric_id: str, frames: list[dict[str, Any]]) -> Optional[flo
         pts = []
         for fr in frames_in:
             m = _lm_map(fr)
-            w = m.get("RIGHT_WRIST")
+            w = m.get(f"{side}_WRIST")
             if w:
                 pts.append((w["x"], w["y"]))
         if len(pts) < 2:
@@ -143,7 +170,7 @@ def measure_metric(metric_id: str, frames: list[dict[str, Any]]) -> Optional[flo
         angles = []
         for fr in frames_in:
             m = _lm_map(fr)
-            e, w = m.get("RIGHT_ELBOW"), m.get("RIGHT_WRIST")
+            e, w = m.get(f"{side}_ELBOW"), m.get(f"{side}_WRIST")
             if e and w:
                 angles.append(_vec_angle_from_vertical(e["x"], e["y"], w["x"], w["y"]))
         if len(angles) < 2:
@@ -177,7 +204,7 @@ def measure_metric(metric_id: str, frames: list[dict[str, Any]]) -> Optional[flo
 
     def racket_vs_horizontal(m: dict[str, dict[str, float]]) -> Optional[float]:
         """PROXY: forearm (elbow→wrist) angle vs horizontal, degrees."""
-        e, w = m.get("RIGHT_ELBOW"), m.get("RIGHT_WRIST")
+        e, w = m.get(f"{side}_ELBOW"), m.get(f"{side}_WRIST")
         if not (e and w):
             return None
         vx, vy = w["x"] - e["x"], w["y"] - e["y"]

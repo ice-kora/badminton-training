@@ -2,9 +2,8 @@
   <view class="card">
     <view class="card-title">{{skill.name}}</view>
     <view class="muted">{{skill.summary}}</view>
-    <view style="margin-top:12rpx;">
-      <text class="tag warn">{{skill.verification_status}}</text>
-      <text class="tag">{{skill.source}}</text>
+    <view style="margin-top:12rpx;" wx:if="{{skillStatusLabel}}">
+      <text class="tag warn">{{skillStatusLabel}}</text>
     </view>
   </view>
 
@@ -15,14 +14,13 @@
   </view>
 
   <view class="section-title">教学内容</view>
-  <view class="card" wx:for="{{skill.content_blocks}}" wx:key="id">
+  <view class="card" wx:for="{{contentBlocks}}" wx:key="id">
     <view class="card-title">{{item.title}}</view>
     <view>{{item.body}}</view>
-    <view class="tag warn" style="margin-top:8rpx;">{{item.verification_status}}</view>
+    <view class="tag warn" style="margin-top:8rpx;" wx:if="{{item.statusLabel}}">{{item.statusLabel}}</view>
   </view>
 
   <view class="btn-primary" bindtap="goViewer3d">3D 标准动作（演示）</view>
   <view class="btn-ghost" style="margin-top:16rpx;" bindtap="goFilming">拍摄指导</view>
-  <view class="btn-ghost" style="margin-top:16rpx;" bindtap="tryAnalyze">尝试提交分析（未实现）</view>
-  <view class="muted" wx:if="{{analyzeMsg}}" style="margin-top:12rpx;">{{analyzeMsg}}</view>
+  <view class="muted awaiting" style="margin-top:20rpx;">{{awaitingHint}}</view>
 </view>

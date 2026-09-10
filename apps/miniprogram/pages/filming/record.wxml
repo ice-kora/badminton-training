@@ -1,35 +1,38 @@
 <view class="container">
   <view class="banner-note">
-    全身/距离靠剪影参考 + 本页清单确认（非姿态识别）。服务端会实检：时长、分辨率、亮度、朝向。
+    对照剪影站好即可开拍（非姿态识别）。服务端会实检：时长、分辨率、亮度、朝向。
   </view>
   <view class="banner-note" wx:if="{{isRetest}}" style="background:#eef2ff;color:#3730a3;">
     复测模式：将关联基准视频 #{{baselineVideoId}}（仅骨架对比，非评分）
   </view>
 
   <view class="card silhouette-card">
-    <view class="card-title">剪影框（示意）</view>
-    <view class="silhouette">
-      <view class="sil-head"></view>
-      <view class="sil-body"></view>
-      <view class="sil-legs"></view>
+    <view class="card-title">参考框 · 身体剪影</view>
+    <view class="silhouette-wrap">
+      <view class="silhouette translucent">
+        <view class="sil-head"></view>
+        <view class="sil-body"></view>
+        <view class="sil-legs"></view>
+      </view>
+      <view class="ref-frame-overlay"></view>
     </view>
-    <view class="muted">请站在剪影范围内，全身入镜，距离约 3–5 米，竖屏，球拍可见。</view>
+    <view class="soft-tips">
+      <view class="tip-line" wx:for="{{softTips}}" wx:key="*this">· {{item}}</view>
+    </view>
   </view>
 
   <view class="card">
-    <view class="card-title">拍摄前清单（须全部勾选）</view>
-    <checkbox-group bindchange="onChecklistChange">
-      <label class="check-row" wx:for="{{checklist}}" wx:key="key">
-        <checkbox value="{{item.key}}" checked="{{item.checked}}" />
-        <text>{{item.label}}</text>
-      </label>
-    </checkbox-group>
-    <view class="muted" style="margin-top:12rpx;">已勾 {{checkedCount}}/{{checklist.length}}</view>
+    <view class="card-title">持拍手</view>
+    <view class="hand-toggle">
+      <view class="hand-btn {{handedness==='right'?'on':''}}" data-hand="right" bindtap="setHandedness">右手</view>
+      <view class="hand-btn {{handedness==='left'?'on':''}}" data-hand="left" bindtap="setHandedness">左手</view>
+    </view>
+    <view class="muted">默认右手；左手将用于杀球/高远等优势侧指标。</view>
   </view>
 
   <view class="card">
     <view class="card-title">选择或录制视频</view>
-    <view class="muted">推荐用下方按钮选视频。相册视频请控制在 5–60 秒，竖屏。</view>
+    <view class="muted">现场拍摄最长 {{liveMaxSec}} 秒（微信相机上限）；从相册选择最长 60 秒。服务端要求 5–60 秒，竖屏。</view>
     <view class="btn-primary" style="margin-top:16rpx;" bindtap="chooseMedia">从相册/相机选择视频</view>
     <view class="btn-ghost" style="margin-top:16rpx;" bindtap="toggleCamera">{{showCamera ? '关闭相机预览' : '打开相机预览（真机）'}}</view>
   </view>

@@ -346,6 +346,7 @@ async def upload_video(
     baseline_video_id: Optional[int] = Form(None),
     client_checklist_json: Optional[str] = Form(None),
     frame_coverage_hints_json: Optional[str] = Form(None),
+    handedness: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -358,6 +359,10 @@ async def upload_video(
     skill = db.get(BadmintonSkill, skill_id)
     if not skill:
         raise HTTPException(status_code=404, detail="技能不存在")
+    if handedness in ("left", "right"):
+        user.handedness = handedness
+        db.add(user)
+        db.flush()
     resolved_baseline_id: Optional[int] = None
     if baseline_video_id is not None:
         _validate_baseline(
