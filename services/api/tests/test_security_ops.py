@@ -35,6 +35,16 @@ def media_dir(tmp_path: Path) -> Path:
     return d
 
 
+def test_health_exposes_video_ttl_days(client):
+    """Privacy badge copy is driven by server TTL — /health must publish it."""
+    get_settings.cache_clear()
+    r = client.get("/health")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "ok"
+    assert body["video_ttl_days"] == int(get_settings().video_ttl_days)
+
+
 def test_production_rejects_insecure_defaults(monkeypatch):
     get_settings.cache_clear()
     monkeypatch.setenv("APP_ENV", "production")

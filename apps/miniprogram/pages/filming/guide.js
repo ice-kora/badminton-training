@@ -1,7 +1,7 @@
 const { request } = require('../../utils/request')
 const { primaryStatusLabel } = require('../../utils/honesty')
 const handednessUtil = require('../../utils/handedness')
-const { PRIVACY_BADGE } = require('../../utils/privacy')
+const { PRIVACY_BADGE, fetchPrivacyBadge } = require('../../utils/privacy')
 
 const DEFAULT_KEYS = ['全身入画', '球拍可见', '竖屏且光线充足']
 
@@ -23,6 +23,8 @@ function pickKeyChecks(guide) {
 Page({
   data: { guides: [], error: '', skillId: '', handedness: 'right', privacyBadge: PRIVACY_BADGE },
   onLoad(q) {
+    // Badge TTL follows server policy (GET /health); static copy is the fallback.
+    fetchPrivacyBadge().then((badge) => this.setData({ privacyBadge: badge }))
     const skillId = q.skill_id
     if (!skillId) {
       this.setData({ error: '缺少 skill_id' })

@@ -1,7 +1,7 @@
 const { request, ensureLogin, getToken, baseUrl } = require('../../utils/request')
 const handednessUtil = require('../../utils/handedness')
 const subscribeUtil = require('../../utils/subscribe')
-const { PRIVACY_BADGE } = require('../../utils/privacy')
+const { PRIVACY_BADGE, fetchPrivacyBadge } = require('../../utils/privacy')
 
 /** WeChat chooseMedia camera maxDuration: prefer 60 when supported. */
 const LIVE_MAX_SEC = 60
@@ -59,6 +59,8 @@ Page({
   },
   _countdownTimer: null,
   onLoad(q) {
+    // Badge TTL follows server policy (GET /health); static copy is the fallback.
+    fetchPrivacyBadge().then((badge) => this.setData({ privacyBadge: badge }))
     const skillId = q.skill_id
     if (!skillId) {
       this.setData({ error: '缺少 skill_id' })
