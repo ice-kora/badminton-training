@@ -26,6 +26,7 @@ from app.routers import (
     recommendations,
     sessions,
     skills,
+    samples,
     videos,
 )
 from app.services.viewer3d.glb import write_stick_figure_glb
@@ -98,6 +99,7 @@ def create_app() -> FastAPI:
     app.include_router(analysis.router)
     app.include_router(videos.router)
     app.include_router(me.router)
+    app.include_router(samples.router)
 
     static_dir = _ensure_viewer3d_assets()
     app.mount(
@@ -111,6 +113,15 @@ def create_app() -> FastAPI:
         "/static/drills",
         StaticFiles(directory=str(drills_dir)),
         name="drills_static",
+    )
+
+
+    samples_dir = Path(__file__).resolve().parent / "static" / "samples"
+    samples_dir.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/static/samples",
+        StaticFiles(directory=str(samples_dir)),
+        name="samples_static",
     )
 
     return app

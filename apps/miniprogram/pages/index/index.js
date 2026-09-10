@@ -57,4 +57,7 @@ Page({
   goPlan() { wx.switchTab({ url: '/pages/plan/index' }) },
   goGrowth() { wx.switchTab({ url: '/pages/records/index' }) },
   goTips() { wx.navigateTo({ url: '/pages/tips/index' }) },
+  goSample() {
+    wx.navigateTo({ url: '/pages/samples/report?code=forehand_clear' })
+  },
 })

@@ -104,16 +104,27 @@ Page({
     shareCanvasW: 600,
     shareCanvasH: 900,
     sharingCard: false,
+    fromShare: false,
+    readOnly: false,
   },
   _pollTimer: null,
   _tipTimer: null,
   _subscribeRequested: false,
   onLoad(q) {
+    const fromShare = !!(q && (q.share === '1' || q.share === 1))
     this.setData({
       jobId: q.job_id || '',
       videoId: q.video_id || '',
       skillId: q.skill_id || '',
+      fromShare,
+      readOnly: fromShare,
     })
+    try {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline'],
+      })
+    } catch (e) { /* older base lib */ }
     if (q.skill_id) this.loadSkillName(q.skill_id)
     if (q.video_id) {
       const token = getToken()
@@ -123,7 +134,7 @@ Page({
     }
     this.loadWaitTips()
     this.startTipRotation()
-    this.maybeRequestSubscribe()
+    if (!fromShare) this.maybeRequestSubscribe()
     if (!q.job_id) return
     ensureLogin()
       .then(() => {
@@ -458,6 +469,52 @@ Page({
       })
     })
   },
+  goTryMyself() {
+    const skillId = this.data.skillId
+    if (skillId) {
+      wx.navigateTo({ url: `/pages/filming/guide?skill_id=${skillId}` })
+      return
+    }
+    wx.switchTab({ url: '/pages/skills/tree' })
+  },
+  onShareAppMessage() {
+    const jobId = this.data.jobId || ''
+    const videoId = this.data.videoId || ''
+    const skillId = this.data.skillId || ''
+    const skill = this.data.skillName || '动作'
+    const primary = this.data.primarySentence || ''
+    let title = `来看看我的${skill}动作诊断`
+    if (primary.indexOf('手臂') !== -1 || primary.indexOf('转体') !== -1) {
+      title = '来看看我的杀球动作诊断：发力靠手臂还是转体？'
+    } else if (skill.indexOf('杀') !== -1) {
+      title = '来看看我的杀球动作诊断：发力靠手臂还是转体？'
+    } else if (skill.indexOf('高远') !== -1) {
+      title = '来看看我的高远球动作诊断：发力靠手臂还是转体？'
+    } else if (primary) {
+      title = `来看看我的${skill}诊断：${primary.replace(/^优先改：/, '')}`
+    }
+    let path = `/pages/filming/result?job_id=${jobId}&share=1`
+    if (videoId) path += `&video_id=${videoId}`
+    if (skillId) path += `&skill_id=${skillId}`
+    return { title, path }
+  },
+  onShareTimeline() {
+    const jobId = this.data.jobId || ''
+    const videoId = this.data.videoId || ''
+    const skillId = this.data.skillId || ''
+    const skill = this.data.skillName || '动作'
+    const title =
+      skill.indexOf('杀') !== -1
+        ? '来看看我的杀球动作诊断：发力靠手臂还是转体？'
+        : skill.indexOf('高远') !== -1
+          ? '来看看我的高远球动作诊断：发力靠手臂还是转体？'
+          : `来看看我的${skill}动作诊断`
+    let query = `job_id=${jobId}&share=1`
+    if (videoId) query += `&video_id=${videoId}`
+    if (skillId) query += `&skill_id=${skillId}`
+    return { title, query }
+  },
+
 })
 
 function truncate(s, n) {

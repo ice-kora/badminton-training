@@ -1,4 +1,5 @@
 <view class="container">
+  <view class="privacy-badge">{{privacyBadge}}</view>
   <view class="banner-note">拍摄引导为产品 UX 指引，不是关节角度数值标准。上传仅做质量预检。</view>
 
   <view class="card">

@@ -1,6 +1,7 @@
 const { request, ensureLogin, getToken, baseUrl } = require('../../utils/request')
 const handednessUtil = require('../../utils/handedness')
 const subscribeUtil = require('../../utils/subscribe')
+const { PRIVACY_BADGE } = require('../../utils/privacy')
 
 /** WeChat chooseMedia camera maxDuration: prefer 60 when supported. */
 const LIVE_MAX_SEC = 60
@@ -51,7 +52,12 @@ Page({
     failChecks: [],
     brightnessOnlyFail: false,
     error: '',
+    privacyBadge: PRIVACY_BADGE,
+    filmMode: 'self',
+    countdownActive: false,
+    countdownNum: 3,
   },
+  _countdownTimer: null,
   onLoad(q) {
     const skillId = q.skill_id
     if (!skillId) {
@@ -80,6 +86,38 @@ Page({
   },
   toggleCamera() {
     this.setData({ showCamera: !this.data.showCamera })
+  },
+
+  setFilmMode(e) {
+    const mode = e.currentTarget.dataset.mode
+    if (mode !== 'self' && mode !== 'cameraman') return
+    this.setData({ filmMode: mode })
+  },
+  onStartCapture() {
+    if (this.data.filmMode === 'cameraman') {
+      this.startCameramanCountdown()
+      return
+    }
+    this.chooseMedia()
+  },
+  startCameramanCountdown() {
+    if (this.data.countdownActive) return
+    if (this._countdownTimer) {
+      clearInterval(this._countdownTimer)
+      this._countdownTimer = null
+    }
+    this.setData({ countdownActive: true, countdownNum: 3 })
+    this._countdownTimer = setInterval(() => {
+      const n = this.data.countdownNum - 1
+      if (n <= 0) {
+        clearInterval(this._countdownTimer)
+        this._countdownTimer = null
+        this.setData({ countdownActive: false, countdownNum: 3 })
+        this.chooseMedia()
+        return
+      }
+      this.setData({ countdownNum: n })
+    }, 1000)
   },
   chooseMedia() {
     wx.chooseMedia({
@@ -149,7 +187,13 @@ Page({
       brightnessOnlyFail: false,
       error: '',
     })
-    this.chooseMedia()
+    this.onStartCapture()
+  },
+  onUnload() {
+    if (this._countdownTimer) {
+      clearInterval(this._countdownTimer)
+      this._countdownTimer = null
+    }
   },
   doUploadForce() {
     this.doUpload({ forceBrightness: true })

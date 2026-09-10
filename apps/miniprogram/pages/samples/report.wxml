@@ -1,0 +1,39 @@
+<view class="container sample-page">
+  <view class="sample-banner">【样例】{{sampleBanner}}</view>
+  <view class="banner-literature" wx:if="{{banner}}">📚 {{banner}}</view>
+  <view class="muted honesty-line">{{honesty}}</view>
+
+  <block wx:if="{{score}}">
+    <view class="card score-hero">
+      <view class="hero-kicker">样例评分（非你的成绩）</view>
+      <view class="big-score">{{score.overall_score}}</view>
+      <view class="primary-sentence">优先改：{{primaryTitle}}</view>
+    </view>
+
+    <view class="section-title">主要问题（最多 3 条）</view>
+    <view class="card issue-card" wx:for="{{problems}}" wx:key="error_code">
+      <view class="row">
+        <text class="sev {{item.severity}}">{{item.severity}}</text>
+        <text class="issue-title">{{item.title}}</text>
+      </view>
+      <view class="muted" wx:if="{{item.metric_id}}">指标 {{item.metric_id}}</view>
+    </view>
+  </block>
+
+  <view class="card" wx:if="{{mediaUrl}}">
+    <view class="card-title">示意回放</view>
+    <image class="demo-media" src="{{mediaUrl}}" mode="aspectFit" lazy-load />
+    <view class="player-controls" wx:if="{{false}}">
+      <view class="rate-btn">1x</view>
+    </view>
+    <view class="muted">{{mediaCaption}}</view>
+  </view>
+
+  <view class="muted" wx:if="{{error}}">{{error}}</view>
+
+  <view class="sticky-cta">
+    <view class="btn-primary" bindtap="goFilm">我也要测 → 去拍摄</view>
+  </view>
+
+  <view class="float-cta" wx:if="{{fromShare}}" bindtap="goFilm">我也要测</view>
+</view>

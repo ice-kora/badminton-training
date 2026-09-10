@@ -14,3 +14,12 @@
 .sev.P0 { background: #fee2e2; color: #991b1b; }
 .sev.P1 { background: #ffedd5; color: #9a3412; }
 .sev.P2 { background: #e0f2fe; color: #075985; }
+
+.sample-cta {
+  margin-top: 20rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #2563eb;
+  text-decoration: underline;
+  padding: 8rpx;
+}

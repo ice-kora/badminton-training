@@ -11,4 +11,6 @@ module.exports = {
   baseUrl: 'http://127.0.0.1:8000',
   /** env placeholder — set after WeChat template approval */
   subscribeTemplateId: '',
+  /** Mirror API VIDEO_TTL_DAYS — privacy badge copy */
+  videoTtlDays: 7,
 }

@@ -78,3 +78,93 @@
   font-size: 26rpx;
   margin-top: 8rpx;
 }
+
+.privacy-badge {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: #ecfdf5;
+  border: 1rpx solid #6ee7b7;
+  color: #065f46;
+  border-radius: 12rpx;
+  padding: 14rpx 18rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
+  margin-bottom: 16rpx;
+}
+.mode-toggle {
+  display: flex;
+  gap: 16rpx;
+  margin: 12rpx 0;
+}
+.mode-btn {
+  flex: 1;
+  text-align: center;
+  padding: 18rpx 0;
+  border-radius: 12rpx;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+.mode-btn.on {
+  background: #0f172a;
+  color: #fff;
+}
+.cameraman-tip {
+  margin-top: 12rpx;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+.countdown-overlay {
+  position: fixed;
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.82);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.countdown-frame {
+  width: 70%;
+  max-width: 520rpx;
+  padding: 40rpx 28rpx;
+  border: 4rpx dashed rgba(255,255,255,0.55);
+  border-radius: 28rpx;
+  text-align: center;
+  background: rgba(15,23,42,0.55);
+}
+.countdown-sil {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.55;
+  margin-bottom: 24rpx;
+}
+.countdown-sil .sil-head {
+  width: 56rpx; height: 56rpx; border-radius: 50%; background: #cbd5e1;
+}
+.countdown-sil .sil-body {
+  width: 88rpx; height: 120rpx; margin-top: 8rpx; border-radius: 14rpx; background: #94a3b8;
+}
+.countdown-sil .sil-legs {
+  width: 72rpx; height: 88rpx; margin-top: 8rpx; border-radius: 8rpx; background: #64748b;
+}
+.countdown-num {
+  font-size: 120rpx;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+.countdown-tip {
+  margin-top: 20rpx;
+  font-size: 30rpx;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+.countdown-note {
+  margin-top: 12rpx;
+  color: #94a3b8 !important;
+}

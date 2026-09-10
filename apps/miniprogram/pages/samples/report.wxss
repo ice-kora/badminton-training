@@ -1,0 +1,64 @@
+.sample-page { padding-bottom: 180rpx; }
+.sample-banner {
+  background: #fef3c7;
+  border: 2rpx solid #f59e0b;
+  color: #92400e;
+  border-radius: 12rpx;
+  padding: 18rpx 20rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+  text-align: center;
+}
+.banner-literature {
+  background: #eff6ff; border: 1rpx solid #bfdbfe; color: #1e40af;
+  border-radius: 12rpx; padding: 16rpx 20rpx; font-size: 24rpx; margin-bottom: 16rpx;
+}
+.honesty-line { margin-bottom: 16rpx; line-height: 1.55; }
+.score-hero { text-align: center; }
+.hero-kicker { font-size: 24rpx; color: #64748b; }
+.big-score { font-size: 96rpx; font-weight: 700; line-height: 1.1; margin: 12rpx 0; color: #0f172a; }
+.primary-sentence { font-size: 30rpx; font-weight: 600; margin-top: 8rpx; }
+.issue-card .issue-title { flex: 1; margin-left: 12rpx; font-weight: 500; }
+.sev { font-size: 22rpx; padding: 2rpx 10rpx; border-radius: 8rpx; background: #e2e8f0; }
+.sev.P0 { background: #fee2e2; color: #991b1b; }
+.sev.P1 { background: #ffedd5; color: #9a3412; }
+.sev.P2 { background: #e0f2fe; color: #075985; }
+.demo-media {
+  width: 100%;
+  height: 360rpx;
+  background: #0f172a;
+  border-radius: 12rpx;
+}
+.player-controls { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; }
+.rate-btn {
+  padding: 10rpx 18rpx;
+  border-radius: 10rpx;
+  background: #f1f5f9;
+  border: 1rpx solid #e2e8f0;
+  font-size: 24rpx;
+}
+.sticky-cta {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  gap: 16rpx;
+  padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,0.96);
+  border-top: 1rpx solid #e2e8f0;
+  z-index: 20;
+}
+.sticky-cta .btn-primary { flex: 1; }
+.float-cta {
+  position: fixed;
+  right: 28rpx;
+  bottom: calc(160rpx + env(safe-area-inset-bottom));
+  background: #0f172a;
+  color: #fff;
+  padding: 20rpx 28rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 24rpx rgba(15,23,42,0.25);
+  z-index: 30;
+}

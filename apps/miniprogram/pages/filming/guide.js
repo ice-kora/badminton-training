@@ -1,6 +1,7 @@
 const { request } = require('../../utils/request')
 const { primaryStatusLabel } = require('../../utils/honesty')
 const handednessUtil = require('../../utils/handedness')
+const { PRIVACY_BADGE } = require('../../utils/privacy')
 
 const DEFAULT_KEYS = ['全身入画', '球拍可见', '竖屏且光线充足']
 
@@ -20,7 +21,7 @@ function pickKeyChecks(guide) {
 }
 
 Page({
-  data: { guides: [], error: '', skillId: '', handedness: 'right' },
+  data: { guides: [], error: '', skillId: '', handedness: 'right', privacyBadge: PRIVACY_BADGE },
   onLoad(q) {
     const skillId = q.skill_id
     if (!skillId) {

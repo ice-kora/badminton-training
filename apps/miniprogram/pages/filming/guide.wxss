@@ -148,3 +148,17 @@
   font-size: 24rpx;
   line-height: 1.55;
 }
+
+.privacy-badge {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: #ecfdf5;
+  border: 1rpx solid #6ee7b7;
+  color: #065f46;
+  border-radius: 12rpx;
+  padding: 14rpx 18rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
+  margin-bottom: 16rpx;
+}

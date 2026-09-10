@@ -113,9 +113,13 @@
     height="{{shareCanvasH}}"
   ></canvas>
 
-  <!-- sticky CTAs -->
-  <view class="sticky-cta">
+  <!-- sticky CTAs: owner vs shared read-only -->
+  <view class="sticky-cta" wx:if="{{!fromShare}}">
     <view class="btn-primary" bindtap="goDrill">{{drillLabel}}</view>
     <view class="btn-ghost" bindtap="goRetest">再录对比</view>
   </view>
+  <view class="sticky-cta" wx:else>
+    <view class="btn-primary" bindtap="goTryMyself">我也要测 → 去拍摄</view>
+  </view>
+  <view class="float-cta" wx:if="{{fromShare}}" bindtap="goTryMyself">我也要测</view>
 </view>

@@ -1,0 +1,99 @@
+{
+  "code": "forehand_clear",
+  "is_sample": true,
+  "sample_banner": "【样例】文献/演示数据，非你的真实视频评分",
+  "honesty": "本页为冷启动样例报告，使用文献科研参考与演示基准合成的示意结果，不代表任何用户上传视频。",
+  "skill": {
+    "code": "forehand_clear",
+    "name": "正手高远球"
+  },
+  "benchmark_kind": "literature_cited",
+  "banner": "文献科研参考标准（非教练现场标定）",
+  "score": {
+    "overall_score": 62,
+    "dimension_scores": {
+      "stance": 55,
+      "trunk": 48,
+      "contact": 70,
+      "follow_through": 68
+    },
+    "primary_issue": {
+      "error_code": "clear_arm_dominant",
+      "title": "发力偏手臂，躯干转体不足",
+      "severity": "P0",
+      "metric_id": "trunk_rotation_backswing",
+      "evidence": {
+        "note": "sample literature proxy — not a user measurement"
+      },
+      "drills": [
+        {
+          "code": "clear_stance_hold",
+          "name": "侧身定型慢镜",
+          "demo_gif_url": "/static/drills/clear_stance_hold.gif"
+        }
+      ],
+      "drill_codes": ["clear_stance_hold"]
+    },
+    "problems": [
+      {
+        "error_code": "clear_arm_dominant",
+        "title": "发力偏手臂，躯干转体不足",
+        "severity": "P0",
+        "metric_id": "trunk_rotation_backswing",
+        "evidence": { "note": "sample" },
+        "drills": [
+          {
+            "code": "clear_stance_hold",
+            "name": "侧身定型慢镜",
+            "demo_gif_url": "/static/drills/clear_stance_hold.gif"
+          }
+        ],
+        "drill_codes": ["clear_stance_hold"]
+      },
+      {
+        "error_code": "clear_no_side_stance",
+        "title": "正面硬挥，缺少侧身架拍",
+        "severity": "P1",
+        "metric_id": "trunk_coil_backswing",
+        "evidence": { "note": "sample" },
+        "drills": [
+          {
+            "code": "clear_stance_hold",
+            "name": "侧身定型慢镜"
+          }
+        ],
+        "drill_codes": ["clear_stance_hold"]
+      },
+      {
+        "error_code": "clear_late_contact",
+        "title": "击球点略偏低偏后",
+        "severity": "P2",
+        "metric_id": "contact_height_proxy",
+        "evidence": { "note": "sample" },
+        "drills": [
+          {
+            "code": "clear_rhythm_breakdown",
+            "name": "节奏分解挥拍",
+            "demo_gif_url": "/static/drills/clear_rhythm_breakdown.gif"
+          }
+        ],
+        "drill_codes": ["clear_rhythm_breakdown"]
+      }
+    ],
+    "cta_drill": {
+      "code": "clear_stance_hold",
+      "name": "侧身定型慢镜",
+      "demo_gif_url": "/static/drills/clear_stance_hold.gif",
+      "demo_media_url": "/static/drills/clear_stance_hold.gif"
+    }
+  },
+  "media": {
+    "type": "gif",
+    "url": "/static/drills/clear_stance_hold.gif",
+    "caption": "示意动图（非用户原片，非真人教练）"
+  },
+  "share": {
+    "title": "来看看高远球标准诊断样例：发力靠手臂还是转体？",
+    "path": "pages/samples/report?code=forehand_clear"
+  }
+}

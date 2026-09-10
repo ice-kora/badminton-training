@@ -23,6 +23,7 @@
       <view class="btn-primary" bindtap="goCta">{{ctaLabel}}</view>
       <view class="btn-ghost" bindtap="goGuide">拍摄引导</view>
     </view>
+    <view class="sample-cta" bindtap="goSample">没在球场？点此体验高远球标准诊断样例</view>
   </view>
 
   <view class="section-title">快捷入口</view>
