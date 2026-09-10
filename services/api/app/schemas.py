@@ -230,7 +230,7 @@ class AnalysisNotImplemented(BaseModel):
 # ---- Video precheck / upload ----
 class PrecheckCheckOut(BaseModel):
     id: str
-    status: str  # pass|fail|skipped|deferred_to_pose|client_checklist_only
+    status: str  # pass|fail|overridden|skipped|deferred_to_pose|client_checklist_only
     message: str
     evidence: dict[str, Any] = Field(default_factory=dict)
 
@@ -240,6 +240,7 @@ class PrecheckReportOut(BaseModel):
     checks: list[PrecheckCheckOut]
     probe: Optional[dict[str, Any]] = None
     policy: Optional[dict[str, Any]] = None
+    override: Optional[dict[str, Any]] = None
 
 
 class TrainingVideoOut(OrmModel):

@@ -173,3 +173,114 @@ def test_analysis_still_no_scores(client):
     body = r.json()
     assert body["code"] == "ANALYSIS_NOT_IMPLEMENTED"
     assert "score" not in body
+
+
+def _upload_with_override(
+    client, auth_headers, skill_id: int, video_path: Path, checklist=None, **form_extra
+):
+    data = {"skill_id": str(skill_id)}
+    if checklist is not None:
+        data["client_checklist_json"] = json.dumps(checklist)
+    data.update({k: str(v) for k, v in form_extra.items()})
+    with video_path.open("rb") as f:
+        return client.post(
+            "/videos/upload",
+            headers=auth_headers,
+            data=data,
+            files={"file": (video_path.name, f, "video/mp4")},
+        )
+
+
+def test_brightness_override_allows_upload(
+    client, auth_headers, skill_id, media_dir
+):
+    """Dark gym: brightness-only fail can proceed with override flags."""
+    path = write_solid_video(
+        media_dir / "dark_ok_dims.mp4",
+        width=720,
+        height=1280,
+        duration_sec=8,
+        color_bgr=(5, 5, 5),
+    )
+    # Without override — still blocked
+    blocked = _upload(client, auth_headers, skill_id, path)
+    assert blocked.status_code == 400
+    assert blocked.json()["detail"]["code"] == "PRECHECK_FAILED"
+
+    r = _upload_with_override(
+        client,
+        auth_headers,
+        skill_id,
+        path,
+        checklist={"soft_tips_only": True},
+        force_upload="true",
+        precheck_override="brightness",
+        accept_quality_risk="true",
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["precheck"]["passed"] is True
+    ov = body["precheck"].get("override") or {}
+    assert "brightness" in (ov.get("accepted") or [])
+    checks = {c["id"]: c for c in body["precheck"]["checks"]}
+    assert checks["brightness"]["status"] == "overridden"
+    assert checks["duration"]["status"] == "pass"
+    # Logged on video precheck + job message
+    vid = client.get(f"/videos/{body['video']['id']}", headers=auth_headers)
+    assert vid.status_code == 200
+    pc = vid.json().get("precheck") or {}
+    assert pc.get("override")
+    job = body["analysis_job"]
+    assert "precheck_override=brightness" in (job.get("message") or "")
+
+
+def test_brightness_override_does_not_skip_duration(
+    client, auth_headers, skill_id, media_dir
+):
+    """force_upload must not blindly skip hard gates like duration."""
+    path = write_solid_video(
+        media_dir / "dark_and_short.mp4",
+        width=720,
+        height=1280,
+        duration_sec=2,
+        color_bgr=(5, 5, 5),
+    )
+    r = _upload_with_override(
+        client,
+        auth_headers,
+        skill_id,
+        path,
+        force_upload="true",
+        precheck_override="brightness",
+        accept_quality_risk="true",
+    )
+    assert r.status_code == 400
+    detail = r.json()["detail"]
+    assert detail["code"] == "PRECHECK_FAILED"
+    checks = {c["id"]: c for c in detail["precheck"]["checks"]}
+    assert checks["duration"]["status"] == "fail"
+    # Brightness may still show as fail (override only applies when brightness-only)
+    assert checks["brightness"]["status"] == "fail"
+
+
+def test_force_upload_does_not_skip_resolution(
+    client, auth_headers, skill_id, media_dir
+):
+    path = write_solid_video(
+        media_dir / "tiny_force.mp4",
+        width=320,
+        height=480,
+        duration_sec=8,
+        color_bgr=(200, 200, 200),
+    )
+    r = _upload_with_override(
+        client,
+        auth_headers,
+        skill_id,
+        path,
+        force_upload="true",
+        accept_quality_risk="true",
+    )
+    assert r.status_code == 400
+    checks = {c["id"]: c for c in r.json()["detail"]["precheck"]["checks"]}
+    assert checks["resolution"]["status"] == "fail"

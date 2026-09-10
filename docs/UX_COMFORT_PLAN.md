@@ -36,3 +36,11 @@
 | P0.2 | 用户文案：`literature_cited`→文献科研参考标准；`synthetic_demo`→工程演示基准；`ANALYSIS_NOT_IMPLEMENTED`→「该动作标准标定中，暂时无法评分」 |
 | P0.3 | 现场拍摄最长 60s（微信上限，不支持则回退 15）；相册/服务端 5–60s |
 | P0.4 | 持拍手 left\|right（本地 + `/me/profile`）；评分几何用优势侧关键点 |
+
+## Peer re-review remainders（R1 / R2）
+
+| ID | 要点 |
+|----|------|
+| R1 | 暗球馆亮度：仅 brightness 失败时可「仍要上传（可能影响分析精度）」；form `force_upload` / `precheck_override=brightness` / `accept_quality_risk`；时长/分辨率/朝向仍硬拦；override 写入 `precheck_json` 与 job.message。阈值可调 `PRECHECK_MIN_BRIGHTNESS`（默认 40）。 |
+| R2 | 拍摄引导页半透明机位俯视示意：后侧约 45°、腰高、全身入画；左手镜像提示；文案标明 2D 为 image-plane proxy，非真 3D。 |
+

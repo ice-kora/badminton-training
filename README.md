@@ -55,7 +55,7 @@ Windows：`make` 可用 Git Bash/WSL；或在 `services/api` 激活 `.venv` 后�
 9. **V2**：`pose_extracted`/`scored` 后详情展示阶段时间轴与「标准 vs 用户」叠加（绿/蓝，标 **非评分叠加**）；`GET /videos/{id}/stage-timeline`、`GET /videos/{id}/pose/overlay`。
 10. **V3**：技术库 → 技能详情 → **3D 标准动作（演示）**；旋转/缩放/倍速/阶段跳转/HUD 占位；横幅 synthetic_demo；**禁止实时**。
 
-**真预检**：duration / resolution / brightness / orientation（OpenCV 探测）。  
+**真预检**：duration / resolution / brightness / orientation（OpenCV 探测）。亮度阈值 `PRECHECK_MIN_BRIGHTNESS`（默认 40）；仅亮度失败可 `precheck_override=brightness` / `force_upload` 放行并记入元数据，其它硬门不跳过。  
 **占位**：full_body / distance → `deferred_to_pose` 或客户端清单确认（非姿态 AI）。
 
 ## API 一览

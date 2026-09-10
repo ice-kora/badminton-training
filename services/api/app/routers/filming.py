@@ -3,6 +3,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.database import get_db
 from app.models import FilmingGuide
 from app.schemas import FilmingGuideOut
@@ -17,6 +18,7 @@ def get_filming_guides(skill_id: int, db: Session = Depends(get_db)):
     )
     if not guides:
         raise HTTPException(status_code=404, detail="该技能暂无拍摄引导")
+    settings = get_settings()
     result = []
     for g in guides:
         checklist: list[str] = []
@@ -45,7 +47,12 @@ def get_filming_guides(skill_id: int, db: Session = Depends(get_db)):
             ["full_body", "distance_ok", "racket_visible"],
         )
         min_short = policy.get("min_short_side", g.min_short_side or 720)
-        min_bri = float(policy.get("min_brightness", g.min_brightness or 40))
+        default_bri = (
+            g.min_brightness
+            if g.min_brightness is not None
+            else settings.precheck_min_brightness
+        )
+        min_bri = float(policy.get("min_brightness", default_bri))
         result.append(
             FilmingGuideOut(
                 id=g.id,

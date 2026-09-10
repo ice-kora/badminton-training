@@ -98,6 +98,32 @@ def _parse_json_form(raw: Optional[str], field: str) -> dict[str, Any]:
     return data
 
 
+def _truthy_form(raw: Optional[str]) -> bool:
+    if raw is None:
+        return False
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _brightness_override_requested(
+    *,
+    force_upload: Optional[str],
+    precheck_override: Optional[str],
+    accept_quality_risk: Optional[str],
+) -> bool:
+    """Client may request brightness-only skip; never a blanket precheck bypass.
+
+    Accepted signals: precheck_override=brightness, accept_quality_risk=true|brightness,
+    or force_upload=true. run_precheck still hard-blocks duration/resolution/orientation.
+    """
+    override = (precheck_override or "").strip().lower()
+    if override in {"brightness", "brightness_only"}:
+        return True
+    risk = (accept_quality_risk or "").strip().lower()
+    if risk in {"1", "true", "yes", "on", "brightness", "brightness_only"}:
+        return True
+    return _truthy_form(force_upload)
+
+
 def _guide_for_skill(db: Session, skill_id: int) -> Optional[FilmingGuide]:
     return (
         db.query(FilmingGuide)
@@ -311,6 +337,9 @@ async def precheck_video(
     skill_id: int = Form(...),
     client_checklist_json: Optional[str] = Form(None),
     frame_coverage_hints_json: Optional[str] = Form(None),
+    force_upload: Optional[str] = Form(None),
+    precheck_override: Optional[str] = Form(None),
+    accept_quality_risk: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -322,6 +351,11 @@ async def precheck_video(
     guide = _guide_for_skill(db, skill_id)
     checklist = _parse_json_form(client_checklist_json, "client_checklist_json")
     hints = _parse_json_form(frame_coverage_hints_json, "frame_coverage_hints_json")
+    bri_override = _brightness_override_requested(
+        force_upload=force_upload,
+        precheck_override=precheck_override,
+        accept_quality_risk=accept_quality_risk,
+    )
 
     suffix = Path(file.filename or "clip.mp4").suffix or ".mp4"
     tmp = _save_upload_temp(file, suffix=suffix)
@@ -333,6 +367,8 @@ async def precheck_video(
             client_checklist=checklist,
             client_hints=hints,
             relax_orientation=settings.precheck_relax_orientation,
+            brightness_override=bri_override,
+            min_brightness=settings.precheck_min_brightness,
         )
     finally:
         tmp.unlink(missing_ok=True)
@@ -347,6 +383,9 @@ async def upload_video(
     client_checklist_json: Optional[str] = Form(None),
     frame_coverage_hints_json: Optional[str] = Form(None),
     handedness: Optional[str] = Form(None),
+    force_upload: Optional[str] = Form(None),
+    precheck_override: Optional[str] = Form(None),
+    accept_quality_risk: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -372,6 +411,11 @@ async def upload_video(
     guide = _guide_for_skill(db, skill_id)
     checklist = _parse_json_form(client_checklist_json, "client_checklist_json")
     hints = _parse_json_form(frame_coverage_hints_json, "frame_coverage_hints_json")
+    bri_override = _brightness_override_requested(
+        force_upload=force_upload,
+        precheck_override=precheck_override,
+        accept_quality_risk=accept_quality_risk,
+    )
 
     original_name = file.filename or "clip.mp4"
     suffix = Path(original_name).suffix or ".mp4"
@@ -384,6 +428,8 @@ async def upload_video(
             client_checklist=checklist,
             client_hints=hints,
             relax_orientation=settings.precheck_relax_orientation,
+            brightness_override=bri_override,
+            min_brightness=settings.precheck_min_brightness,
         )
         if not report["passed"]:
             raise HTTPException(
@@ -430,6 +476,13 @@ async def upload_video(
             message="",
         )
         apply_pose_queued(job)
+        if report.get("override"):
+            ov = report["override"]
+            job.message = (
+                (job.message or "")
+                + f" precheck_override={ov.get('precheck_override')} "
+                + "accept_quality_risk=true；亮度门禁已用户确认放行。"
+            )
         if bv_id:
             job.message = (
                 (job.message or "")

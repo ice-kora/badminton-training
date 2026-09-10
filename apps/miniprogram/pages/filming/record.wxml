@@ -46,15 +46,25 @@
     <view class="card-title">已选视频</view>
     <video src="{{videoPath}}" controls style="width:100%;"></video>
     <view class="muted">{{videoInfo}}</view>
-    <view class="btn-primary" style="margin-top:16rpx;" bindtap="doUpload" wx:if="{{!uploading}}">上传并预检</view>
-    <view class="muted" wx:else>上传中…</view>
+    <view class="btn-primary" style="margin-top:16rpx;" bindtap="doUpload" wx:if="{{!uploading && !failChecks.length}}">上传并预检</view>
+    <view class="muted" wx:if="{{uploading}}">上传中…</view>
   </view>
 
   <view class="card" wx:if="{{failChecks.length}}">
-    <view class="card-title" style="color:#b91c1c;">预检未通过 — 请重拍</view>
+    <view class="card-title" style="color:#b91c1c;">{{brightnessOnlyFail ? '光线偏暗' : '预检未通过 — 请重拍'}}</view>
     <view wx:for="{{failChecks}}" wx:key="id" class="fail-item">
       · {{item.friendly || item.message}}
     </view>
+    <view class="muted" wx:if="{{brightnessOnlyFail}}" style="margin-top:12rpx;">
+      暗场馆常见。优先重拍到更亮处；若无法改善，可确认风险后仍要上传（时长/分辨率/朝向仍须合格）。
+    </view>
+    <view class="btn-primary" style="margin-top:20rpx;" bindtap="retake">重新拍</view>
+    <view
+      class="btn-ghost"
+      style="margin-top:16rpx;"
+      wx:if="{{brightnessOnlyFail && !uploading}}"
+      bindtap="doUploadForce"
+    >仍要上传（可能影响分析精度）</view>
   </view>
 
   <view class="muted" wx:if="{{error}}">{{error}}</view>

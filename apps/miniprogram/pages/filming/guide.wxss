@@ -47,3 +47,93 @@
   background: #2563eb;
   color: #fff;
 }
+
+/* Best camera angle mini-map (top-down, semi-transparent) */
+.angle-map {
+  margin: 16rpx 0 12rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background: rgba(241, 245, 249, 0.85);
+  border: 1rpx solid #e2e8f0;
+}
+.angle-map.mirror .court {
+  transform: scaleX(-1);
+}
+.angle-map.mirror .player-label,
+.angle-map.mirror .phone-label {
+  transform: scaleX(-1);
+}
+.court {
+  position: relative;
+  height: 320rpx;
+  margin: 16rpx;
+  border: 2rpx solid rgba(148, 163, 184, 0.55);
+  border-radius: 12rpx;
+  background: linear-gradient(180deg, rgba(226, 232, 240, 0.5), rgba(203, 213, 225, 0.35));
+}
+.net {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 48%;
+  height: 0;
+  border-top: 2rpx dashed rgba(100, 116, 139, 0.55);
+}
+.player-dot {
+  position: absolute;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.55);
+  left: 46%;
+  top: 62%;
+}
+.player-label {
+  position: absolute;
+  left: 42%;
+  top: 76%;
+  font-size: 20rpx;
+  color: #475569;
+}
+.phone-mark {
+  position: absolute;
+  right: 14%;
+  bottom: 10%;
+  width: 80rpx;
+  height: 80rpx;
+}
+.phone-body {
+  width: 28rpx;
+  height: 44rpx;
+  border-radius: 6rpx;
+  background: rgba(15, 23, 42, 0.55);
+  border: 2rpx solid rgba(255, 255, 255, 0.5);
+  transform: rotate(-35deg);
+  margin-left: 20rpx;
+}
+.phone-ray {
+  position: absolute;
+  left: -10rpx;
+  top: -8rpx;
+  width: 0;
+  height: 0;
+  border-left: 36rpx solid transparent;
+  border-right: 36rpx solid transparent;
+  border-bottom: 70rpx solid rgba(59, 130, 246, 0.18);
+  transform: rotate(20deg);
+}
+.phone-label {
+  position: absolute;
+  right: 8%;
+  bottom: 2%;
+  font-size: 20rpx;
+  color: #334155;
+}
+.angle-copy {
+  font-size: 26rpx;
+  color: #334155;
+  line-height: 1.55;
+}
+.angle-copy strong {
+  font-weight: 600;
+}

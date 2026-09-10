@@ -10,6 +10,28 @@
     <view class="muted">默认右手；可随时切换，录制页同步。</view>
   </view>
 
+  <view class="card">
+    <view class="card-title">推荐机位 · 俯视示意</view>
+    <view class="angle-map {{handedness==='left'?'mirror':''}}">
+      <view class="court">
+        <view class="net"></view>
+        <view class="player-dot"></view>
+        <view class="player-label">球员</view>
+        <view class="phone-mark">
+          <view class="phone-body"></view>
+          <view class="phone-ray"></view>
+        </view>
+        <view class="phone-label">手机 · 后侧约 45°</view>
+      </view>
+    </view>
+    <view class="angle-copy">
+      <view>· 手机放在持拍手同侧的后斜约 45°，约腰高，全身入画。</view>
+      <view wx:if="{{handedness==='right'}}">· 右手持拍：机位在球员右后方（示意已按右手默认）。</view>
+      <view wx:else>· 左手持拍：请镜像放置——机位在球员左后方。</view>
+      <view class="muted" style="margin-top:8rpx;">2D 评分为图像平面近似（image-plane proxy），机位越好越可信；本示意不是真 3D 重建。</view>
+    </view>
+  </view>
+
   <block wx:for="{{guides}}" wx:key="id">
     <view class="card">
       <view class="card-title">参考画面</view>

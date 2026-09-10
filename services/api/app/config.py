@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     upload_dir: str = str(_API_ROOT / "data" / "uploads")
     # Local acceptance: set PRECHECK_RELAX_ORIENTATION=true to allow landscape.
     precheck_relax_orientation: bool = False
+    # OpenCV mean-luminance gate (0–255). Gyms are often dim; users may override
+    # brightness-only failures via force_upload / precheck_override=brightness.
+    precheck_min_brightness: float = 40.0
     # Pose extraction (keypoints only — never scoring)
     pose_extractor: str = "auto"  # auto|mediapipe|fake|null
     pose_max_seconds: int = 60

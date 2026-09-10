@@ -7,7 +7,7 @@ const LIVE_MAX_SEC = 60
 const FRIENDLY_FAIL = {
   duration: '时长不合适：请重拍 5–60 秒的完整击球短视频。',
   resolution: '画面不够清晰：请提高拍摄分辨率（短边建议 ≥ 720）。',
-  brightness: '光线偏暗：请到更亮的场地，避免逆光重拍。',
+  brightness: '球馆光线偏暗：建议到更亮处重拍；若现场无法改善，可仍要上传（可能影响分析精度）。',
   orientation: '请竖屏拍摄：把手机竖过来再录一段。',
   probe: '视频打不开：请换一个常见格式（如 mp4）再试。',
 }
@@ -26,6 +26,14 @@ function friendlyFailMessage(check) {
   return (check && check.message) || '预检未通过，请按提示重拍'
 }
 
+function isBrightnessOnlyFails(fails) {
+  return (
+    Array.isArray(fails) &&
+    fails.length > 0 &&
+    fails.every((c) => c && c.id === 'brightness')
+  )
+}
+
 Page({
   data: {
     skillId: '',
@@ -40,6 +48,7 @@ Page({
     videoInfo: '',
     uploading: false,
     failChecks: [],
+    brightnessOnlyFail: false,
     error: '',
   },
   onLoad(q) {
@@ -87,6 +96,7 @@ Page({
             videoPath: f.tempFilePath,
             videoInfo,
             failChecks: [],
+            brightnessOnlyFail: false,
             error: `视频约 ${dur.toFixed(1)} 秒，超过 60 秒上限，请换 5–60 秒短视频`,
           })
           wx.showToast({ title: '视频过长，请重选', icon: 'none' })
@@ -96,6 +106,7 @@ Page({
           videoPath: f.tempFilePath,
           videoInfo,
           failChecks: [],
+          brightnessOnlyFail: false,
           error: '',
         })
       },
@@ -117,6 +128,7 @@ Page({
                 videoPath: f.tempFilePath,
                 videoInfo: `约 ${dur}s · ${f.width || '?'}x${f.height || '?'}`,
                 failChecks: [],
+                brightnessOnlyFail: false,
                 error: '',
               })
             },
@@ -128,12 +140,26 @@ Page({
       },
     })
   },
-  doUpload() {
+  retake() {
+    this.setData({
+      videoPath: '',
+      videoInfo: '',
+      failChecks: [],
+      brightnessOnlyFail: false,
+      error: '',
+    })
+    this.chooseMedia()
+  },
+  doUploadForce() {
+    this.doUpload({ forceBrightness: true })
+  },
+  doUpload(opts) {
+    const forceBrightness = !!(opts && opts.forceBrightness)
     if (!this.data.videoPath) {
       wx.showToast({ title: '请先选择视频', icon: 'none' })
       return
     }
-    this.setData({ uploading: true, failChecks: [], error: '' })
+    this.setData({ uploading: true, failChecks: [], brightnessOnlyFail: false, error: '' })
     const tipsAck = {}
     SOFT_TIPS.forEach((_, i) => {
       tipsAck[`tip_${i}`] = true
@@ -161,6 +187,11 @@ Page({
               }
               if (this.data.baselineVideoId) {
                 fd.baseline_video_id = String(this.data.baselineVideoId)
+              }
+              if (forceBrightness) {
+                fd.force_upload = 'true'
+                fd.precheck_override = 'brightness'
+                fd.accept_quality_risk = 'true'
               }
               return fd
             })(),
@@ -199,9 +230,14 @@ Page({
           const fails = detail.precheck.checks
             .filter((c) => c.status === 'fail')
             .map((c) => ({ ...c, friendly: friendlyFailMessage(c) }))
+          const brightnessOnlyFail = isBrightnessOnlyFails(fails)
           this.setData({
             failChecks: fails,
-            error: detail.message || '预检未通过，请按下方提示重拍',
+            brightnessOnlyFail,
+            error:
+              brightnessOnlyFail
+                ? '球馆偏暗：可重拍，或确认风险后仍要上传'
+                : detail.message || '预检未通过，请按下方提示重拍',
           })
         } else {
           const msg =

@@ -138,15 +138,24 @@ def run_precheck(
     client_checklist: Optional[dict[str, Any]] = None,
     client_hints: Optional[dict[str, Any]] = None,
     relax_orientation: bool = False,
+    brightness_override: bool = False,
+    min_brightness: Optional[float] = None,
 ) -> dict[str, Any]:
     """
     Return structured precheck report.
     Hard-fail required engineering checks block upload.
     Pose-related items are deferred_to_pose / client_checklist_only.
+
+    brightness_override: when True, brightness-only failures become status
+    ``overridden`` (accept_quality_risk) and do not block ``passed``.
+    Duration / resolution / orientation remain hard gates.
+    min_brightness: optional env/policy override for the luminance threshold.
     """
     policy = _policy_from_guide(guide)
     if relax_orientation:
         policy["relax_orientation"] = True
+    if min_brightness is not None:
+        policy["min_brightness"] = float(min_brightness)
     client_checklist = client_checklist or {}
     client_hints = client_hints or {}
     checks: list[dict[str, Any]] = []
@@ -408,6 +417,45 @@ def run_precheck(
             )
 
     required = set(policy.get("required_checks") or [])
+
+    # Brightness-only override: dim gyms may proceed with accept_quality_risk.
+    # Never skip duration / resolution / orientation (or probe) via this flag.
+    override_meta: Optional[dict[str, Any]] = None
+    if brightness_override:
+        hard_eng_fails = [
+            c
+            for c in checks
+            if c["status"] == "fail"
+            and c["id"] in required
+            and c["id"] != "brightness"
+        ]
+        bri = next((c for c in checks if c["id"] == "brightness"), None)
+        probe_fail = any(c["id"] == "probe" and c["status"] == "fail" for c in checks)
+        if (
+            bri is not None
+            and bri["status"] == "fail"
+            and not hard_eng_fails
+            and not probe_fail
+        ):
+            bri["status"] = "overridden"
+            bri["message"] = (
+                bri["message"]
+                + "（用户确认仍要上传，可能影响分析精度）"
+            )
+            bri["evidence"] = {
+                **(bri.get("evidence") or {}),
+                "overridden": True,
+                "precheck_override": "brightness",
+                "accept_quality_risk": True,
+            }
+            override_meta = {
+                "accepted": ["brightness"],
+                "precheck_override": "brightness",
+                "force_upload": True,
+                "accept_quality_risk": True,
+                "note": "brightness-only override; other engineering gates still apply",
+            }
+
     hard_failed = any(
         c["id"] in required and c["status"] == "fail" for c in checks
     )
@@ -416,7 +464,7 @@ def run_precheck(
         c["id"] == "probe" and c["status"] == "fail" for c in checks
     )
 
-    return {
+    report: dict[str, Any] = {
         "passed": not hard_failed,
         "checks": checks,
         "probe": {
@@ -431,3 +479,6 @@ def run_precheck(
         },
         "policy": policy,
     }
+    if override_meta is not None:
+        report["override"] = override_meta
+    return report

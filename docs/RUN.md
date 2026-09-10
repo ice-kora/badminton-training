@@ -77,6 +77,10 @@ curl -X POST http://127.0.0.1:8000/videos/upload   -H "Authorization: Bearer $TO
 
 本地文件落在 `services/api/data/uploads/`（已 gitignore 内容）。
 
+亮度门禁默认 mean luminance ≥ 40（`PRECHECK_MIN_BRIGHTNESS`）。暗场馆可在仅亮度失败时带
+`force_upload=true` + `precheck_override=brightness`（或 `accept_quality_risk=true`）上传；
+时长/分辨率/朝向仍硬失败。朝向本地放宽：`PRECHECK_RELAX_ORIENTATION=true`。
+
 ## 视频 / 任务历史
 
 ```bash
