@@ -29,3 +29,12 @@ services/api/data/precheck_out/
 .env.*
 !.env.example
 services/api/data/private/
+
+# WeChat DevTools per-machine state (never commit; keep on disk)
+**/project.private.config.json
+# Debris guard: DevTools opened at repo root — real config lives in apps/miniprogram/
+/project.config.json
+/project.private.config.json
+# SQLite WAL sidecars (runtime, follow the already-ignored *.db)
+services/api/data/*.db-shm
+services/api/data/*.db-wal
