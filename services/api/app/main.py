@@ -31,6 +31,13 @@ from app.routers import (
 from app.services.viewer3d.glb import write_stick_figure_glb
 
 
+
+def _ensure_drill_demo_assets() -> Path:
+    """Stick-figure demo GIFs for drills (示意动图，非真人教练)."""
+    static_dir = Path(__file__).resolve().parent / "static" / "drills"
+    static_dir.mkdir(parents=True, exist_ok=True)
+    return static_dir
+
 def _ensure_viewer3d_assets() -> Path:
     """Write synthetic_demo stick GLB next to static HTML on startup."""
     static_dir = Path(__file__).resolve().parent / "static" / "viewer3d"
@@ -52,6 +59,7 @@ async def lifespan(_app: FastAPI):
         (api_root / "data" / "uploads").mkdir(parents=True, exist_ok=True)
     init_db()
     _ensure_viewer3d_assets()
+    _ensure_drill_demo_assets()
     # Optional lightweight in-API poller (POSE_EXTRACT_BACKGROUND=true)
     start_background_worker()
     try:
@@ -97,6 +105,14 @@ def create_app() -> FastAPI:
         StaticFiles(directory=str(static_dir), html=True),
         name="viewer3d_static",
     )
+
+    drills_dir = _ensure_drill_demo_assets()
+    app.mount(
+        "/static/drills",
+        StaticFiles(directory=str(drills_dir)),
+        name="drills_static",
+    )
+
     return app
 
 

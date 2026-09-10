@@ -145,6 +145,19 @@ def _template_anchors_ms(
     return anchors, inferred_total
 
 
+
+def _pace_label(delta_ms: Optional[int], stage_name: str, tmpl_seg_ms: int) -> Optional[str]:
+    """Human pace hint for amateurs — only when delta is meaningfully large."""
+    if delta_ms is None:
+        return None
+    thr = max(80, int(0.25 * tmpl_seg_ms) if tmpl_seg_ms else 80)
+    if abs(int(delta_ms)) < thr:
+        return None
+    short = (stage_name or "该阶段").strip() or "该阶段"
+    # Prefer short stage nouns amateurs know
+    return f"{short}偏慢" if int(delta_ms) > 0 else f"{short}偏快"
+
+
 def build_stage_timeline(
     pose_json: dict[str, Any] | str | Path,
     *,
@@ -219,10 +232,11 @@ def build_stage_timeline(
         if has_template_timing:
             # Scale-invariant duration delta on absolute template clock
             delta = int(user_seg - tmpl_seg)
+        seg_name = str(st.get("name") or st["code"])
         segments.append(
             {
                 "code": str(st["code"]),
-                "name": str(st.get("name") or st["code"]),
+                "name": seg_name,
                 "sort_order": int(st.get("sort_order") or (i + 1)),
                 "t0_ms": u0,
                 "t1_ms": u1,
@@ -231,10 +245,11 @@ def build_stage_timeline(
                 "template_t0_ms": ta0 if has_template_timing else None,
                 "template_t1_ms": ta1 if has_template_timing else None,
                 "delta_ms": delta,
+                "pace_label": _pace_label(delta, seg_name, tmpl_seg),
             }
         )
 
-    notice = "阶段时间轴为相对时序启发式切分，非专家标注"
+    notice = "动作阶段示意（引拍→挥拍→击球→随挥），非实验室毫秒标定"
     if benchmark_kind == "synthetic_demo":
         notice += " · synthetic_demo"
     elif benchmark_kind == "literature_cited":

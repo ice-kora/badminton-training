@@ -71,13 +71,27 @@
       <view class="rate-btn" data-delta="2" bindtap="seekBy">+2s</view>
     </view>
     <view class="row" style="margin-top:12rpx;" wx:if="{{overlayAvailable || poseExtracted}}">
-      <view class="btn-ghost tiny" bindtap="toggleOverlay">{{showOverlay ? '隐藏骨架/叠加' : '显示骨架/叠加'}}</view>
-      <view class="btn-ghost tiny" bindtap="goDetail">详情对比</view>
+      <view class="btn-ghost tiny" bindtap="goDetail">并排对比（主）</view>
+      <view class="btn-ghost tiny" bindtap="toggleOverlay">{{showOverlay ? '关闭骨架提示' : '骨架叠加（可选）'}}</view>
     </view>
-    <view class="muted" wx:if="{{showOverlay}}">骨架/叠加在详情页更完整；此处链到现有预览与复测。</view>
+    <view class="muted" wx:if="{{showOverlay}}">骨架默认关闭；详情页可选手动打开叠加。</view>
   </view>
 
   <view class="muted" wx:if="{{error}}">{{error}}</view>
+
+
+  <!-- Drill demo loop -->
+  <view class="card" wx:if="{{scored && (demoUrl || ctaDrill)}}">
+    <view class="card-title">看示范</view>
+    <block wx:if="{{demoUrl}}">
+      <image class="demo-media" src="{{demoUrl}}" mode="aspectFit" lazy-load />
+      <view class="muted honesty">示意动图（非真人教练）</view>
+    </block>
+    <view class="demo-placeholder" wx:else bindtap="goDrill">
+      <text class="muted">看示范</text>
+      <text class="muted honesty">示意动图暂缺 · 非真人教练</text>
+    </view>
+  </view>
 
   <!-- sticky CTAs -->
   <view class="sticky-cta">

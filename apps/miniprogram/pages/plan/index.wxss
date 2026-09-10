@@ -1,1 +1,33 @@
-/* plan */
+.today-hero .hero-kicker {
+  font-size: 22rpx;
+  color: #64748b;
+  margin-bottom: 8rpx;
+}
+.hero-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+.hero-actions .btn-primary,
+.hero-actions .btn-ghost {
+  flex: 1;
+}
+.collapse-head {
+  margin: 12rpx 0 8rpx;
+  padding: 8rpx 4rpx;
+}
+.soft-day {
+  opacity: 0.95;
+  border-style: dashed;
+}
+.soft-checkin {
+  font-size: 24rpx;
+  padding: 12rpx 20rpx;
+  color: #64748b;
+}
+.collapse-hint {
+  margin-bottom: 16rpx;
+}
+.btn-ghost.tiny {
+  display: inline-block;
+}

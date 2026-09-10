@@ -1,29 +1,49 @@
 <view class="container">
   <view class="banner-note">计划由规则模板生成，不是姿态 AI 分析结果。</view>
 
+  <!-- Lead: today's priority + film CTA -->
+  <view class="card today-hero">
+    <view class="hero-kicker">今日优先练</view>
+    <view class="card-title" wx:if="{{todayFocus}}">{{todayFocus}}</view>
+    <view class="card-title" wx:else>先拍一段，拿到真实问题</view>
+    <view class="muted" wx:if="{{todayHint}}">{{todayHint}}</view>
+    <view class="hero-actions">
+      <view class="btn-primary" bindtap="goFilm">去拍摄</view>
+      <view class="btn-ghost" wx:if="{{ctaDrillCode}}" bindtap="goDrill">看示范练习</view>
+    </view>
+  </view>
+
   <view wx:if="{{!plan}}" class="card">
     <view class="card-title">暂无计划</view>
-    <view class="muted">完成水平测试后生成 7 日训练计划。</view>
-    <view class="btn-primary" style="margin-top:20rpx;" bindtap="goTest">去水平测试</view>
+    <view class="muted">完成水平测试后生成 7 日训练计划（可选）。</view>
+    <view class="btn-ghost" style="margin-top:20rpx;" bindtap="goTest">去水平测试</view>
   </view>
 
   <block wx:else>
-    <view class="card">
+    <view class="card plan-meta">
       <view class="card-title">{{plan.title}}</view>
       <view class="muted">{{plan.start_date}} ~ {{plan.end_date}} · {{plan.level}}</view>
       <view class="muted" style="margin-top:8rpx;">{{plan.rationale}}</view>
     </view>
 
-    <view class="card" wx:for="{{plan.days}}" wx:key="id">
-      <view class="row">
-        <view class="card-title" style="margin:0;">第 {{item.day_index}} 日</view>
-        <text class="tag">{{item.duration_minutes}} 分钟</text>
-      </view>
-      <view>{{item.focus}}</view>
-      <view class="muted">{{item.notes}}</view>
-      <view class="btn-ghost" style="margin-top:16rpx;" bindtap="checkIn" data-day="{{item.id}}">打卡完成</view>
+    <view class="row collapse-head" bindtap="toggleDays">
+      <view class="section-title" style="margin:0;">七日安排</view>
+      <text class="muted">{{showDays ? '收起' : '展开'}} · 可选记录</text>
     </view>
 
-    <view class="btn-ghost" bindtap="goTest">重新水平测试</view>
+    <block wx:if="{{showDays}}">
+      <view class="card soft-day" wx:for="{{plan.days}}" wx:key="id">
+        <view class="row">
+          <view class="card-title" style="margin:0;">第 {{item.day_index}} 日</view>
+          <text class="tag">{{item.duration_minutes}} 分钟</text>
+        </view>
+        <view>{{item.focus}}</view>
+        <view class="muted">{{item.notes}}</view>
+        <view class="btn-ghost tiny soft-checkin" style="margin-top:16rpx;" bindtap="checkIn" data-day="{{item.id}}">可选记录 · 打卡</view>
+      </view>
+    </block>
+    <view class="muted collapse-hint" wx:else>日卡打卡已折叠；优先「今日优先练 / 去拍摄」。</view>
+
+    <view class="btn-ghost" style="margin-top:16rpx;" bindtap="goTest">重新水平测试</view>
   </block>
 </view>

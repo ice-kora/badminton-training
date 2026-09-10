@@ -72,10 +72,13 @@ def derive_cta_drill(
         if drills:
             d0 = drills[0]
             if isinstance(d0, dict):
+                media = d0.get("demo_media_url") or d0.get("demo_gif_url")
                 return {
                     "id": d0.get("id"),
                     "code": d0.get("code"),
                     "name": d0.get("name") or d0.get("code") or "推荐练习",
+                    "demo_media_url": media,
+                    "demo_gif_url": d0.get("demo_gif_url") or media,
                 }
         codes = p.drill_codes or []
         if codes:

@@ -93,3 +93,20 @@
   font-size: 22rpx;
   color: #64748b;
 }
+
+.demo-media {
+  width: 100%;
+  height: 360rpx;
+  background: #0f172a;
+  border-radius: 12rpx;
+}
+.demo-placeholder {
+  padding: 28rpx;
+  background: #0f172a;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  align-items: center;
+}
+.honesty { font-size: 22rpx; margin-top: 8rpx; }

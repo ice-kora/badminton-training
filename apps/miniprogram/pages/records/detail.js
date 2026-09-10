@@ -30,6 +30,27 @@ function formatDuration(ms) {
   return `${Math.round(ms / 1000)} 秒`
 }
 
+
+function humanizeStageSegment(s, index) {
+  const name = s.name || s.code || ('阶段' + (index + 1))
+  const pace = s.pace_label || ''
+  let paceLabel = pace
+  if (!paceLabel && s.delta_ms != null) {
+    const d = Number(s.delta_ms)
+    const thr = 80
+    if (Math.abs(d) >= thr) {
+      paceLabel = d > 0 ? (name + '偏慢') : (name + '偏快')
+    }
+  }
+  return {
+    ...s,
+    stageOrderLabel: '第' + (index + 1) + '段 · ' + name,
+    paceLabel,
+    // keep deltaText empty for amateurs (no lab ms)
+    deltaText: '',
+  }
+}
+
 function checkClass(status) {
   if (status === 'pass') return 'check-pass'
   if (status === 'fail') return 'check-fail'
@@ -90,8 +111,8 @@ Page({
     videoUrl: '',
     playbackRate: 1,
     playerTime: 0,
-    showSkeleton: true,
-    showOverlayPanel: true,
+    showSkeleton: false,
+    showOverlayPanel: false,
   },
   _canvas: null,
   _ctx: null,
@@ -150,14 +171,9 @@ Page({
           (score && score.banner) ||
           bannerForKind(isLiteratureCited ? 'literature_cited' : isSyntheticDemo ? 'synthetic_demo' : '', '')
         const stageTimeline = video.stage_timeline || null
-        const stageSegments = ((stageTimeline && stageTimeline.segments) || []).map((s) => {
-          const d = s.delta_ms
-          let deltaText = ''
-          if (d != null) {
-            deltaText = (d > 0 ? '+' : '') + d + ' ms'
-          }
-          return { ...s, deltaText }
-        })
+        const stageSegments = ((stageTimeline && stageTimeline.segments) || []).map((s, i) =>
+          humanizeStageSegment(s, i)
+        )
         const overlayAvailable = !!(video.overlay_available || poseExtracted)
         this.setData({
           loading: false,
@@ -191,12 +207,7 @@ Page({
           overlayFrame: 0,
           overlayMax: Math.max(0, frameCount - 1),
         })
-        if (poseExtracted) {
-          wx.nextTick(() => this.initCanvasAndLoad(0))
-        }
-        if (overlayAvailable) {
-          wx.nextTick(() => this.initOverlayCanvasAndLoad(0))
-        }
+        // Skeleton / overlay default OFF — load only when user opts in
         if (canCompare) {
           wx.nextTick(() => this.initCompareCanvasesAndLoad(0))
         }
@@ -217,11 +228,11 @@ Page({
   },
   goDrill(e) {
     const code = e.currentTarget.dataset.code
-    wx.showToast({
-      title: code ? `练习 ${code}` : '查看练习',
-      icon: 'none',
-    })
-    wx.navigateTo({ url: '/pages/plan/index' })
+    if (code) {
+      wx.navigateTo({ url: `/pages/drills/detail?code=${code}` })
+      return
+    }
+    wx.switchTab({ url: '/pages/plan/index' })
   },
   initCanvasAndLoad(frame) {
     const query = wx.createSelectorQuery()
@@ -450,12 +461,9 @@ Page({
           patch.isLiteratureCited = body.benchmark_kind === 'literature_cited'
         }
         if (body.stage_timeline && body.stage_timeline.segments && !this.data.stageSegments.length) {
-          patch.stageSegments = body.stage_timeline.segments.map((s) => {
-            const d = s.delta_ms
-            let deltaText = ''
-            if (d != null) deltaText = (d > 0 ? '+' : '') + d + ' ms'
-            return { ...s, deltaText }
-          })
+          patch.stageSegments = body.stage_timeline.segments.map((s, i) =>
+            humanizeStageSegment(s, i)
+          )
           patch.stageNotice = body.stage_timeline.notice || ''
         }
         this.setData(patch)
@@ -574,9 +582,17 @@ Page({
     this.setData({ playerTime: e.detail.currentTime || 0 })
   },
   toggleSkeletonMode() {
-    this.setData({ showSkeleton: !this.data.showSkeleton })
+    const next = !this.data.showSkeleton
+    this.setData({ showSkeleton: next })
+    if (next && this.data.poseExtracted) {
+      wx.nextTick(() => this.initCanvasAndLoad(this.data.previewFrame || 0))
+    }
   },
   toggleOverlayMode() {
-    this.setData({ showOverlayPanel: !this.data.showOverlayPanel })
+    const next = !this.data.showOverlayPanel
+    this.setData({ showOverlayPanel: next })
+    if (next && this.data.overlayAvailable) {
+      wx.nextTick(() => this.initOverlayCanvasAndLoad(this.data.overlayFrame || 0))
+    }
   },
 })

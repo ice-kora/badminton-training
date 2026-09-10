@@ -1,0 +1,62 @@
+.demo-card { overflow: hidden; }
+.demo-media {
+  width: 100%;
+  height: 420rpx;
+  background: #0f172a;
+  border-radius: 12rpx;
+}
+.demo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32rpx 16rpx;
+  background: #0f172a;
+  border-radius: 12rpx;
+  color: #e2e8f0;
+}
+.stick-loop {
+  position: relative;
+  width: 80rpx;
+  height: 160rpx;
+  margin-bottom: 16rpx;
+  animation: swing 1.2s ease-in-out infinite;
+}
+.stick-head {
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 50%;
+  background: #38bdf8;
+  margin: 0 auto;
+}
+.stick-body {
+  width: 6rpx;
+  height: 70rpx;
+  background: #e2e8f0;
+  margin: 4rpx auto 0;
+}
+.stick-arm {
+  position: absolute;
+  top: 44rpx;
+  left: 38rpx;
+  width: 50rpx;
+  height: 6rpx;
+  background: #e2e8f0;
+  transform-origin: left center;
+  animation: arm 1.2s ease-in-out infinite;
+}
+@keyframes swing {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+@keyframes arm {
+  0%, 100% { transform: rotate(-50deg); }
+  50% { transform: rotate(20deg); }
+}
+.honesty {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+}
+.steps {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}

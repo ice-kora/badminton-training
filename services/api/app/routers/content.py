@@ -19,6 +19,20 @@ def list_drills(
     return [DrillOut.model_validate(d) for d in q.order_by(Drill.id).all()]
 
 
+
+@router.get("/drills/{code}", response_model=DrillOut)
+def get_drill(code: str, db: Session = Depends(get_db)):
+    row = db.query(Drill).filter(Drill.code == code).one_or_none()
+    if row is None:
+        # fallback by numeric id
+        if code.isdigit():
+            row = db.query(Drill).filter(Drill.id == int(code)).one_or_none()
+    if row is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="drill_not_found")
+    return DrillOut.model_validate(row)
+
+
 @router.get("/errors", response_model=list[CommonErrorOut])
 def list_errors(
     skill_id: int | None = Query(default=None),

@@ -106,7 +106,7 @@ Page({
           speed: m.default_speed || 1,
           metaLine: `f=1/${m.frame_count} · ${m.sequence_source}`,
         })
-        wx.setNavigationBarTitle({ title: '3D 标准动作（演示）' })
+        wx.setNavigationBarTitle({ title: '3D 实验演示' })
         this.draw()
         this.startLoop()
       })

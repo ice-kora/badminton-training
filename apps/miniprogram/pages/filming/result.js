@@ -95,6 +95,7 @@ Page({
     poseExtracted: false,
     overlayAvailable: false,
     showOverlay: false,
+    demoUrl: '',
     waitTips: FALLBACK_TIPS.slice(),
     waitTipIndex: 0,
     waitTip: FALLBACK_TIPS[0],
@@ -214,6 +215,7 @@ Page({
           primarySentence,
           ctaDrill: cta,
           drillLabel,
+          demoUrl: this._resolveDemoUrl(cta),
           banner,
           isSyntheticDemo: kind === 'synthetic_demo',
           isLiteratureCited: kind === 'literature_cited',
@@ -255,9 +257,7 @@ Page({
   toggleOverlay() {
     const turningOn = !this.data.showOverlay
     this.setData({ showOverlay: turningOn })
-    if (turningOn && this.data.videoId) {
-      wx.navigateTo({ url: `/pages/records/detail?id=${this.data.videoId}` })
-    }
+    // Opt-in only: do not force overlay on detail; user opens 并排对比 when ready
   },
   goDetail() {
     if (!this.data.videoId) return
@@ -266,7 +266,8 @@ Page({
   goDrill() {
     const cta = this.data.ctaDrill
     if (cta && cta.code) {
-      wx.showToast({ title: `练习 ${cta.name || cta.code}`, icon: 'none' })
+      wx.navigateTo({ url: `/pages/drills/detail?code=${cta.code}` })
+      return
     }
     wx.switchTab({ url: '/pages/plan/index' })
   },

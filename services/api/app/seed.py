@@ -292,7 +292,14 @@ def seed(db: Session | None = None) -> None:
              "1. 中心启动上网\n2. 搓球\n3. 回中，左右交替各 8 次", 12, "medium"),
         ]
         drill_objs: list[Drill] = []
+        # Honest stick-figure loops (示意动图，非真人教练) — static API assets
+        DEMO_MEDIA = {
+            "clear_stance_hold": "/static/drills/clear_stance_hold.gif",
+            "clear_rhythm_breakdown": "/static/drills/clear_rhythm_breakdown.gif",
+            "tumble_touch": "/static/drills/tumble_touch.gif",
+        }
         for skill, code, name, goal, steps, mins, intensity in drills_data:
+            media = DEMO_MEDIA.get(code)
             d = Drill(
                 skill_id=skill.id,
                 code=code,
@@ -301,6 +308,8 @@ def seed(db: Session | None = None) -> None:
                 steps=steps,
                 duration_minutes=mins,
                 intensity=intensity,
+                demo_media_url=media,
+                demo_gif_url=media,
                 source=SRC,
                 verification_status=DRAFT,
             )

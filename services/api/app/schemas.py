@@ -135,6 +135,8 @@ class DrillOut(OrmModel, ProvenanceMixin):
     steps: str
     duration_minutes: int
     intensity: str
+    demo_media_url: Optional[str] = None
+    demo_gif_url: Optional[str] = None
 
 
 class CommonErrorOut(OrmModel, ProvenanceMixin):
@@ -507,6 +509,7 @@ class StageSegmentOut(BaseModel):
     template_t0_ms: Optional[int] = None
     template_t1_ms: Optional[int] = None
     delta_ms: Optional[int] = None
+    pace_label: Optional[str] = None
 
 
 class StageTimelineOut(BaseModel):
@@ -517,7 +520,7 @@ class StageTimelineOut(BaseModel):
     method: Optional[str] = None
     benchmark_kind: Optional[str] = None
     has_template_timing: bool = False
-    notice: str = "阶段时间轴为相对时序启发式切分，非专家标注"
+    notice: str = "动作阶段示意（引拍→挥拍→击球→随挥），非实验室毫秒标定"
 
 
 class OverlaySkeletonOut(BaseModel):

@@ -1,0 +1,37 @@
+<view class="container">
+  <view class="muted" wx:if="{{loading}}">加载中…</view>
+  <view class="muted" wx:elif="{{error}}">{{error}}</view>
+
+  <block wx:if="{{drill}}">
+    <view class="card">
+      <view class="card-title">{{drill.name}}</view>
+      <view class="muted" wx:if="{{drill.goal}}">目标：{{drill.goal}}</view>
+      <view class="muted">约 {{drill.duration_minutes}} 分钟 · {{drill.intensity}}</view>
+    </view>
+
+    <view class="card demo-card">
+      <view class="card-title">看示范</view>
+      <block wx:if="{{demoUrl}}">
+        <image class="demo-media" src="{{demoUrl}}" mode="aspectFit" lazy-load />
+        <view class="banner-note honesty">示意动图（非真人教练）· 体感请对照真人示范或现场拍摄</view>
+      </block>
+      <view class="demo-placeholder" wx:else>
+        <view class="stick-loop" aria-hidden="true">
+          <view class="stick-head"></view>
+          <view class="stick-body"></view>
+          <view class="stick-arm"></view>
+        </view>
+        <view class="muted">看示范 · 示意动图暂缺</view>
+        <view class="banner-note honesty">非真人教练画面</view>
+      </view>
+    </view>
+
+    <view class="section-title">步骤</view>
+    <view class="card">
+      <text class="steps">{{drill.steps}}</text>
+    </view>
+
+    <view class="btn-primary" bindtap="goFilm">去拍摄对照</view>
+    <view class="btn-ghost" style="margin-top:16rpx;" bindtap="goPlan">回训练页</view>
+  </block>
+</view>

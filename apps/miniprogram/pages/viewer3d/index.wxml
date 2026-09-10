@@ -1,5 +1,5 @@
 <view class="page">
-  <view class="banner">{{banner || '工程演示基准（非教练标定）'}} · 非实时</view>
+  <view class="banner">实验演示 · {{banner || '工程演示基准（非教练标定）'}} · 非实时 · 真人教练视频体感更好</view>
 
   <view class="canvas-wrap">
     <canvas

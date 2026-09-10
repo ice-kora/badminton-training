@@ -192,7 +192,16 @@ def maybe_score_after_pose(
     for p in result.problems:
         drills = _drill_rows_by_code(db, p.drill_codes)
         drill_payload = [
-            {"id": d.id, "code": d.code, "name": d.name} for d in drills
+            {
+                "id": d.id,
+                "code": d.code,
+                "name": d.name,
+                "demo_media_url": getattr(d, "demo_media_url", None)
+                or getattr(d, "demo_gif_url", None),
+                "demo_gif_url": getattr(d, "demo_gif_url", None)
+                or getattr(d, "demo_media_url", None),
+            }
+            for d in drills
         ]
         err = (
             db.query(CommonError)

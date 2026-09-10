@@ -93,6 +93,18 @@ def ensure_schema() -> None:
                     )
                 )
 
+        drill_rows = conn.execute(text("PRAGMA table_info(drills)")).fetchall()
+        if drill_rows:
+            drill_names = {r[1] for r in drill_rows}
+            if "demo_media_url" not in drill_names:
+                conn.execute(
+                    text("ALTER TABLE drills ADD COLUMN demo_media_url VARCHAR(512)")
+                )
+            if "demo_gif_url" not in drill_names:
+                conn.execute(
+                    text("ALTER TABLE drills ADD COLUMN demo_gif_url VARCHAR(512)")
+                )
+
 
 def init_db() -> None:
     """Create all tables (MVP: create_all; Alembic optional later)."""

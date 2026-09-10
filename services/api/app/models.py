@@ -160,6 +160,8 @@ class Drill(Base):
     steps: Mapped[str] = mapped_column(Text)
     duration_minutes: Mapped[int] = mapped_column(Integer, default=10)
     intensity: Mapped[str] = mapped_column(String(32), default="medium")
+    demo_media_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    demo_gif_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     source: Mapped[str] = mapped_column(String(128), default="editorial_draft")
     verification_status: Mapped[str] = mapped_column(
         String(32), default="draft_unverified"
